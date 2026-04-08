@@ -1,0 +1,77 @@
+{
+  // Provider-per-role template. configure.sh fills __*_BASE_URL__ from state/pods.json.
+  agents: {
+    defaults: {
+      model: {
+        primary: "executor/Qwen/Qwen3-14B-AWQ",
+      },
+      workspace: "~/.openclaw/workspace",
+    },
+  },
+
+  models: {
+    mode: "merge",
+    providers: {
+      executor: {
+        baseUrl: "__EXECUTOR_BASE_URL__",
+        apiKey: "${RUNPOD_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "Qwen/Qwen3-14B-AWQ",
+            name: "Foreman v2 Executor",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 32768,
+            maxTokens: 8192,
+          },
+        ],
+      },
+      planner: {
+        baseUrl: "__PLANNER_BASE_URL__",
+        apiKey: "${RUNPOD_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ",
+            name: "Foreman v2 Planner",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 65536,
+            maxTokens: 8192,
+          },
+        ],
+      },
+      embedding: {
+        baseUrl: "__EMBEDDING_BASE_URL__",
+        apiKey: "${RUNPOD_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "Qwen/Qwen3-Embedding-8B",
+            name: "Foreman v2 Embedding",
+            reasoning: false,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 32768,
+            maxTokens: 4096,
+          },
+        ],
+      },
+    },
+  },
+
+  gateway: {
+    mode: "local",
+    bind: "loopback",
+    http: {
+      endpoints: {
+        chatCompletions: { enabled: true },
+      },
+    },
+  },
+
+  channels: {},
+}
