@@ -1,0 +1,2 @@
+{"ts":"2026-04-08T22:08:35.365Z","stream":"stdout","chunk":"[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\" for this run.\n"}
+{"ts":"2026-04-08T22:08:35.366Z","stream":"stdout","chunk":"[paperclip] Skipping saved session resume for task \"edb84357-b6e8-4ee6-a7f8-1d6d8b24b9be\" because wake reason is issue_assigned.\n"}

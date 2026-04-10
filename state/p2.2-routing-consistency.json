@@ -1,0 +1,28 @@
+{
+  "checks": [
+    {
+      "role": "embedding",
+      "provider": "embedding",
+      "model_id": "Qwen/Qwen3-Embedding-8B",
+      "pod_id": "xfz6l2tqiw5sf8",
+      "base_url": "https://xfz6l2tqiw5sf8-8000.proxy.runpod.net/v1",
+      "status": "ok"
+    },
+    {
+      "role": "executor",
+      "provider": "executor",
+      "model_id": "Qwen/Qwen3-14B-AWQ",
+      "pod_id": "fm043taeerxjo2",
+      "base_url": "https://fm043taeerxjo2-8000.proxy.runpod.net/v1",
+      "status": "ok"
+    },
+    {
+      "role": "planner",
+      "provider": "planner",
+      "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+      "pod_id": "tko1uoa413myi6",
+      "base_url": "https://tko1uoa413myi6-8000.proxy.runpod.net/v1",
+      "status": "ok"
+    }
+  ]
+}

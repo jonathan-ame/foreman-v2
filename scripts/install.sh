@@ -28,18 +28,29 @@ npm install -g --loglevel=error openclaw@latest
 
 echo "Attempting daemon onboarding..."
 onboard_help="$(openclaw onboard --help 2>&1 || true)"
+onboard_ok=false
 if [[ "${onboard_help}" == *"--yes"* ]]; then
   if openclaw onboard --install-daemon --yes; then
     echo "OpenClaw onboarding completed non-interactively."
+    onboard_ok=true
   else
-    echo "WARNING: Non-interactive onboarding failed." >&2
-    echo "Run this manually: openclaw onboard --install-daemon" >&2
+    echo "ERROR: Non-interactive onboarding failed." >&2
+    echo "Run this manually and then re-run install.sh verification steps:" >&2
+    echo "  openclaw onboard --install-daemon" >&2
+    exit 1
   fi
 else
   echo "OpenClaw onboarding appears interactive on this version."
-  echo "Run this manually in your terminal: openclaw onboard --install-daemon"
+  echo "Run this manually in your terminal: openclaw onboard --install-daemon" >&2
+  echo "ERROR: install.sh cannot verify onboarding non-interactively on this OpenClaw version." >&2
+  exit 1
 fi
 
 echo
 echo "Next step:"
 echo "  cd \"${ROOT_DIR}\" && ./scripts/configure.sh"
+if [[ "${onboard_ok}" == true ]]; then
+  echo "Install verification: onboarding completed."
+else
+  echo "Install verification: onboarding requires manual completion on this OpenClaw version."
+fi

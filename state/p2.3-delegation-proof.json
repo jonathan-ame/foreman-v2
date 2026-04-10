@@ -1,0 +1,19 @@
+{
+  "parent_issue": {
+    "id": "ae527462-ab1e-4362-a62d-28ae885a0563",
+    "identifier": "FOR-3",
+    "assignee": "2ffc0df3-83be-4fcf-a7ee-73e20570ea4e"
+  },
+  "child_issue": {
+    "id": "6e292396-541e-424d-b5a7-229ea9408ad2",
+    "identifier": "FOR-4",
+    "assignee": "788dfd8a-d944-4a3c-a1be-a8d30bb1dfde",
+    "parentId": "ae527462-ab1e-4362-a62d-28ae885a0563"
+  },
+  "engineering_run": {
+    "id": "42716d3a-802b-4216-b215-c87466194f04",
+    "status": "succeeded",
+    "error": null,
+    "stdout": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/788dfd8a-d944-4a3c-a1be-a8d30bb1dfde\" for this run.\nHEARTBEAT_OK:executor\n"
+  }
+}

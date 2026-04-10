@@ -157,10 +157,12 @@ if cli.guarded:
         print("Aborted by user before sending any DELETE requests.")
         raise SystemExit(1)
 
-headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json", "User-Agent": "foreman-v2/1.0 (teardown.sh)"}
 failures = []
 successes = []
 failed_entries = []
+processed_pod_ids = set()
+interrupted = False
 
 
 def fetch_pod_state(pod_id: str) -> tuple[int, dict | str]:
@@ -223,35 +225,48 @@ def dashboard_url(pod_id: str) -> str:
     return f"https://runpod.io/console/pods/{pod_id}"
 
 for pod in targets:
-    pod_id = str(pod.get("pod_id") or "").strip()
-    logical_name = str(pod.get("logical_name") or "unknown")
-    base_url = str(pod.get("base_url") or "")
-    if not pod_id:
-        failures.append((logical_name, "<missing-id>", "missing pod_id in state file", ""))
-        failed_entries.append(pod)
-        continue
-
-    req = urllib.request.Request(f"{rest_base}/pods/{pod_id}", headers=headers, method="DELETE")
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            status = resp.getcode()
-            if status not in {200, 202, 204}:
-                failures.append((logical_name, pod_id, f"unexpected HTTP {status}", dashboard_url(pod_id)))
-                failed_entries.append(pod)
-            else:
-                ok, reason = verify_termination(pod_id)
-                if ok:
-                    successes.append((logical_name, pod_id, reason, base_url))
-                else:
-                    failures.append((logical_name, pod_id, f"delete accepted but verification failed: {reason}", dashboard_url(pod_id)))
+        pod_id = str(pod.get("pod_id") or "").strip()
+        logical_name = str(pod.get("logical_name") or "unknown")
+        base_url = str(pod.get("base_url") or "")
+        if not pod_id:
+            failures.append((logical_name, "<missing-id>", "missing pod_id in state file", ""))
+            failed_entries.append(pod)
+            processed_pod_ids.add(pod_id)
+            continue
+
+        req = urllib.request.Request(f"{rest_base}/pods/{pod_id}", headers=headers, method="DELETE")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as resp:
+                status = resp.getcode()
+                if status not in {200, 202, 204}:
+                    failures.append((logical_name, pod_id, f"unexpected HTTP {status}", dashboard_url(pod_id)))
                     failed_entries.append(pod)
-    except urllib.error.HTTPError as e:
-        raw = (e.read() or b"").decode("utf-8", errors="replace")
-        failures.append((logical_name, pod_id, f"HTTP {e.code}: {raw}", dashboard_url(pod_id)))
-        failed_entries.append(pod)
-    except Exception as e:
-        failures.append((logical_name, pod_id, str(e), dashboard_url(pod_id)))
-        failed_entries.append(pod)
+                else:
+                    ok, reason = verify_termination(pod_id)
+                    if ok:
+                        successes.append((logical_name, pod_id, reason, base_url))
+                    else:
+                        failures.append((logical_name, pod_id, f"delete accepted but verification failed: {reason}", dashboard_url(pod_id)))
+                        failed_entries.append(pod)
+                processed_pod_ids.add(pod_id)
+        except urllib.error.HTTPError as e:
+            raw = (e.read() or b"").decode("utf-8", errors="replace")
+            if e.code == 404:
+                successes.append((logical_name, pod_id, "already absent (404)", base_url))
+                processed_pod_ids.add(pod_id)
+            else:
+                failures.append((logical_name, pod_id, f"HTTP {e.code}: {raw}", dashboard_url(pod_id)))
+                failed_entries.append(pod)
+                processed_pod_ids.add(pod_id)
+        except Exception as e:
+            failures.append((logical_name, pod_id, str(e), dashboard_url(pod_id)))
+            failed_entries.append(pod)
+            processed_pod_ids.add(pod_id)
+    except KeyboardInterrupt:
+        interrupted = True
+        print("\nInterrupt received. Preserving remaining pod entries in state/pods.json for safe retry.")
+        break
 
 def dedupe_by_pod_id(entries: list[dict]) -> list[dict]:
     out = []
@@ -266,27 +281,43 @@ def dedupe_by_pod_id(entries: list[dict]) -> list[dict]:
     return out
 
 
-def write_state(entries: list[dict]) -> None:
-    with open(state_path, "w", encoding="utf-8") as f:
+def write_state_atomic(entries: list[dict]) -> None:
+    tmp_path = f"{state_path}.tmp-{int(time.time() * 1000)}"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump({"pods": entries}, f, indent=2)
         f.write("\n")
+    os.replace(tmp_path, state_path)
 
 
-if not (use_override and state_error):
+def write_state(entries: list[dict]) -> None:
+    write_state_atomic(entries)
+
+
+def sync_state() -> None:
+    if use_override and state_error:
+        print("WARNING: state/pods.json was not rewritten because it is invalid JSON.")
+        print("Manual override was used, so no tracked state was modified.")
+        return
+
+    unprocessed = [
+        p for p in targets
+        if str(p.get("pod_id") or "").strip()
+        and str(p.get("pod_id") or "").strip() not in processed_pod_ids
+    ]
     if use_override:
         target_ids = {str(x.get("pod_id") or "").strip() for x in targets if str(x.get("pod_id") or "").strip()}
         untouched = [p for p in pods if str(p.get("pod_id") or "").strip() not in target_ids]
-        merged = untouched + failed_entries
+        merged = untouched + failed_entries + unprocessed
         write_state(dedupe_by_pod_id(merged))
     else:
-        if failures:
-            # Keep only failed targets so retries focus on still-billing risk.
-            write_state(dedupe_by_pod_id(failed_entries))
+        if failures or interrupted:
+            # Keep failed and unprocessed targets so retries focus on still-billing risk.
+            write_state(dedupe_by_pod_id(failed_entries + unprocessed))
         else:
             write_state([])
-else:
-    print("WARNING: state/pods.json was not rewritten because it is invalid JSON.")
-    print("Manual override was used, so no tracked state was modified.")
+
+
+sync_state()
 
 print()
 print("Teardown summary:")
@@ -314,6 +345,13 @@ if failures:
     )
     print("Billing may still be active for failed pods. Retry teardown or check dashboards above.")
     raise SystemExit(1)
+if interrupted:
+    print(
+        f"{len(successes)} of {len(targets)} pods terminated before interruption. "
+        "Remaining/unverified pods were preserved in state/pods.json for safe retry."
+    )
+    print("Billing may still be active for remaining pods.")
+    raise SystemExit(130)
 
 print("All targeted pods terminated successfully and were verified terminal.")
 if use_override:

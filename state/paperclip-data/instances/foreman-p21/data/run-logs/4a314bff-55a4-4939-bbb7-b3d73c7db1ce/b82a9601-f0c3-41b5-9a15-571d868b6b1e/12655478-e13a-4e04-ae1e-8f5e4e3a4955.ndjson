@@ -1,0 +1,2 @@
+{"ts":"2026-04-09T13:49:31.458Z","stream":"stderr","chunk":"Traceback (most recent call last):\n"}
+{"ts":"2026-04-09T13:49:31.459Z","stream":"stderr","chunk":"  File \"<stdin>\", line 183, in <module>\nRuntimeError: openclaw agent failed: Gateway agent failed; falling back to embedded: GatewayClientRequestError: FailoverError: No API key found for provider \"openai\". You are authenticated with OpenAI Codex OAuth. Use openai-codex/gpt-5.4 (OAuth) or set OPENAI_API_KEY to use o\n"}

@@ -11,12 +11,15 @@ Phase 1 is successful when:
 
 - All three pods are provisioned as healthy Secure Cloud pods:
   - executor: `Qwen/Qwen3-14B-AWQ`
-  - planner: `Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ`
+  - planner: `Qwen/Qwen3-30B-A3B-Instruct-2507`
   - embedding: `Qwen/Qwen3-Embedding-8B`
 - `./scripts/smoke-test.sh` exits `0` only after executor, planner, and
   embedding checks each pass.
 - OpenClaw chat in WebChat (`http://127.0.0.1:18789`) routes to executor cleanly
   with no silent fallback to Anthropic/OpenAI.
+
+Current validation status (2026-04-08): all three pods are healthy, automated
+smoke passes, and manual WebChat verification is complete.
 
 ## Explicitly Out of Scope
 

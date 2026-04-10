@@ -1,0 +1,64 @@
+{
+  "run": {
+    "id": "21c5efb0-238f-471f-9bc0-ec75747fb633",
+    "companyId": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "agentId": "b82a9601-f0c3-41b5-9a15-571d868b6b1e",
+    "invocationSource": "on_demand",
+    "triggerDetail": "manual",
+    "status": "succeeded",
+    "startedAt": "2026-04-08T22:12:14.397Z",
+    "finishedAt": "2026-04-08T22:12:41.908Z",
+    "error": null,
+    "wakeupRequestId": "a2066733-2ce3-4457-8bb8-5a4cc50828c9",
+    "exitCode": 0,
+    "signal": null,
+    "usageJson": null,
+    "resultJson": {
+      "stderr": "",
+      "stdout": "I need to know which channel you'd like me to use for messaging. Common options include Discord, Telegram, WhatsApp, or your default webchat. Please let me know your preferred channel or provide the specific channel name/ID.\n\u26a0\ufe0f \u2709\ufe0f Message failed\n"
+    },
+    "sessionIdBefore": null,
+    "sessionIdAfter": null,
+    "logStore": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/b82a9601-f0c3-41b5-9a15-571d868b6b1e/21c5efb0-238f-471f-9bc0-ec75747fb633.ndjson",
+    "logBytes": 690,
+    "logSha256": "f2db550a969d5e0d5c9d268b22d07e102f94807a144e1247a3874dbcd707b5d1",
+    "logCompressed": false,
+    "stdoutExcerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e\" for this run.\nI need to know which channel you'd like me to use for messaging. Common options include Discord, Telegram, WhatsApp, or your default webchat. Please let me know your preferred channel or provide the specific channel name/ID.\n\u26a0\ufe0f \u2709\ufe0f Message failed\n",
+    "stderrExcerpt": "",
+    "errorCode": null,
+    "externalRunId": null,
+    "processPid": null,
+    "processStartedAt": null,
+    "retryOfRunId": null,
+    "processLossRetryCount": 0,
+    "contextSnapshot": {
+      "actorId": "local-board",
+      "wakeSource": "on_demand",
+      "triggeredBy": "board",
+      "wakeTriggerDetail": "manual",
+      "paperclipWorkspace": {
+        "cwd": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e",
+        "mode": "shared_workspace",
+        "source": "agent_home",
+        "repoRef": null,
+        "repoUrl": null,
+        "strategy": "project_primary",
+        "agentHome": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e",
+        "projectId": null,
+        "branchName": null,
+        "workspaceId": null,
+        "worktreePath": null
+      },
+      "paperclipWorkspaces": []
+    },
+    "createdAt": "2026-04-08T22:12:14.394Z",
+    "updatedAt": "2026-04-08T22:12:41.908Z"
+  },
+  "log": {
+    "runId": "21c5efb0-238f-471f-9bc0-ec75747fb633",
+    "store": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/b82a9601-f0c3-41b5-9a15-571d868b6b1e/21c5efb0-238f-471f-9bc0-ec75747fb633.ndjson",
+    "content": "{\"ts\":\"2026-04-08T22:12:14.410Z\",\"stream\":\"stdout\",\"chunk\":\"[paperclip] No project or prior session workspace was available. Using fallback workspace \\\"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e\\\" for this run.\\n\"}\n{\"ts\":\"2026-04-08T22:12:41.864Z\",\"stream\":\"stdout\",\"chunk\":\"I need to know which channel you'd like me to use for messaging. Common options include Discord, Telegram, WhatsApp, or your default webchat. Please let me know your preferred channel or provide the specific channel name/ID.\\n\"}\n{\"ts\":\"2026-04-08T22:12:41.865Z\",\"stream\":\"stdout\",\"chunk\":\"\u26a0\ufe0f \u2709\ufe0f Message failed\\n\"}\n"
+  }
+}

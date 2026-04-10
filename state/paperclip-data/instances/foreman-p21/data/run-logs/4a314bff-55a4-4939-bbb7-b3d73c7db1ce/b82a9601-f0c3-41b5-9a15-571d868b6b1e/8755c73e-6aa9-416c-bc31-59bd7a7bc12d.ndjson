@@ -1,0 +1,5 @@
+{"ts":"2026-04-08T22:07:35.507Z","stream":"stdout","chunk":"[paperclip] Skipping saved session resume for task \"b7119a46-e4d8-4990-8745-ae4af3e76ea8\" because wake reason is issue_assigned.\n"}
+{"ts":"2026-04-08T22:07:35.514Z","stream":"stderr","chunk":"[paperclip] Injected Cursor skill \"paperclipai/paperclip/paperclip\" into /Users/jonathanborgia/.cursor/skills\n"}
+{"ts":"2026-04-08T22:07:35.516Z","stream":"stderr","chunk":"[paperclip] Injected Cursor skill \"paperclipai/paperclip/paperclip-create-agent\" into /Users/jonathanborgia/.cursor/skills\n"}
+{"ts":"2026-04-08T22:07:35.516Z","stream":"stderr","chunk":"[paperclip] Injected Cursor skill \"paperclipai/paperclip/paperclip-create-plugin\" into /Users/jonathanborgia/.cursor/skills\n"}
+{"ts":"2026-04-08T22:07:35.521Z","stream":"stderr","chunk":"[paperclip] Injected Cursor skill \"paperclipai/paperclip/para-memory-files\" into /Users/jonathanborgia/.cursor/skills\n"}

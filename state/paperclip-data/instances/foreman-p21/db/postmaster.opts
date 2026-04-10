@@ -1,0 +1,1 @@
+/Users/jonathanborgia/.npm/_npx/53a42c7f91f1c220/node_modules/@embedded-postgres/darwin-arm64/native/bin/postgres "-D" "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/db" "-p" "54330"

@@ -26,18 +26,8 @@ fi
 EXECUTOR_BASE_URL=""
 PLANNER_BASE_URL=""
 EMBEDDING_BASE_URL=""
-while IFS=$'\t' read -r role base_url; do
-  case "${role}" in
-    executor) EXECUTOR_BASE_URL="${base_url}" ;;
-    planner) PLANNER_BASE_URL="${base_url}" ;;
-    embedding) EMBEDDING_BASE_URL="${base_url}" ;;
-    *)
-      echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
-      exit 1
-      ;;
-  esac
-done < <(
-  python3 - "${STATE_FILE}" <<'PY'
+pod_lines_file="$(mktemp)"
+python3 - "${STATE_FILE}" > "${pod_lines_file}" <<'PY'
 import json
 import sys
 from urllib.parse import urlparse
@@ -82,7 +72,19 @@ for role in required:
         raise SystemExit(f"ERROR: Invalid base_url for {role}: {base_url}")
     print(f"{role}\t{base_url}")
 PY
-)
+
+while IFS=$'\t' read -r role base_url; do
+  case "${role}" in
+    executor) EXECUTOR_BASE_URL="${base_url}" ;;
+    planner) PLANNER_BASE_URL="${base_url}" ;;
+    embedding) EMBEDDING_BASE_URL="${base_url}" ;;
+    *)
+      echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
+      exit 1
+      ;;
+  esac
+done < "${pod_lines_file}"
+rm -f "${pod_lines_file}"
 
 if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" ]]; then
   echo "ERROR: Failed to extract required endpoint URLs from ${STATE_FILE}." >&2
@@ -156,7 +158,7 @@ planner_code="$(
 curl -sS -o "${planner_out}" -w "%{http_code}" \
   -H "Authorization: Bearer ${RUNPOD_API_KEY:-}" \
   -H "Content-Type: application/json" \
-  -d '{"model":"Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ","messages":[{"role":"user","content":"Give a 3-step reasoning plan for brewing tea, with numbered steps only."}]}' \
+  -d '{"model":"Qwen/Qwen3-30B-A3B-Instruct-2507","messages":[{"role":"user","content":"Give a 3-step reasoning plan for brewing tea, with numbered steps only."}]}' \
   "${PLANNER_BASE_URL%/}/chat/completions"
 )"
 if [[ "${planner_code}" -lt 200 || "${planner_code}" -ge 300 ]]; then

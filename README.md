@@ -1,9 +1,10 @@
-# Foreman v2 (Phase 1 Corrected)
+# Foreman v2 (Phase 1 Complete, Phase 2 In Progress)
 
 Foreman v2 is a packaging/wrapper layer around OpenClaw that is wired to a
 three-endpoint RunPod Secure Cloud roster (`embedding`, `executor`, `planner`).
-Phase 1 builds and validates local packaging + provisioning scripts; it does not
-introduce Paperclip or multi-tier routing logic yet.
+Phase 1 packaged and validated the OpenClaw + RunPod baseline. Phase 2 starts
+with Paperclip as the org layer, with OpenClaw running as agents under
+Paperclip control.
 
 The existing `foreman/` repository remains unchanged. `foreman-v2/` is a
 sibling distribution workspace and provisioning layer.
@@ -87,3 +88,56 @@ sibling distribution workspace and provisioning layer.
 See:
 - `docs/PHASE-1-SPIKE.md` for corrected success criteria and history
 - `docs/INFERENCE-ENDPOINTS.md` for endpoint roster, flags, cost, and failure modes
+
+## Phase 2 P2.1 Baseline (local)
+
+Contract lock for P2.1:
+
+- Source of truth: [`paperclip.ing`](https://paperclip.ing) and [`docs.paperclip.ing`](https://docs.paperclip.ing)
+- Quickstart command: `npx paperclipai onboard --yes`
+- Runtime boundary: Paperclip is the org/orchestration layer; OpenClaw is an
+  agent runtime managed by Paperclip
+- Hosting mode: local
+
+Recommended reproducible install practice:
+
+1. Resolve and record installed version:
+   ```bash
+   npx paperclipai --version
+   ```
+2. Pin that version for repeatability:
+   ```bash
+   npx paperclipai@<version> onboard --yes
+   ```
+
+Default local endpoints:
+
+- Paperclip UI/API: `http://127.0.0.1:3100`
+- OpenClaw gateway: `http://127.0.0.1:18789`
+
+## Phase 2 P2.2 Routing Ops
+
+Role routing source-of-truth:
+
+- `config/role-routing.json`
+
+Operational verifier commands:
+
+```bash
+./scripts/check-role-routing-consistency.sh
+./scripts/verify-paperclip-role-routing.sh
+```
+
+Role-dispatch worker entrypoint:
+
+```bash
+./scripts/paperclip-role-dispatch.sh
+```
+
+The dispatch script enforces:
+
+- `executor` path via OpenClaw agent
+- `planner` path via planner pod `/chat/completions`
+- `embedding` path via embedding pod `/embeddings`
+
+Failure behavior is loud by design (non-zero exit on unknown role, provider mismatch, HTTP failure, or OpenClaw fallback patterns).

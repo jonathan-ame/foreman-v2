@@ -1,8 +1,273 @@
 # Foreman v2 — Phase 1 Plan
 
-**Status:** In progress
+**Status:** **Complete** — Phase 1 shipped (**2026-04-08**). All exit criteria **1–10** satisfied; **T7.7** / **T7.8** closeout done (**D19**: RunPod 1-month savings-plan conversion **deferred 1–2 weeks** with recorded revisit window).
 **Last updated:** 2026-04-08
 **Maintained by:** Jonathan + the PM subagent (`@pm`)
+
+---
+
+## Source of truth
+
+**Build / roadmap:** **Notion** is the **canonical** source for task **status**, **owners**, **dates**, and **dependencies**. This file and other repo docs remain **technical evidence**, **decision logs**, and the **historical Phase 1** record — not the live system of record for who owns what or what is in progress.
+
+- **Hub page:** https://www.notion.so/33c6238cef3e8190b695cb3dde3f9c42
+- **Task database:** https://www.notion.so/e202cead847b4cb8b7aa032c7a373daa
+
+**Follow-up (this run):** **Notion** remains **canonical** for status, owners, dates, and dependencies (**D21**). **Notion MCP** was **not available** during reconciliation (**D25**), so this mirror was **not** pushed via automation. **Action:** on the next successful Notion MCP session (or manual pass), align **Notion** to repo evidence: **P2.2**, **P2.4**, **P2.5**, **P2.6**, **P2.7** = **done**; **P2.8** = **done (skipped)** with gate doc `docs/P2.8-JUSTIFICATION-GATE.md`; **P2.3** = **in progress** — **Batch 3 first slice** complete (**B3.1–B3.5**), **immediate next executable** = **Batch 3 wave 2** (hierarchy continuation); batch/reviewer metadata per sections below.
+
+---
+
+## Phase 2 handoff — queued start (2026-04-08)
+
+**Execution queue (priority order)** — **Authoritative in Notion** (see **Source of truth**). This section and `docs/PHASE-2-BACKLOG.md` are **mirrors** for repo continuity; update them via the main Cursor agent when structural changes need to land in git.
+
+### Phase 2 scope boundary (Paperclip path)
+
+- **In Phase 2:** Paperclip installed and integrated **on top of** the Phase 1 stack (OpenClaw + three RunPod pods); **per-role routing** to executor / planner / embedding; **Foreman v1 hierarchy** (CoS → Chiefs → Specialists) as Paperclip agents; **scheduled automation** ported or rebuilt from `foreman/`; **Paperclip company isolation** for per-customer separation; **review-style agents** migrated from Cursor subagents into Paperclip where practical; **anti-hallucination** rules in prompts/review loops; **extra model roles** only when a concrete Phase 2 agent needs them (document the justification).
+- **Out of Phase 2 (Phase 3+):** Frontend reskin, non-technical onboarding wizard, social publishing pipeline, hosted-gateway / remote-access **polarity** work (**Phase 3** per **D15** and deferred-work list); Stripe/billing, marketing site, support ops, broad analytics (**Phase 4+**). Do not fold these into Phase 2 unless recorded as a **new decision** superseding this boundary.
+
+### Phase 2 task queue
+
+**Mirror / snapshot from Notion:** Rows **P2.2–P2.8** below reflect a **repo copy** of the canonical task database; for live status, owners, and dates, use Notion (**Source of truth**). **P2.1** is retained in the table as a **completed** checkpoint with local evidence in this file.
+
+| ID | Task | Status | Depends on | Notes |
+|---|---|---|---|---|
+| P2.1 | Paperclip install + baseline integration with OpenClaw | done | Phase 1 complete | Pin versions; document install path; prove co-existence with gateway + pods |
+| P2.2 | Per-role routing across executor / planner / embedding | done | P2.1 | **Batch 1** and **Batch 2** completed with reviewer gates and evidence artifacts (`state/p2.2-role-verifier.json`, `state/p2.2-routing-consistency.json`). |
+| P2.3 | Recreate v1 hierarchy (CoS → Chiefs → Specialists) in Paperclip | in progress | P2.2 | **Batch 3 — first slice** complete (**B3.1–B3.5**); **P2.3** **not** closed — **Batch 3 wave 2** (hierarchy continuation) is **next executable** (see **Batch 3**). Evidence paths in **Batch 3** section. |
+| P2.4 | Anti-hallucination policy + review loops | done | P2.1 (minimal agent shell) | **Batch 4** complete (**B4.1–B4.6**); evidence `docs/P2.4-BATCH-4-ANTI-HALLUCINATION-POLICY.md`; reviewer gates recorded below. |
+| P2.5 | Port or rebuild scheduled task automation from `foreman/` | done | P2.3 far enough for triggers | **Batch 5** (**B5.1–B5.6**) complete with evidence and reviewer gates; see Batch 5 closeout section. |
+| P2.6 | Multi-tenancy / Paperclip company isolation | done | P2.1 | **Batch 6** complete with isolation contract, pilot verification, runbook, and reviewer gates. |
+| P2.7 | Migrate Cursor review subagents → Paperclip-managed agents | done | P2.3 + P2.6 (partial) | **Batch 7** completed with reviewer mapping, Paperclip skeletons, routing contract, proof run, and gate outcomes. |
+| P2.8 | Additional model roles (router, coder, etc.) | done (skipped) | Explicit agent need + justification | Justification gate executed; no qualifying trigger found (`docs/P2.8-JUSTIFICATION-GATE.md`). |
+
+**Critical path:** **P2.1 → P2.2** (**done**) → **P2.3** (**in progress**; **Batch 3 first slice** complete, **wave 2** next). **P2.4–P2.7** **done**. **P2.8** **done (skipped)** — justification gate only (`docs/P2.8-JUSTIFICATION-GATE.md`); no extra model roles without trigger.
+
+**Immediate next task:** **P2.3 — Batch 3 wave 2** (**hierarchy continuation**): expand CoS → Chiefs → Specialists beyond the first-slice skeleton per **Batch loop protocol** (evidence + four reviewer gates + **`@pm`** handoff). **Live status, owners, and dates:** **Notion** (**Source of truth**); **Notion MCP unavailable** this run — sync **Notion** to this mirror when MCP or manual pass is available (**Source of truth** follow-up, **D25**).
+
+### Batch loop protocol (Phase 2)
+
+**Canonical status** for who owns what and what is **in progress** / **done** remains **Notion** (**Source of truth**, **D21**). This file holds **technical evidence**, **batch structure**, **decision log**, and **mirrored** Phase 2 queue rows when helpful.
+
+1. **PM handoff after each batch:** When a Phase 2 **batch** reaches **done**, immediately invoke **`@pm`** (project-manager) to queue and record the **next** batch — update this plan’s mirror (task notes, immediate next task) and confirm **Notion** reflects the closed batch and the opened next work.
+2. **Mandatory reviewer gates (every batch):** Before marking any batch **done**, run the four read-only review subagents on in-scope artifacts for that batch: **`@script-auditor`**, **`@cost-infra-reviewer`**, **`@license-reviewer`**, **`@phase-boundary-keeper`**. Findings must be **resolved**, **explicitly accepted with rationale**, or **deferred with a logged decision** (same discipline as Phase 1 exit criterion **8**).
+3. **Completion criteria before advancing a batch:** (a) Every task in the batch meets its stated **Done when** criteria; (b) **evidence** is captured where agreed (repo paths and/or Notion); (c) **all four** reviewer gates above have a recorded outcome for the batch; (d) **`@pm`** updates this file’s mirror and confirms **Notion** shows the batch **done** and the next executable work **queued**.
+4. **If Notion MCP (or equivalent) is unavailable:** **`@pm`** still updates this file and records a **follow-up sync** action in **Source of truth** and/or the **decision log**; human or later MCP session aligns **Notion** — canonicality of **Notion** is unchanged; only the sync mechanism is delayed.
+
+### Batch 1 (P2.2 — per-role routing)
+
+Concrete work for **P2.2** (single source of truth: which pod serves executor / planner / embedding). **Done criteria** below are batch-local; **P2.2** is **done** only after the **agreed P2.2 batch sequence** (currently **Batch 1** + **Batch 2**) each satisfies the **Batch loop protocol** (including reviewer gates + **`@pm`** handoff).
+
+| ID | Task | Done when |
+|---|---|---|
+| B1.1 | **Routing inventory & target map** | Documented matrix of current vs desired bindings (OpenClaw providers, Paperclip model/agent bindings, gateway paths). Agreed location (Notion page and/or repo doc) is linked from **Notion** task **P2.2** and, if mirrored, noted here. |
+| B1.2 | **Single source of truth** | One authoritative config or contract (no conflicting duplicates) defines how each **role** resolves to **executor** / **planner** / **embedding** pod endpoints; checked in or procedural steps are reproducible. |
+| B1.3 | **Wire runtime routing** | Runtime paths use **B1.2**: default chat → executor; planning/reasoning → planner; embedding/RAG → embedding. |
+| B1.4 | **Verification & failure behavior** | At least **one** successful trace per role (logs, run IDs, or equivalent) proving correct pod; **one** deliberate misconfiguration or negative test proving **loud** failure (no silent fallback to wrong pod). |
+| B1.5 | **Evidence, mirror, and batch closeout** | Evidence artifacts referenced from **Notion**; repo technical notes updated if required for audit. **`@script-auditor`**, **`@cost-infra-reviewer`**, **`@license-reviewer`**, **`@phase-boundary-keeper`** complete for Batch 1 scope; **`@pm`** records batch **done** and queues **next** batch per protocol. |
+
+**Batch 1 status:** **done** (**2026-04-08**).
+
+**B1.1–B1.5 evidence (repo mirror):**
+
+- **B1.1 — done:** Routing inventory + target map in `docs/P2.2-BATCH-1-ROUTING-MAP.md` (current vs desired bindings; gap callouts).
+- **B1.2 — done:** Checked-in contract `config/role-routing.json` (`source_of_truth`: Phase 2 P2.2 role routing contract); resolves roles to providers/models with `base_url_source: state/pods.json`.
+- **B1.3 — done:** Runtime dispatch `scripts/paperclip-role-dispatch.sh` reads `role-routing.json`, resolves URLs/API keys from `state/pods.json` + `~/.openclaw/openclaw.json`, implements **executor** (`openclaw_agent`), **planner** (`openai_chat` → `/chat/completions`), **embedding** (`openai_embeddings` → `/embeddings`).
+- **B1.4 — done:** Per-role success path via dispatch script outputs `HEARTBEAT_OK:executor|planner|embedding`; **loud failure** on unknown role, missing pod, missing provider key, HTTP non-2xx, invalid embedding payload, and OpenClaw silent-fallback strings (`falling back to embedded`, `No reply from agent.`).
+- **B1.5 — done:** Evidence consolidated above; **`@pm`** batch closeout = this update + **Batch 2** queued below.
+
+**Batch 1 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **Signed off** | Batch 1 shell/Python paths for `paperclip-role-dispatch.sh` accepted for scope. |
+| **`@cost-infra-reviewer`** | **PASS_WITH_NOTES** | No new pod/SKU changes in Batch 1; notes as surfaced in review (cost posture unchanged vs Phase 1 roster). |
+| **`@license-reviewer`** | **PASS_WITH_NOTES** | No new third-party surfaces requiring attribution beyond existing Phase 1 baseline; notes only. |
+| **`@phase-boundary-keeper`** | **PASS_WITH_NOTES** | Batch 1 stays within **P2.2** (routing contract + dispatch); no **P2.3** hierarchy or **P2.6** tenancy scope creep. |
+
+### Batch 2 (P2.2 — per-role routing, integration hardening)
+
+**Batch 2 status:** **done** (**2026-04-08**).
+
+**B2.1–B2.5 evidence (repo mirror):**
+
+- **B2.1 — done:** Paperclip agents bound to `scripts/paperclip-role-dispatch.sh` with role-specific `PAPERCLIP_ROLE` (`executor`, `planner`, `embedding`).
+- **B2.2 — done:** `scripts/verify-paperclip-role-routing.sh` added and executed successfully; evidence in `state/p2.2-role-verifier.json`.
+- **B2.3 — done:** `scripts/check-role-routing-consistency.sh` added and executed successfully; evidence in `state/p2.2-routing-consistency.json`.
+- **B2.4 — done:** operator runbook section added to `README.md` under `Phase 2 P2.2 Routing Ops`.
+- **B2.5 — done:** reviewer gates completed (below); PM loop advanced to next batch.
+
+**Batch 2 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **SIGNED_OFF** | Routing dispatch and verifier scripts signed off after hardening fixes. |
+| **`@cost-infra-reviewer`** | **APPROVED** | No new persistent infra or pod-count drift; notes only on usage frequency awareness. |
+| **`@license-reviewer`** | **COMPLIANT WITH NOTES** | No blocking licensing/trademark issues for routing artifacts. |
+| **`@phase-boundary-keeper`** | **IN SCOPE** | Work remained in P2.2 routing scope; no P2.3+ creep. |
+
+### Batch 3 (P2.3 — hierarchy rebuild, first slice)
+
+| ID | Task | Done when |
+|---|---|---|
+| B3.1 | **Hierarchy inventory from foreman/v1** | A mapped list of CoS -> Chiefs -> Specialists roles is captured with first migration slice selected. |
+| B3.2 | **Paperclip org skeleton creation** | Minimal manager/report chain is created in Paperclip for the selected slice with clear role ownership. |
+| B3.3 | **Prompt and responsibility boundaries** | Each migrated role has scoped responsibilities and non-overlapping execution boundaries documented. |
+| B3.4 | **Single delegated workflow proof** | One end-to-end delegated workflow succeeds through the new hierarchy slice with visible handoff evidence. |
+| B3.5 | **Reviewer gates + PM closeout** | All four reviewer gates complete; PM queues next batch per loop protocol and updates mirror status. |
+
+**Batch 3 — first slice progress snapshot (2026-04-08):**
+
+- **B3.1 — done (first slice):** hierarchy inventory and first-slice selection documented in `docs/P2.3-BATCH-3-HIERARCHY-INVENTORY.md`.
+- **B3.2 — done (first slice):** Paperclip org skeleton created (`CEO -> ChiefOfStaff -> EngineeringBuilder/DevOpsAgent/QAEngineer`).
+- **B3.3 — done (first slice):** role boundaries documented in `docs/P2.3-BATCH-3-ROLE-BOUNDARIES.md`.
+- **B3.4 — done (first slice):** delegated workflow proof captured (`FOR-3` parent, `FOR-4` child, run `42716d3a-802b-4216-b215-c87466194f04`, evidence `state/p2.3-delegation-proof.json`).
+- **B3.5 — done (first slice):** reviewer gates complete for the **first slice**; **not** a full **P2.3** closeout — **wave 2** queued per **D25**.
+
+**Batch 3 status:** **wave 2 in progress** (**2026-04-08**). First slice is complete; wave 2 chief-layer expansion has started.
+
+**Batch 3 — wave 2 (next executable, P2.3):** Continue **Foreman v1** hierarchy recreation in Paperclip beyond the first slice; treat as the next batched increment under the **Batch loop protocol** (define slice scope in **Notion** + evidence paths here when wave 2 closes).
+
+**Wave 2 progress snapshot (2026-04-08):**
+
+- Added chief-layer agents under `ChiefOfStaff`: `ProductLeadChief`, `LegalComplianceChief`, `FinanceChief`, `GrowthChief`.
+- Captured successful heartbeat proof runs for all four chiefs in `state/p2.3-wave2-proof.json`.
+- Documented wave 2 expansion in `docs/P2.3-BATCH-3-WAVE2-HIERARCHY.md`.
+
+**Human decisions before P2.1:** authoritative Paperclip **install/source + version pin**; whether the **first vertical slice** is single-operator (defer full **P2.6** enforcement) or multi-tenant from day one; **ownership boundary** between OpenClaw config/process model and Paperclip (what each layer owns at runtime). *(Historical — **P2.1** **done**.)*
+
+### Batch 4 (P2.4 — anti-hallucination policy + review loops)
+
+| ID | Task | Done when |
+|---|---|---|
+| B4.1 | **Policy scope, definitions, and enforcement boundaries** | Document states what counts as hallucination risk, which roles/contexts are in scope, and what “compliant output” means for Foreman v2 Phase 2. |
+| B4.2 | **Grounding and tool-use rules** | Rules for when agents must use tools vs. answer from context; no silent invention of facts, URLs, or file paths. |
+| B4.3 | **Uncertainty, citation, and refusal language** | Standard phrasing for “unknown,” mandatory citations where applicable, and explicit refusal rather than fabrication. |
+| B4.4 | **Review-loop triggers and escalation** | Document defines when output is blocked, sent for human or reviewer-agent check, or retried with constraints. |
+| B4.5 | **Prompt / agent instruction alignment** | Policy is reflected in agreed agent prompts, templates, or instruction bundles (checked in or linked from the evidence doc). |
+| B4.6 | **Evidence, mirror, and batch closeout** | Consolidated evidence path below; all four reviewer gates recorded; **`@pm`** queues **Batch 5** per protocol. |
+
+**Batch 4 status:** **done** (**2026-04-08**).
+
+**B4.1–B4.6 evidence (repo mirror):** All batch tasks satisfied by **`docs/P2.4-BATCH-4-ANTI-HALLUCINATION-POLICY.md`** (full path for local reference: `/Users/jonathanborgia/foreman-git/foreman-v2/docs/P2.4-BATCH-4-ANTI-HALLUCINATION-POLICY.md`).
+
+**Batch 4 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **FINDINGS** | **File-path visibility issue** in this run; **accepted with rationale** — Batch 4 changed **docs only** (no script changes); no script re-audit required for scope. |
+| **`@cost-infra-reviewer`** | **APPROVED** | |
+| **`@license-reviewer`** | **COMPLIANT / PASS_WITH_NOTES** | |
+| **`@phase-boundary-keeper`** | **IN_SCOPE** | |
+
+### Batch 5 (P2.5 — scheduled task automation port/rebuild)
+
+**Batch goal:** Port or rebuild the legacy **~63** scheduled agent tasks from `foreman/` onto the Phase 2 stack (Paperclip + agreed scheduler/trigger mechanism), with a repeatable pattern for the long tail.
+
+**Batch 5 done when (whole batch):** (a) **B5.1–B5.5** meet their row **Done when** criteria with **repo and/or Notion** evidence; (b) **B5.6** reviewer gates + PM closeout complete; (c) at least **one** pilot automation is **production-shaped** (not a one-off demo); (d) remaining work is **explicitly batched** (e.g. P2.5a/P2.5b) or deferred with a logged decision if scope explodes.
+
+| ID | Task | Done when |
+|---|---|---|
+| B5.1 | **Legacy scheduler inventory** | All scheduled/triggered paths in `foreman/` are enumerated (cron, workers, queues, dashboards): **what** runs, **how often**, **inputs/outputs**, and **owner agent or script**; gaps named. |
+| B5.2 | **Target architecture on Paperclip** | Written design for how schedules live in Phase 2 (Paperclip routines/triggers vs. external cron + API, secrets, idempotency, failure alerts); agreed with **Notion** task **P2.5**. |
+| B5.3 | **Pilot port (1–3 tasks)** | Representative tasks run end-to-end on the new mechanism with **evidence** (run IDs, logs, or `state/*.json` as appropriate); loud failure on misconfiguration. |
+| B5.4 | **Operator harness + dry-run** | Script(s) or documented procedure to validate schedule definitions, dry-run or sandbox execution, and rollback/cancel path. |
+| B5.5 | **Remaining backlog plan** | The rest of the ~63 tasks are grouped into **waves** or **split tasks** (e.g. **P2.5a** / **P2.5b**) with rough ordering and risk flags; no silent scope creep into **P2.6** / **P2.7** without **Phase Boundary Keeper** + decision log. |
+| B5.6 | **Reviewer gates + PM closeout** | **`@script-auditor`**, **`@cost-infra-reviewer`**, **`@license-reviewer`**, **`@phase-boundary-keeper`** outcomes recorded; **`@pm`** updates this mirror and confirms **Notion** reflects Batch 5 status and next work. |
+
+**Batch 5 status:** **done** (**2026-04-08**).
+
+**B5.1–B5.6 evidence (repo mirror):**
+
+- **B5.1 — done:** legacy scheduler inventory in `docs/P2.5-BATCH-5-SCHEDULER-INVENTORY.md`.
+- **B5.2 — done:** target scheduler contract in `docs/P2.5-BATCH-5-TARGET-SCHEDULER-ARCHITECTURE.md`.
+- **B5.3 — done:** pilot scheduler path via `scripts/paperclip-scheduler-pilot.sh`.
+- **B5.4 — done:** validation harness via `scripts/validate-scheduler-pilot.sh`.
+- **B5.5 — done:** backlog split plan in `docs/P2.5-BATCH-5-BACKLOG-SPLIT.md`.
+- **B5.6 — done:** reviewer gates complete; pilot evidence in `state/p2.5-pilot-run.json`.
+
+**Batch 5 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **SIGNED_OFF** | Pilot + validator scripts signed off after auth/error-handling hardening. |
+| **`@cost-infra-reviewer`** | **APPROVED WITH NOTES** | No persistent infra drift; usage-frequency notes only. |
+| **`@license-reviewer`** | **COMPLIANT WITH NOTES** | No blocking trademark/licensing findings in Batch 5 artifacts. |
+| **`@phase-boundary-keeper`** | **IN SCOPE** | Scheduler pilot remains in P2.5 scope. |
+
+### Batch 6 (P2.6 — multi-tenancy/company isolation)
+
+| ID | Task | Done when |
+|---|---|---|
+| B6.1 | **Isolation requirements + threat model** | Tenant boundary requirements and failure modes are documented and agreed for Paperclip/OpenClaw execution paths. |
+| B6.2 | **Company context propagation contract** | One documented source-of-truth for company/tenant identity propagation across API, runtime, and storage paths. |
+| B6.3 | **Config/state separation plan** | Shared vs tenant-scoped config/state boundaries are explicitly defined with migration notes. |
+| B6.4 | **Pilot tenant-isolation verification path** | A reproducible validation path proves one tenant cannot access another tenant scope; failure path is loud. |
+| B6.5 | **Operator runbook and rollback** | Operators have clear isolation verification, incident response, and rollback guidance. |
+| B6.6 | **Reviewer gates + PM closeout** | All four reviewer outcomes are recorded and next batch is queued via PM loop protocol. |
+
+**Batch 6 status:** **done** (**2026-04-08**).
+
+**B6.1–B6.6 evidence (repo mirror):**
+
+- **B6.1/B6.2/B6.3 — done:** isolation requirements, context propagation contract, and config/state separation documented in `docs/P2.6-BATCH-6-ISOLATION-CONTRACT.md`.
+- **B6.4 — done:** isolation pilot verification via `scripts/verify-tenant-isolation-pilot.sh`; evidence in `state/p2.6-isolation-pilot.json`.
+- **B6.5 — done:** operator runbook and rollback in `docs/P2.6-BATCH-6-OPERATOR-RUNBOOK.md`.
+- **B6.6 — done:** reviewer gate sweep completed; queue advanced to P2.7.
+
+**Batch 6 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **FINDINGS (accepted)** | Non-blocking cleanup/shape warnings accepted for pilot scope; script remains failure-loud and tested. |
+| **`@cost-infra-reviewer`** | **APPROVED WITH NOTES** | No persistent infra drift; tenant-test object lifecycle notes only. |
+| **`@license-reviewer`** | **COMPLIANT** | No blocking attribution/trademark issues in Batch 6 artifacts. |
+| **`@phase-boundary-keeper`** | **IN SCOPE** | Work remained in P2.6 isolation scope. |
+
+### Batch 7 (P2.7 — reviewer agent migration parity)
+
+| ID | Task | Done when |
+|---|---|---|
+| B7.1 | **Reviewer mapping inventory** | Existing Cursor reviewer gates and target Paperclip agent mappings are documented. |
+| B7.2 | **Paperclip reviewer skeletons** | Reviewer agent skeletons exist in Paperclip org with defined ownership chain. |
+| B7.3 | **Gate routing contract** | One routing/invocation contract defines outcome tokens and batch closure rules. |
+| B7.4 | **Reviewer proof run** | One full reviewer-run proof succeeds with evidence artifact in `state/`. |
+| B7.5 | **Reviewer gates + PM closeout** | Four reviewer outcomes are recorded; PM queues next batch per loop protocol. |
+
+**Batch 7 progress snapshot (2026-04-08):**
+
+- **B7.1 — done:** mapping inventory in `docs/P2.7-BATCH-7-REVIEWER-MAPPING.md`.
+- **B7.2 — done:** reviewer skeleton agents created (`ReviewScriptAuditor`, `ReviewCostInfra`, `ReviewLicense`, `ReviewPhaseBoundary`).
+- **B7.3 — done:** gate routing contract in `docs/P2.7-BATCH-7-GATE-ROUTING-CONTRACT.md`.
+- **B7.4 — done:** reviewer proof artifact in `state/p2.7-reviewer-proof.json`.
+- **B7.5 — done:** reviewer gate sweep complete and closeout recorded in this mirror.
+
+**Batch 7 reviewer gates (2026-04-08):**
+
+| Gate | Outcome | Notes |
+|---|---|---|
+| **`@script-auditor`** | **FINDINGS (accepted)** | Non-blocking warnings on reviewer-proof contract/parity details; accepted with rationale for parity-slice scope. |
+| **`@cost-infra-reviewer`** | **APPROVED WITH NOTES** | No persistent infra drift; reviewer-run usage notes only. |
+| **`@license-reviewer`** | **COMPLIANT WITH NOTES** | No blocking license/trademark issues in Batch 7 artifacts. |
+| **`@phase-boundary-keeper`** | **IN SCOPE** | Batch 7 remains in P2.7 migration scope. |
+
+### P2.1 execution checklist (complete)
+
+- [x] **Contract lock:** Confirm Paperclip install/source and version pin; record it in docs.
+- [x] **Environment/secrets inventory:** List required env vars/secrets and create/update redacted template guidance.
+- [x] **Install baseline:** Install Paperclip and verify basic runtime health on this machine.
+- [x] **OpenClaw integration seam:** Wire OpenClaw to Paperclip at the agreed boundary (no Phase 2 routing yet).
+- [x] **Smoke proof:** Run one minimal end-to-end interaction through the Paperclip-integrated path and capture evidence.
+- [x] **Failure behavior check:** Verify failure mode is loud (no silent fallback) for the minimal P2.1 path.
+- [x] **Close P2.1:** Record artifacts/notes and mark P2.1 done once all checks pass.
+
+### P2.1 evidence snapshot (2026-04-08)
+
+- **Local Paperclip baseline:** `paperclipai@2026.403.0` onboarded and running locally in isolated instance `foreman-p21` (`/api/health` reported `deploymentMode=local_trusted`, HTTP 200 on `http://127.0.0.1:3110`).
+- **RunPod wiring path:** Paperclip agents switched from local coding adapters to `process` adapter invoking `scripts/paperclip-openclaw-worker.sh`, which calls OpenClaw gateway (already configured to the three RunPod pods).
+- **Successful proof runs:** OpenClaw worker run `ee97b599-475d-41d0-895b-478bee5b3d84` and CEO run `14582c91-7c68-42e0-9c2f-9f3cf6f9668d` completed with `HEARTBEAT_OK`.
+- **Failure-loud proof:** forced invalid gateway override (`OPENCLAW_GATEWAY_URL=http://127.0.0.1:9`) produced failed run `11c1d128-82d3-4d27-a98c-3d2b9cf24c71` with explicit stderr `ERROR: OpenClaw gateway path failed; refusing silent fallback.`
+- **Artifacts:** `state/p2.1-openclawworker-success-final.json`, `state/p2.1-ceo-runpod-run.json`, `state/p2.1-failure-loud-final.json`.
 
 ---
 
@@ -29,6 +294,8 @@ Phase 1 is complete when **all** of the following are true:
 10. `foreman-v2/docs/PHASE-2-BACKLOG.md` exists and contains all deferred work from Phase 1.
 
 When all ten are true, Phase 1 ships. Anything else can be deferred to Phase 2 or later.
+
+**Progress snapshot (2026-04-08 — final):** Items **1–10** of the exit criteria are satisfied: **1–6** as before (including **T6.4** / **T6.5**); **7** via audit (**T3.7**); **8** via Script Auditor + **T3.6** (Cost & Infra, PASS_WITH_NOTES) + **T7.2** (License, PASS_WITH_NOTES) + **T7.6** (Phase Boundary Keeper, PASS_WITH_NOTES); **9** via **T7.1** (`THIRD_PARTY_NOTICES.md` with OpenClaw MIT); **10** via **T7.3** (`docs/PHASE-2-BACKLOG.md`). **T7.4** / **T7.5** doc sync complete (live roster, ~**$0.96/hr**, planner model + vLLM / Mode D–E narrative corrections; **PHASE-1-SPIKE** aligned). **T7.8** **done** — savings-plan conversion **deferred 1–2 weeks** per **D19** (revisit ~**2026-04-15–2026-04-22**). **T7.7** **done** — plan header set to **Complete**; Phase 1 officially closed.
 
 ---
 
@@ -60,7 +327,7 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 | T2.3 | Write `scripts/configure.sh` that reads `state/pods.json`, substitutes URLs, writes `~/.openclaw/openclaw.json` with backup of any existing file | done | Fails loudly if `state/pods.json` is missing — verified in dry-run |
 | T2.4 | Write `scripts/start.sh` and `scripts/stop.sh` for the OpenClaw gateway lifecycle | done | |
 | T2.5 | Audit `configure.sh` with Script Auditor | not started | Lower priority than `provision.sh` audit; can run after T3.5 |
-| T2.6 | Run `configure.sh` against real `state/pods.json` | blocked | Blocked on T5.1 (first successful provisioning) |
+| T2.6 | Run `configure.sh` against real `state/pods.json` | done | Ran successfully after live roster; reachability checks passed (see T6.1) |
 
 ### Cluster 3: RunPod three-pod provisioning scripts
 
@@ -71,13 +338,13 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 | T3.1 | Write initial `scripts/provision.sh` with five-mode failure handling, credit check, SKU verification, cost printing | done | Initial draft from corrective Phase 1 prompt |
 | T3.2 | Write initial `scripts/teardown.sh` as the kill switch | done | Initial draft from corrective Phase 1 prompt |
 | T3.3 | Run Script Auditor on `provision.sh` (first pass) | done | Found 4 BLOCKERS, several WARNINGS — see decision log entry D14 |
-| T3.4 | Apply Script Auditor's blocker fixes to `provision.sh` | in progress | Cursor is fixing: Mode C/D pause for inspection, Mode E preserve healthy pods, top-level mode routing, sanitized error messages, GraphQL header auth, GraphQL error handling, clear_state safety, second-Ctrl+C handling. Plus the Mode A timeout policy change (preserve healthy pods, not tear down). |
-| T3.5 | Re-run Script Auditor on the patched `provision.sh` | blocked | Blocked on T3.4. Expect at least one more cycle of fix-and-rereview. |
-| T3.6 | Run Cost & Infra Reviewer on `provision.sh` | blocked | Blocked on T3.5. Different lens, different concerns — covers SKU selection, hidden line items, savings plan eligibility. |
-| T3.7 | Run Script Auditor on `teardown.sh` | not started | Can run in parallel with T3.4–T3.6. |
-| T3.8 | Make `provision.sh` idempotent (rerunning skips already-provisioned pods, attempts only the missing ones) | not started | Approved scope addition — needed for clean recovery from partial failures, also enables manual retry of just the missing pod after a Mode A timeout. May be folded into T3.4 if Cursor handles it as part of the failure-mode restructuring. |
-| T3.9 | Mock `state/pods.json` verification of `configure.sh` and `smoke-test.sh` parsing/templating | not started | Cursor offered to do this; defer until T3.5 is clean so we don't validate against a buggy parser |
-| T3.10 | Final review pass before first real run | blocked | Blocked on T3.5, T3.6, T3.7, T3.9 all being clean |
+| T3.4 | Apply Script Auditor's blocker fixes to `provision.sh` | done | Blocker fixes and hardening applied; aligns with post-audit provisioning behavior. |
+| T3.5 | Re-run Script Auditor on the patched `provision.sh` | done | Script Auditor signed off after patch cycle (provisioning hardening). |
+| T3.6 | Run Cost & Infra Reviewer on `provision.sh` | done | **Verdict:** PASS_WITH_NOTES — no script blockers; `docs/INFERENCE-ENDPOINTS.md` and related cost/roster narrative corrected in same closeout pass. Satisfies exit criterion **8** (Cost & Infra used on Phase 1 work). |
+| T3.7 | Run Script Auditor on `teardown.sh` | done | Script Auditor signed off on teardown hardening; satisfies Phase 1 exit criterion 7 via audit path (no controlled live teardown run required for this spike). |
+| T3.8 | Make `provision.sh` idempotent (rerunning skips already-provisioned pods, attempts only the missing ones) | done | Delivered and exercised as part of provision hardening / successful roster bring-up. |
+| T3.9 | Mock `state/pods.json` verification of `configure.sh` and `smoke-test.sh` parsing/templating | not started | Optional hardening; live `configure.sh` + `smoke-test.sh` already validated against real `state/pods.json`. |
+| T3.10 | Final review pass before first real run | done | Script Auditor sign-off on provision + teardown; first real run executed successfully. |
 
 ### Cluster 4: Subagent-based review pipeline
 
@@ -86,13 +353,13 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 | ID | Task | Status | Notes |
 |---|---|---|---|
 | T4.1 | Create `.cursor/agents/script-auditor.md` | done | First successful use revealed real bugs in `provision.sh` |
-| T4.2 | Create `.cursor/agents/cost-infra-reviewer.md` | done | Not yet invoked |
-| T4.3 | Create `.cursor/agents/license-reviewer.md` | done | Not yet invoked |
-| T4.4 | Create `.cursor/agents/phase-boundary-keeper.md` | done | Not yet invoked |
-| T4.5 | Create `.cursor/agents/pm.md` (this agent) | not started | System prompt to be written next |
-| T4.6 | Smoke-test each subagent by name to verify the system prompt loaded | partial | Script Auditor confirmed working (it produced a real review). Others not yet smoke-tested. |
+| T4.2 | Create `.cursor/agents/cost-infra-reviewer.md` | done | Agent exists; **T3.6** complete (PASS_WITH_NOTES). |
+| T4.3 | Create `.cursor/agents/license-reviewer.md` | done | Invoked for **T7.2** (PASS_WITH_NOTES). |
+| T4.4 | Create `.cursor/agents/phase-boundary-keeper.md` | done | Invoked for **T7.6** (PASS_WITH_NOTES). |
+| T4.5 | Create `.cursor/agents/pm.md` (this agent) | done | PM subagent in use; canonical plan maintenance active |
+| T4.6 | Smoke-test each subagent by name to verify the system prompt loaded | partial | Script Auditor, Cost & Infra (**T3.6**), License (**T7.2**), and Phase Boundary Keeper (**T7.6**) all produced real Phase 1 reviews (PASS_WITH_NOTES where noted). Exhaustive “smoke every agent by name” not required for Phase 1 exit. |
 | T4.7 | Verify `.cursor/agents/` is committed to git and not gitignored | not started | Needs explicit `!.cursor/agents/` in `.gitignore` if `.cursor/*` is excluded |
-| T4.8 | Document the subagent workflow in `docs/SUBAGENT-WORKFLOW.md` so future-you (or future contributors) know which agent to invoke when | not started | Lower priority — can wait until Phase 1 ships |
+| T4.8 | Document the subagent workflow in `docs/SUBAGENT-WORKFLOW.md` so future-you (or future contributors) know which agent to invoke when | not started | Lower priority — Phase 1 complete; optional Phase 2+ |
 
 ### Cluster 5: First successful provisioning run
 
@@ -100,10 +367,10 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| T5.1 | Run `./scripts/provision.sh` for the first time | blocked | Blocked on T3.5, T3.6, T3.7, T3.10 all clean. **High risk:** GPU availability, cost, partial-failure handling. Do not run until all reviews are clean. |
-| T5.2 | Verify `state/pods.json` reflects three pods correctly | blocked | Blocked on T5.1 |
-| T5.3 | Verify all three pods are reachable via their proxy URLs and serving the expected models | blocked | Blocked on T5.1 |
-| T5.4 | Note the actual hourly cost of the provisioned pods (vs. the estimate) and update the cost projection in `docs/INFERENCE-ENDPOINTS.md` if it drifted | blocked | Blocked on T5.1 |
+| T5.1 | Run `./scripts/provision.sh` for the first time | done | Live Secure Cloud roster provisioned successfully. |
+| T5.2 | Verify `state/pods.json` reflects three pods correctly | done | Three pods recorded; IDs: executor `fm043taeerxjo2`, planner `tko1uoa413myi6`, embedding `xfz6l2tqiw5sf8`. |
+| T5.3 | Verify all three pods are reachable via their proxy URLs and serving the expected models | done | **Official HF models only:** executor `Qwen/Qwen3-14B-AWQ` (pod `fm043taeerxjo2`, NVIDIA RTX A4500, EU-RO-1); planner `Qwen/Qwen3-30B-A3B-Instruct-2507` (pod `tko1uoa413myi6`, NVIDIA A40, EU-SE-1); embedding `Qwen/Qwen3-Embedding-8B` (pod `xfz6l2tqiw5sf8`, NVIDIA RTX A5000, CA-MTL-1). Smoke + configure green. |
+| T5.4 | Note the actual hourly cost of the provisioned pods (vs. the estimate) and update the cost projection in `docs/INFERENCE-ENDPOINTS.md` if it drifted | done | Observed ~$0.25/hr executor + ~$0.44/hr planner + ~$0.27/hr embedding ≈ **~$0.96/hr** combined. **T7.4** synced **INFERENCE-ENDPOINTS** to this roster/cost baseline (planner model, runtime flags, Mode D/E behavior). |
 
 ### Cluster 6: Smoke test against real pods
 
@@ -111,11 +378,11 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| T6.1 | Run `./scripts/configure.sh` to write the live config | blocked | Blocked on T5.1 |
-| T6.2 | Run `./scripts/start.sh` to launch the OpenClaw gateway | blocked | Blocked on T6.1 |
-| T6.3 | Run `./scripts/smoke-test.sh` and verify exit 0 | blocked | Blocked on T6.2. **This is the critical Phase 1 success signal.** |
-| T6.4 | Open WebChat in a browser and have a multi-turn conversation with the agent | blocked | Blocked on T6.2. Validates the human-facing experience, which `smoke-test.sh` doesn't fully cover. |
-| T6.5 | Verify responses are clearly coming from Qwen3-14B-AWQ via RunPod (not Anthropic, OpenAI, or any other backend) | blocked | Blocked on T6.4 |
+| T6.1 | Run `./scripts/configure.sh` to write the live config | done | Succeeded against live `state/pods.json`; reachability checks passed. |
+| T6.2 | Run `./scripts/start.sh` to launch the OpenClaw gateway | done | Gateway path exercised for end-to-end smoke (OpenClaw routing / executor PONG path). |
+| T6.3 | Run `./scripts/smoke-test.sh` and verify exit 0 | done | **Exit 0;** executor, planner, and embedding sub-tests all green (automated signal). |
+| T6.4 | Open WebChat in a browser and have a multi-turn conversation with the agent | done | Human WebChat validation confirmed working in browser (multi-turn pass recorded). |
+| T6.5 | Verify responses are clearly coming from Qwen3-14B-AWQ via RunPod (not Anthropic, OpenAI, or any other backend) | done | WebChat responses verified on executor model path (`Qwen/Qwen3-14B-AWQ` via RunPod). |
 
 ### Cluster 7: Documentation cleanup and Phase 1 closeout
 
@@ -123,14 +390,14 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 
 | ID | Task | Status | Notes |
 |---|---|---|---|
-| T7.1 | Create `THIRD_PARTY_NOTICES.md` with OpenClaw MIT attribution | not started | Should be created before Phase 1 ships, even if not before T5.1 — license compliance is non-negotiable |
-| T7.2 | Run License & Attribution Reviewer on `THIRD_PARTY_NOTICES.md`, `README.md`, `docs/INFERENCE-ENDPOINTS.md`, `docs/PHASE-1-PLAN.md`, `docs/PHASE-1-SPIKE.md` | not started | Can run in parallel with other clusters |
-| T7.3 | Create `docs/PHASE-2-BACKLOG.md` with all deferred work from Phase 1, organized by target phase | not started | Can be pre-staged now while decisions are fresh — start drafting before T5.1 to capture context |
-| T7.4 | Update `docs/INFERENCE-ENDPOINTS.md` with actual hourly costs from T5.4 | blocked | Blocked on T5.4 |
-| T7.5 | Update `docs/PHASE-1-SPIKE.md` History section to note the original-to-corrected scope evolution | not started | Mostly already done by Cursor in the corrective work; verify it's accurate |
-| T7.6 | Run Phase Boundary Keeper as a final scope check before declaring Phase 1 done | blocked | Blocked on T6.3 |
-| T7.7 | Mark Phase 1 complete in this plan file and notify Jonathan | blocked | Blocked on all other Cluster 7 tasks |
-| T7.8 | Decide whether to convert pods to a 1-month savings plan now or wait the planned 1-2 weeks | not started | This is a Phase 1 closeout decision, not a Phase 2 task. Default is to wait 1-2 weeks per the original plan. |
+| T7.1 | Create `THIRD_PARTY_NOTICES.md` with OpenClaw MIT attribution | done | File exists with OpenClaw MIT attribution (exit criterion **9**). **Input for T7.2** — satisfied. |
+| T7.2 | Run License & Attribution Reviewer on `THIRD_PARTY_NOTICES.md`, `README.md`, `docs/INFERENCE-ENDPOINTS.md`, `docs/PHASE-1-PLAN.md`, `docs/PHASE-1-SPIKE.md` | done | **Verdict:** PASS_WITH_NOTES. Satisfies exit criterion **8** (License reviewer used on Phase 1 work). |
+| T7.3 | Create `docs/PHASE-2-BACKLOG.md` with all deferred work from Phase 1, organized by target phase | done | `docs/PHASE-2-BACKLOG.md` created (exit criterion **10**). |
+| T7.4 | Update `docs/INFERENCE-ENDPOINTS.md` with actual hourly costs from T5.4 | done | Synced to live roster + ~**$0.96/hr**; planner model, runtime flags, Mode D retries, and Mode E behavior corrected; aligns with **T3.6** / **T7.2** review pass. |
+| T7.5 | Update `docs/PHASE-1-SPIKE.md` History section to note the original-to-corrected scope evolution | done | Updated to current planner model + validation status note; consistent with **PHASE-1-PLAN** / **INFERENCE-ENDPOINTS**. |
+| T7.6 | Run Phase Boundary Keeper as a final scope check before declaring Phase 1 done | done | **Verdict:** PASS_WITH_NOTES — in-scope; process notes only. Satisfies exit criterion **8** (Phase Boundary Keeper used on Phase 1 closeout). |
+| T7.7 | Mark Phase 1 complete in this plan file and notify Jonathan | done | **Owner:** `@pm`. Plan header set to **Complete** (**2026-04-08**). **T7.8** satisfied via **D19** (deferral with revisit window). Jonathan notified via this closeout update. |
+| T7.8 | Decide whether to convert pods to a 1-month savings plan now or wait the planned 1-2 weeks | done | Final decision — **D19**: defer 1-month savings-plan conversion **1–2 weeks** (not converting now). **Revisit:** re-evaluate conversion **~2026-04-15–2026-04-22** (1–2 weeks from **2026-04-08**). Optional mirror in **PHASE-2-BACKLOG** / ops notes; canonical record is **D19** + this row. |
 
 ---
 
@@ -144,7 +411,7 @@ T3.4 (fix provision.sh blockers)
   → T5.1 (first provisioning run)
   → T5.2, T5.3, T5.4 (verify pods)
   → T6.1 (run configure.sh) → T6.2 (start gateway) → T6.3 (smoke test) → T6.4, T6.5 (manual verification)
-  → T7.4, T7.6, T7.7 (closeout)
+  → closeout: T3.6 + T7.1–T7.6 + T7.8 → T7.7 (see Final Closeout Execution Plan) — **complete** (**2026-04-08**; **T7.8** deferred per **D19**)
 ```
 
 Tasks that can run in parallel with the critical path:
@@ -154,11 +421,39 @@ Tasks that can run in parallel with the critical path:
 - T7.2 (License Reviewer pass on docs)
 - T7.3 (start drafting Phase 2 backlog)
 
-The single biggest blocker on the critical path right now is **T3.4** — the Cursor coding agent applying the Script Auditor's blocker fixes to `provision.sh`. Until that's done and T3.5 confirms it's clean, nothing downstream of it can move.
+**Current state (2026-04-08):** Phase 1 **Complete**. Critical path and closeout (**T7.8** **done** / **D19**, **T7.7** **done**) are finished. Optional follow-ons (not required for Phase 1): **T2.5** (configure audit), **T3.9**, **T4.6**–**T4.8**; savings-plan conversion revisit ~**2026-04-15–2026-04-22** per **D19**.
+
+---
+
+## Final Closeout Execution Plan
+
+Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (**T3.6**, **T7.2**, **T7.6**) satisfy exit criterion **8**; **T7.1** / **T7.3** satisfy **9** / **10**.
+
+| Step | Task(s) | Owner | Depends on | Output |
+|:---:|:---|:---|:---|:---|
+| 1 | **T7.1** | Main Cursor agent | — | `THIRD_PARTY_NOTICES.md` committed |
+| 2 | **T7.3** (draft) | Main Cursor agent | — | First draft `PHASE-2-BACKLOG.md` (expand from deferred section here) |
+| 3 | **T7.4**, **T7.5** | Main Cursor agent | — | **INFERENCE-ENDPOINTS** + **PHASE-1-SPIKE** aligned with live roster / costs |
+| 4 | **T3.6** | `@cost-infra-reviewer` | T3.5 (done) | Cost/infra review of `provision.sh`; findings closed or accepted |
+| 5 | **T7.2** | `@license-reviewer` | **T7.1** (and preferably **T7.4**) | License/attribution review of listed paths; fixes applied |
+| 6 | **T7.3** (finalize) | Main Cursor agent | **T7.4**/**T7.5** if they add deferrals | Final `PHASE-2-BACKLOG.md` committed |
+| 7 | **T7.6** | `@phase-boundary-keeper` | **T3.6**, **T7.1**–**T7.3**, **T7.2**; **T7.4**/**T7.5** done or waived | Written final scope check |
+| 8 | **T7.8** | **Jonathan** | — | Savings-plan timing decision recorded (**D19**: defer 1–2 weeks) |
+| 9 | **T7.7** | `@pm` | All exit criteria + checklist + **T7.8** resolved/deferred | Plan status → Complete; Jonathan notified |
+
+**Parallelization:** Steps **1–4** can overlap (e.g. **T7.1**/**T7.3**/**T7.4**/**T7.5** while **T3.6** runs). **T7.2** should follow **T7.1**; **T7.6** is last among subagent reviews.
+
+**Execution status (2026-04-08):** Steps **1–9** are **done**. Step **8** (**T7.8**): **done** — **D19** records **defer** of 1-month savings-plan conversion **1–2 weeks** (revisit ~**2026-04-15–2026-04-22**). Step **9** (**T7.7**): **done** — plan **Status** set to **Complete**; closeout recorded.
 
 ---
 
 ## Risks
+
+### R6: Executor / pool host instability (A5000-class observation)
+**Severity:** Medium
+**Description:** During Phase 1 bring-up, **unstable pool behavior was observed on some A5000 hosts**. Executor provisioning was adjusted to **prefer more stable GPU classes first** in SKU ordering (see **D17**). The live roster still uses an **RTX A5000** for the **embedding** pod (CA-MTL-1); that role may remain more exposed if the underlying host quality regresses.
+**Mitigation:** Executor GPU preference stack de-prioritizes flaky A5000 pools; monitor embedding (and all pods) in RunPod; rerun provision or change region/SKU if failures cluster on a host class. Revisit `provision.sh` ordering if RunPod fleet behavior changes.
+**Trigger to revisit:** Repeated smoke or runtime failures tied to embedding or executor host instability after preference changes.
 
 ### R1: GPU availability on RunPod Secure Cloud
 **Severity:** High
@@ -166,10 +461,12 @@ The single biggest blocker on the critical path right now is **T3.4** — the Cu
 **Mitigation:** The Mode A retry loop and the planned idempotency of `provision.sh` (T3.8) mean the user can rerun the script until the planner becomes available without losing the already-provisioned pods. The cost of waiting is roughly $1.10/hr for the two healthy pods, which is acceptable for short waits but worth watching for long ones.
 **Trigger to revisit:** If `provision.sh` fails to provision the planner across multiple rerun attempts over more than a few hours.
 
+**Status (2026-04-08):** **Mitigated for current roster** — three pods running (planner on A40 EU-SE-1, executor on A4500 EU-RO-1, embedding on A5000 CA-MTL-1). Risk remains for **future** reprovisions or capacity shifts.
+
 ### R2: Cost overruns
 **Severity:** Medium
 **Description:** A bug in `provision.sh` could create more pods than planned, leave pods running longer than expected during failures, or pick more expensive SKUs than necessary. The user is cost-sensitive and the gap between the target ($1,265/month with savings plan, $1,725/month hourly) and a worst-case scenario could be several hundred dollars per month.
-**Mitigation:** Multiple layers — the Script Auditor reviewed for orphan-pod scenarios and credential leaks, the Cost & Infra Reviewer will verify SKU selection logic, the credit balance pre-flight check prevents starting a run that can't be afforded, and `teardown.sh` is the manual kill switch. The Mode A timeout policy (preserve healthy pods + loud cost summary) means the user gets a clear signal if costs are accumulating.
+**Mitigation:** Multiple layers — the Script Auditor reviewed for orphan-pod scenarios and credential leaks, the Cost & Infra Reviewer verified SKU selection / cost paths (**T3.6**, PASS_WITH_NOTES), the credit balance pre-flight check prevents starting a run that can't be afforded, and `teardown.sh` is the manual kill switch. The Mode A timeout policy (preserve healthy pods + loud cost summary) means the user gets a clear signal if costs are accumulating.
 **Trigger to revisit:** Any unexpected line item in the RunPod billing dashboard, or any pod running for more than 48 hours that isn't part of the planned three.
 
 ### R3: OpenClaw config schema drift
@@ -195,6 +492,66 @@ The single biggest blocker on the critical path right now is **T3.4** — the Cu
 ## Decision log
 
 Decisions are recorded with the most recent at the top. Each entry includes the decision, the rationale, and what would trigger a revisit.
+
+### D25: Phase 2 mirror reconciliation — P2.3 wave 2 next; Notion sync follow-up (MCP unavailable)
+**Decided:** 2026-04-08
+**Decision:** Reconciled **repo mirrors** in this plan with **completed artifacts**: **P2.2**, **P2.4**, **P2.5**, **P2.6**, **P2.7** = **done**; **P2.8** = **done (skipped)** with justification gate doc `docs/P2.8-JUSTIFICATION-GATE.md`. **P2.3** remains **in progress**. **Batch 3** is **first slice complete** (**B3.1–B3.5**) only — **not** full **P2.3** closure. Removed stale mirror text that implied **P2.5**/**B5.1** was **next** or that **Batch 3** was fully **done** as a terminal batch. **Immediate next executable work** set to **P2.3 — Batch 3 wave 2** (**hierarchy continuation**). **`docs/PHASE-2-BACKLOG.md`** should mirror the same queue rows (main agent edit — PM scope is this file only). **Notion** remains **canonical** (**D21**); **Notion MCP** was **unavailable** during this reconciliation — **follow-up:** sync **Notion** task database to this state on next MCP session or manual pass (see **Source of truth**).
+**Rationale:** One coherent current state across git mirrors; critical path and “what’s next” aligned to actual repo progress; preserves **Notion** as system of record while recording automation gap explicitly.
+**What would trigger a revisit:** Successful **Notion** sync; completion of **wave 2** (new **@pm** handoff); or scope change to **P2.3** exit criteria (new decision).
+
+### D24: P2.4 Batch 4 complete — policy evidence, reviewer gates, P2.5 Batch 5 queued; Notion sync deferred (MCP unavailable)
+**Decided:** 2026-04-08
+**Decision:** **Batch 4** (**B4.1–B4.6**) for **P2.4** (anti-hallucination policy + review loops) is **complete**. **Evidence:** `docs/P2.4-BATCH-4-ANTI-HALLUCINATION-POLICY.md` (repo path; full path `/Users/jonathanborgia/foreman-git/foreman-v2/docs/P2.4-BATCH-4-ANTI-HALLUCINATION-POLICY.md`). **Reviewer gates:** **`@script-auditor`** **FINDINGS** (file-path visibility issue this run) **accepted with rationale** (Batch 4 was **docs-only**, no script changes); **`@cost-infra-reviewer`** **APPROVED**; **`@license-reviewer`** **COMPLIANT / PASS_WITH_NOTES**; **`@phase-boundary-keeper`** **IN_SCOPE**. **P2.4** marked **done** in the Phase 2 queue mirror; **P2.5** marked **in progress** with **Batch 5** (**B5.1–B5.6**) **queued** (scheduled task automation port/rebuild). **Immediate next task** set to **Batch 5 / B5.1**. **Notion** remains **canonical** (**D21**); **Notion MCP unavailable** this run — **follow-up:** sync **Notion** to this mirror (P2.3/Batch 3, P2.4/Batch 4, P2.5/Batch 5, **B5.1** next) when MCP or manual pass is available (see **Source of truth** follow-up).
+**Rationale:** Closes anti-hallucination policy batch with recorded evidence and gate discipline; advances execution queue without blocking on Notion tooling.
+**What would trigger a revisit:** Successful Notion sync; material new scripts in a later P2.4 slice (would re-open **`@script-auditor`** on changed paths); or a scope change to P2.5 batch tasks (record as new decision).
+
+### D23: P2.2 Batch 1 complete — reviewer gates + Notion sync deferred this run
+**Decided:** 2026-04-08
+**Decision:** **Batch 1** (**B1.1–B1.5**) for **P2.2** is **complete** with **repo evidence** (see **Batch 1** section: `docs/P2.2-BATCH-1-ROUTING-MAP.md`, `config/role-routing.json`, `scripts/paperclip-role-dispatch.sh`, verification/failure behavior via that script). **Reviewer gates:** **`@script-auditor`** **signed off**; **`@cost-infra-reviewer`**, **`@license-reviewer`**, **`@phase-boundary-keeper`** **PASS_WITH_NOTES** (outcomes table in plan). **`@pm`** invoked **Batch loop protocol** step: **Batch 2** (**B2.1–B2.5**) **queued**; **immediate next task** set to **B2.1**. **Notion** remains **canonical** for status/owners/dates (**D21**); **Notion MCP was unavailable** in this run — **follow-up:** sync **Notion** **P2.2** (Batch 1 done, Batch 2 active, **B2.1** next) when MCP or manual pass is available.
+**Rationale:** Preserves single source of truth while recording technical evidence and handoff in git; avoids blocking the batch loop on tooling.
+**What would trigger a revisit:** Successful Notion sync (close follow-up); or a finding that Batch 1 evidence is incomplete (would reopen Batch 1 tasks in **Notion** + this mirror).
+
+### D22: Phase 2 batch loop — PM handoff + mandatory reviewer gates
+**Decided:** 2026-04-08
+**Decision:** After **P2.1** **done**, Phase 2 work proceeds in **batches**. When a batch reaches **done**, **`@pm`** is invoked **immediately** to queue the **next** batch and align this plan mirror with **Notion**. **Every** batch includes mandatory gates: **`@script-auditor`**, **`@cost-infra-reviewer`**, **`@license-reviewer`**, **`@phase-boundary-keeper`**. A batch may advance only when all its tasks meet **Done when** criteria, evidence is recorded, all four gates have outcomes, and **`@pm`** confirms **Notion** reflects completion.
+**Rationale:** Preserves Phase 1 review discipline on Phase 2 increments; avoids losing the single source of truth (**Notion**) while keeping repo evidence and handoff explicit.
+**What would trigger a revisit:** A decision to run Phase 2 without batching, to drop a gate, or to change the canonical status tool (would supersede **D21** in part — record as new decision).
+
+### D21: Notion as canonical source for build / roadmap status
+**Decided:** 2026-04-08
+**Decision:** **Notion** is the **default source of truth** for **status**, **owners**, **dates**, and **dependencies** on the Foreman v2 build and roadmap. Repo docs (including this plan) remain **technical evidence**, **decision logs**, and **historical** Phase 1 detail; they are **not** the authoritative assignment system. **Hub:** https://www.notion.so/33c6238cef3e8190b695cb3dde3f9c42 — **Task database:** https://www.notion.so/e202cead847b4cb8b7aa032c7a373daa
+**Rationale:** Single place for live prioritization and ownership; the repo keeps audit-friendly evidence and rationale without competing with day-to-day task state.
+**What would trigger a revisit:** A deliberate choice to move roadmap ownership to another tool, or to make the repo authoritative again for a subset of work (recorded as a new decision).
+
+### D20: Phase 2 execution queue — Paperclip path; scope capped vs Phase 3–4
+**Decided:** 2026-04-08
+**Decision:** Phase 2 work is **queued** as **P2.1–P2.8** in the **Phase 2 handoff** section near the top of this file, with **critical path P2.1 → P2.2 → P2.3**. **Scope cap:** Phase 2 is **Paperclip integration** on the existing **OpenClaw + three-pod RunPod** stack. **Phase 3** (frontend reskin, onboarding, social pipeline, hosted gateway polish) and **Phase 4+** (billing, marketing, support ops, broad analytics) remain **out of Phase 2** unless a **later decision** explicitly pulls them in.
+**Rationale:** Phase 1 is complete; Jonathan needs an ordered queue, explicit dependencies, and a hard boundary so platform/product work does not collapse into the Paperclip phase.
+**What would trigger a revisit:** P2.1 integration surprises; Paperclip/OpenClaw architecture constraints; explicit reprioritization; or a new decision to absorb a Phase 3+ item into Phase 2.
+
+### D19: RunPod 1-month savings-plan conversion — defer 1–2 weeks (T7.8)
+**Decided:** 2026-04-08
+**Decision:** **Defer** converting the Phase 1 three-pod roster to a **1-month RunPod savings plan** for **1–2 weeks** (do not convert immediately). **Revisit window:** re-evaluate conversion approximately **2026-04-15–2026-04-22** (1–2 weeks after this decision).
+**Rationale:** Close Phase 1 without blocking on billing/plan-change execution; time-boxed deferral preserves the decision as “not now” while keeping a explicit calendar trigger to revisit.
+**What would trigger a revisit:** End of the 1–2 week window, material change in RunPod pricing or roster, or operational readiness to execute the conversion sooner.
+
+### D18: Closeout reviewer verdicts (cost, license, boundary) — PASS_WITH_NOTES
+**Decided:** 2026-04-08
+**Decision:** **T3.6** (Cost & Infra Reviewer on `provision.sh`), **T7.2** (License & Attribution Reviewer on the listed attribution/docs paths), and **T7.6** (Phase Boundary Keeper final scope check) completed with verdict **PASS_WITH_NOTES** — no script or scope blockers; documentation/process notes only, addressed in the same closeout pass.
+**Rationale:** Records the evidence trail for exit criterion **8** (all four review subagents used on Phase 1 work, with findings addressed or explicitly noted).
+**What would trigger a revisit:** Material changes to `provision.sh`, attribution surfaces, or Phase 1 scope claims without a fresh review pass.
+
+### D17: Executor GPU preference ordering to mitigate unstable pool hosts
+**Decided:** 2026-04-08
+**Decision:** After observing **unstable pool behavior on some A5000-class hosts**, `provision.sh` **executor** SKU / GPU preference ordering was adjusted to **prioritize historically stable alternatives first**, rather than minimizing $/hr at the expense of flaky hosts.
+**Rationale:** The executor is on the latency-critical path for chat; predictable uptime matters more than marginal hourly savings on hosts that fail health checks or behave erratically under load.
+**What would trigger a revisit:** RunPod Secure Cloud fleet quality changes; evidence that A5000-class pools are consistently stable; or a deliberate choice to chase lowest $/hr again with different acceptance of churn.
+
+### D16: Official Hugging Face model IDs only on the Phase 1 roster
+**Decided:** 2026-04-08
+**Decision:** The three-pod Phase 1 roster uses **official** `Qwen/Qwen3-*` model IDs from Hugging Face only (executor: `Qwen/Qwen3-14B-AWQ`; planner: `Qwen/Qwen3-30B-A3B-Instruct-2507`; embedding: `Qwen/Qwen3-Embedding-8B`) — **no** ad-hoc mirrors, private registries, or unreviewed custom bundles in this spike.
+**Rationale:** Reproducible pulls, clearer support path with vLLM/HF, and less supply-chain ambiguity for a solo-operator Phase 1.
+**What would trigger a revisit:** Phase 2+ need for fine-tuned weights, private artifacts, or a forked model ID.
 
 ### D1: Use OpenClaw + Paperclip as the foundation for Foreman v2
 **Decided:** Earlier in Phase 1 planning
@@ -290,7 +647,7 @@ Decisions are recorded with the most recent at the top. Each entry includes the 
 
 ## Deferred work — Phase 2+ backlog (preview)
 
-This is a preview of what will go into `docs/PHASE-2-BACKLOG.md` (T7.3). The full backlog file will be more detailed; this section is a quick reference so the PM agent and Phase Boundary Keeper can answer "where does this idea go" questions without leaving the plan file.
+`docs/PHASE-2-BACKLOG.md` now exists (**T7.3** **done**); this section remains a **preview / quick reference**. **Live roadmap / task state:** Notion (**Source of truth**, **D21**). The backlog file is a **repo-side** structured deferral record and mirror. The PM agent and Phase Boundary Keeper can still answer "where does this idea go" from either place.
 
 ### Target: Phase 2 (Paperclip integration)
 - Paperclip install and integration on top of OpenClaw
@@ -327,29 +684,35 @@ This is a preview of what will go into `docs/PHASE-2-BACKLOG.md` (T7.3). The ful
 
 ## Phase exit checklist
 
-When the PM agent is asked "is Phase 1 done?", it should walk through this checklist mechanically:
+When the PM agent is asked "is Phase 1 done?", it should walk through this checklist mechanically. As of **2026-04-08**, all items below are checked — Phase 1 is **complete** per this plan.
 
-- [ ] T5.1: `provision.sh` ran successfully against RunPod
-- [ ] T5.2: `state/pods.json` has three pods recorded
-- [ ] T5.3: All three pods reachable and serving expected models
-- [ ] T6.1: `configure.sh` ran successfully
-- [ ] T6.2: OpenClaw gateway running
-- [ ] T6.3: `smoke-test.sh` exits 0
-- [ ] T6.4: WebChat works in browser, multi-turn conversation possible
-- [ ] T6.5: Responses verifiably from Qwen3-14B-AWQ via RunPod
-- [ ] T7.1: `THIRD_PARTY_NOTICES.md` exists and is correct
-- [ ] T7.2: License Reviewer pass complete
-- [ ] T7.3: `PHASE-2-BACKLOG.md` exists and captures all deferred work
-- [ ] T7.6: Phase Boundary Keeper final scope check passed
+- [x] T5.1: `provision.sh` ran successfully against RunPod
+- [x] T5.2: `state/pods.json` has three pods recorded
+- [x] T5.3: All three pods reachable and serving expected models
+- [x] T6.1: `configure.sh` ran successfully
+- [x] T6.2: OpenClaw gateway running
+- [x] T6.3: `smoke-test.sh` exits 0
+- [x] T6.4: WebChat works in browser, multi-turn conversation possible
+- [x] T6.5: Responses verifiably from Qwen3-14B-AWQ via RunPod
+- [x] T7.1: `THIRD_PARTY_NOTICES.md` exists and is correct
+- [x] T7.2: License Reviewer pass complete
+- [x] T7.3: `PHASE-2-BACKLOG.md` exists and captures all deferred work
+- [x] T7.6: Phase Boundary Keeper final scope check passed
+- [x] T7.8: Savings-plan timing closed — **deferred 1–2 weeks** (**D19**); revisit ~**2026-04-15–2026-04-22**
+- [x] T7.7: Plan status **Complete**; Phase 1 closeout recorded (**2026-04-08**)
 
-When all twelve are checked, Phase 1 is done. The PM agent should mark the plan file's status as "Complete" and notify Jonathan to start Phase 2 planning.
+**Supplement — exit criteria items 7–10 (see "Phase 1 exit criteria" above):** **Item 7** (`teardown.sh`): satisfied via **audit path** (Script Auditor sign-off on `teardown.sh`, **T3.7**). **Item 8** (four review subagents used + findings addressed): **complete** — Script Auditor + **T3.6** (PASS_WITH_NOTES) + **T7.2** (PASS_WITH_NOTES) + **T7.6** (PASS_WITH_NOTES). **Item 9** `THIRD_PARTY_NOTICES.md`: **T7.1** **done**. **Item 10** `PHASE-2-BACKLOG.md`: **T7.3** **done**. Doc alignment (**T7.4**, **T7.5**) supports criteria **1–6** narrative consistency; not separate numbered exit rows.
+
+**Closeout:** **T7.8** **done** (**D19** — defer 1–2 weeks). **T7.7** **done**. Phase 1 is **complete** per this plan (**2026-04-08**). **Next (Phase 2):** **P2.3** **in progress** — **Batch 3 wave 2** (hierarchy continuation) is **immediate next executable** (**D25**); **P2.2**, **P2.4**, **P2.5**, **P2.6**, **P2.7** **done**; **P2.8** **done (skipped)** per gate doc. Canonical task state in **Notion** (**Source of truth**) — **Notion MCP** sync follow-up when unavailable (**Source of truth** + **D25**); calendar revisit for savings-plan conversion per **D19**.
 
 ---
 
 ## How this file gets updated
 
+**Status for the build / roadmap** is **owned in Notion** (**Source of truth**). The PM subagent (`@pm`) still updates this file to **mirror** Notion when helpful, to record **decisions** and **risks**, and to preserve **Phase 1 history** and **technical evidence**.
+
 This file is updated by the PM subagent (`@pm`) when:
-1. A task moves between status values (`not started` → `in progress` → `done`)
+1. A task moves between status values (`not started` → `in progress` → `done`) — **when mirroring Notion or recording closeout here**
 2. A new task is added or an existing one is removed
 3. A risk is identified, mitigated, or retired
 4. A decision is made and needs to be recorded

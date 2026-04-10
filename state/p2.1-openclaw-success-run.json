@@ -1,0 +1,64 @@
+{
+  "run": {
+    "id": "b35e4a63-4464-4963-a960-83e45dc8bf95",
+    "companyId": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "agentId": "94183066-a375-4870-be76-062cc80f34ce",
+    "invocationSource": "on_demand",
+    "triggerDetail": "manual",
+    "status": "succeeded",
+    "startedAt": "2026-04-08T22:11:22.183Z",
+    "finishedAt": "2026-04-08T22:11:31.639Z",
+    "error": null,
+    "wakeupRequestId": "d352c40a-322c-47b4-94c8-e668d84877db",
+    "exitCode": 0,
+    "signal": null,
+    "usageJson": null,
+    "resultJson": {
+      "stderr": "",
+      "stdout": "completed\n"
+    },
+    "sessionIdBefore": null,
+    "sessionIdAfter": null,
+    "logStore": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/94183066-a375-4870-be76-062cc80f34ce/b35e4a63-4464-4963-a960-83e45dc8bf95.ndjson",
+    "logBytes": 382,
+    "logSha256": "20752b48e02f076d2d24bab9e45651dcf02a4df111a91d58ca742851aa90ca6b",
+    "logCompressed": false,
+    "stdoutExcerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\" for this run.\ncompleted\n",
+    "stderrExcerpt": "",
+    "errorCode": null,
+    "externalRunId": null,
+    "processPid": null,
+    "processStartedAt": null,
+    "retryOfRunId": null,
+    "processLossRetryCount": 0,
+    "contextSnapshot": {
+      "actorId": "local-board",
+      "wakeSource": "on_demand",
+      "triggeredBy": "board",
+      "wakeTriggerDetail": "manual",
+      "paperclipWorkspace": {
+        "cwd": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce",
+        "mode": "shared_workspace",
+        "source": "agent_home",
+        "repoRef": null,
+        "repoUrl": null,
+        "strategy": "project_primary",
+        "agentHome": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce",
+        "projectId": null,
+        "branchName": null,
+        "workspaceId": null,
+        "worktreePath": null
+      },
+      "paperclipWorkspaces": []
+    },
+    "createdAt": "2026-04-08T22:11:22.179Z",
+    "updatedAt": "2026-04-08T22:11:31.639Z"
+  },
+  "log": {
+    "runId": "b35e4a63-4464-4963-a960-83e45dc8bf95",
+    "store": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/94183066-a375-4870-be76-062cc80f34ce/b35e4a63-4464-4963-a960-83e45dc8bf95.ndjson",
+    "content": "{\"ts\":\"2026-04-08T22:11:22.195Z\",\"stream\":\"stdout\",\"chunk\":\"[paperclip] No project or prior session workspace was available. Using fallback workspace \\\"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\\\" for this run.\\n\"}\n{\"ts\":\"2026-04-08T22:11:31.600Z\",\"stream\":\"stdout\",\"chunk\":\"completed\\n\"}\n"
+  }
+}

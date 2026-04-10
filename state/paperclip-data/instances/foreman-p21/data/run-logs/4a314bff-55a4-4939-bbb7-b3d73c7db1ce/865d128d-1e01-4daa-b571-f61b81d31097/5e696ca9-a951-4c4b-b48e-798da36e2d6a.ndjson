@@ -1,0 +1,2 @@
+{"ts":"2026-04-08T23:27:48.771Z","stream":"stdout","chunk":"[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/865d128d-1e01-4daa-b571-f61b81d31097\" for this run.\n"}
+{"ts":"2026-04-08T23:27:48.806Z","stream":"stderr","chunk":"ERROR: Unknown PAPERCLIP_ROLE 'invalid-role'.\n"}

@@ -9,37 +9,40 @@ pods expose OpenAI-compatible APIs via vLLM on `/v1`.
 | --- | --- | --- | --- |
 | embedding | `Qwen/Qwen3-Embedding-8B` | RAG embedding generation | No |
 | executor | `Qwen/Qwen3-14B-AWQ` | Main chat and tool-use execution | Yes |
-| planner | `Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ` | Higher-depth planning/reasoning | No |
+| planner | `Qwen/Qwen3-30B-A3B-Instruct-2507` | Higher-depth planning/reasoning | No |
 
 Secure Cloud is mandatory for these pods. Community Cloud is intentionally not
 used for production reliability reasons.
 
-## Pod Flags
+## Pod Runtime Flags
 
-`scripts/provision.sh` creates each pod using RunPod's vLLM worker image and
-applies endpoint-specific environment variables that map to vLLM flags:
+`scripts/provision.sh` creates each pod using `vllm/vllm-openai:latest` and
+passes endpoint-specific vLLM args via `dockerStartCmd`:
 
 - `embedding`
-  - `MODEL_NAME=Qwen/Qwen3-Embedding-8B`
-  - `TASK=embed`
-  - `DTYPE=half`
-  - `MAX_MODEL_LEN=32768`
-  - `GPU_MEMORY_UTILIZATION=0.90`
-  - `MAX_NUM_SEQS=16`
+  - `--model Qwen/Qwen3-Embedding-8B`
+  - `--dtype half`
+  - `--max-model-len 4096`
+  - `--gpu-memory-utilization 0.85`
+  - `--max-num-seqs 16`
+  - `--trust-remote-code`
 - `executor`
-  - `MODEL_NAME=Qwen/Qwen3-14B-AWQ`
-  - `QUANTIZATION=awq_marlin`
-  - `DTYPE=half`
-  - `MAX_MODEL_LEN=32768`
-  - `GPU_MEMORY_UTILIZATION=0.90`
-  - `MAX_NUM_SEQS=16`
+  - `--model Qwen/Qwen3-14B-AWQ`
+  - `--quantization awq_marlin`
+  - `--dtype half`
+  - `--enable-auto-tool-choice`
+  - `--tool-call-parser hermes`
+  - `--max-model-len 32768`
+  - `--gpu-memory-utilization 0.85`
+  - `--max-num-seqs 8`
+  - `--trust-remote-code`
 - `planner`
-  - `MODEL_NAME=Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ`
-  - `QUANTIZATION=awq_marlin`
-  - `ENABLE_EXPERT_PARALLEL=true`
-  - `MAX_MODEL_LEN=65536`
-  - `GPU_MEMORY_UTILIZATION=0.90`
-  - `MAX_NUM_SEQS=16`
+  - `--model Qwen/Qwen3-30B-A3B-Instruct-2507`
+  - `--quantization fp8`
+  - `--max-model-len 16384`
+  - `--gpu-memory-utilization 0.85`
+  - `--max-num-seqs 8`
+  - `--trust-remote-code`
 
 ## OpenClaw Routing Caveat (Intentional)
 
@@ -48,24 +51,28 @@ Planner and embedding providers are provisioned and reachable, but are not used
 for automatic task routing yet. Paperclip-driven dispatch and deeper provider
 routing are Phase 2 concerns.
 
-## Cost Optimization (Verified Current Pricing)
+## Current Live Cost Snapshot (2026-04-08)
 
-The selected Secure Cloud SKUs are chosen using the "always cheapest acceptable
-SKU" rule:
+Observed live roster:
 
-- Embedding: `NVIDIA RTX A4000` at `0.25` credits/hour
-- Executor: `NVIDIA RTX A5000` at `0.27` credits/hour
-- Planner: `NVIDIA A40` at `0.40` credits/hour
+- Embedding: `NVIDIA RTX A5000` at approximately `$0.27`/hour
+- Executor: `NVIDIA RTX A4500` at approximately `$0.25`/hour
+- Planner: `NVIDIA A40` at approximately `$0.44`/hour
 
-Total baseline compute is `0.92` credits/hour, about `662.40` credits/month
+Total baseline compute is approximately `$0.96`/hour, about `$691.20`/month
 (30-day estimate, compute only).
+
+RunPod storage is billed separately. Current pod spec uses:
+
+- `containerDiskInGb: 80`
+- `volumeInGb: 50`
 
 RunPod savings-plan fields are exposed in GraphQL per GPU type as
 `threeMonthPrice` and `sixMonthPrice`. Verified values for selected SKUs:
 
-- A4000: `0.25` -> `0.21` (3-month), `0.20` (6-month)
-- A5000: `0.27` -> `0.23` (3-month), `0.21` (6-month)
-- A40: `0.40` -> `0.30` (3-month), `0.28` (6-month)
+- A4500: verify at conversion time
+- A5000: verify at conversion time
+- A40: verify at conversion time
 
 Recommended rollout strategy:
 
@@ -82,10 +89,11 @@ Recommended rollout strategy:
 - **Mode B - Permanent request/account error**: immediate fail with teardown.
 - **Mode C - Pod never reaches RUNNING**: fail and teardown using best-effort
   lifecycle diagnostics from pod state fields.
-- **Mode D - RUNNING but model/health check fails**: three retries, then fail
-  and teardown using best-effort lifecycle diagnostics.
+- **Mode D - RUNNING but model/health check fails**: retries up to `80` checks
+  at `30s` intervals, then fail and teardown using best-effort lifecycle diagnostics.
 - **Mode E - RunPod API infrastructure failure (5xx/429/timeouts)**: retries
-  the failing API call for up to 5 minutes, then fails with teardown.
+  the failing API call for up to 5 minutes, then preserves already-healthy pods
+  with a warning so you can retry or run `./scripts/teardown.sh` explicitly.
 
 Note: public RunPod REST/GraphQL docs do not currently document a pod container
 logs retrieval endpoint. Mode C/D therefore report best-effort state and

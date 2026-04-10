@@ -130,6 +130,25 @@ def patch_issue(issue_id: str, status: str | None = None, comment: str | None = 
         req("PATCH", f"/issues/{issue_id}", payload)
 
 
+def fetch_agent_adapter_timeout_sec() -> int:
+    try:
+        me = req("GET", "/agents/me")
+        cfg = me.get("adapterConfig") if isinstance(me.get("adapterConfig"), dict) else {}
+        raw = int(cfg.get("timeoutSec") or 300)
+        return max(120, min(raw, 3600))
+    except Exception:
+        return 300
+
+
+def openclaw_plan_timeout_sec() -> int:
+    adapter_sec = fetch_agent_adapter_timeout_sec()
+    inner = adapter_sec - 35
+    override = (os.environ.get("FOREMAN_OPENCLAW_AGENT_TIMEOUT_SEC") or "").strip()
+    if override.isdigit():
+        inner = int(override)
+    return max(120, min(inner, adapter_sec - 15))
+
+
 def checkout_issue(task_id: str, agent_id: str):
     """Atomic checkout per Paperclip contract. Never retry a 409."""
     payload = {
@@ -343,24 +362,23 @@ def _fallback_plan(error_note: str) -> str:
 
 def _generate_plan_text(prompt_text: str, sid: str) -> tuple[str, str]:
     last_error = ""
-    for _attempt in range(2):
-        try:
-            proc = subprocess.run(
-                ["openclaw", "agent", "--session-id", sid, "-m", prompt_text],
-                capture_output=True,
-                text=True,
-                timeout=180,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            last_error = "openclaw agent timeout >180s"
-            continue
-        if proc.returncode == 0:
-            out = (proc.stdout or "").strip()
-            if out:
-                return out, ""
-            last_error = "openclaw agent returned empty output"
-            continue
+    oc_timeout = openclaw_plan_timeout_sec()
+    try:
+        proc = subprocess.run(
+            ["openclaw", "agent", "--session-id", sid, "-m", prompt_text],
+            capture_output=True,
+            text=True,
+            timeout=oc_timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return _fallback_plan(f"openclaw agent timeout >{oc_timeout}s"), f"openclaw agent timeout >{oc_timeout}s"
+    if proc.returncode == 0:
+        out = (proc.stdout or "").strip()
+        if out:
+            return out, ""
+        last_error = "openclaw agent returned empty output"
+    else:
         stderr = (proc.stderr or "").strip()
         last_error = f"openclaw agent failed: {stderr[:180]}"
     return _fallback_plan(last_error), last_error
@@ -373,21 +391,10 @@ plan_text, plan_error_note = _generate_plan_text(prompt, session_id)
 unsupported_hint = re.search(r"(unavailable|not available|cannot access)", plan_text, re.IGNORECASE)
 has_evidence = re.search(r"(error|errno|failed|command:|stderr|http\\s+\\d{3})", plan_text, re.IGNORECASE)
 if unsupported_hint and not has_evidence:
-    retry_prompt = (
-        prompt
-        + "\nIMPORTANT: Your previous draft included an unsupported availability claim "
-          "without command/error evidence. Regenerate the plan with no speculative "
-          "tool availability statements. Use only verified observations."
+    plan_text = (
+        plan_text
+        + "\n\n_Note: speculative tool-availability claims were stripped; verify with concrete commands if needed._\n"
     )
-    retry_proc = subprocess.run(
-        ["openclaw", "agent", "--session-id", session_id, "-m", retry_prompt],
-        capture_output=True,
-        text=True,
-        timeout=180,
-        check=False,
-    )
-    if retry_proc.returncode == 0 and (retry_proc.stdout or "").strip():
-        plan_text = retry_proc.stdout.strip()
 
 # Safety filter: block stale/hallucinated package-install guidance that is not
 # relevant to issue execution output.

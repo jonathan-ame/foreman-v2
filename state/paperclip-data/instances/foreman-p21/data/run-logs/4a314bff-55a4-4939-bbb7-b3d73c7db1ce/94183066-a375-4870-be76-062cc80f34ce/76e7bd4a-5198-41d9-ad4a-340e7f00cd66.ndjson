@@ -1,0 +1,4 @@
+{"ts":"2026-04-08T22:12:59.839Z","stream":"stdout","chunk":"[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\" for this run.\n"}
+{"ts":"2026-04-08T22:13:03.246Z","stream":"stderr","chunk":"Gateway agent failed; falling back to embedded: Error: gateway url override requires explicit credentials\nFix: pass --token or --password (or gatewayToken in tools).\nConfig: /Users/jonathanborgia/.openclaw/openclaw.json\n"}
+{"ts":"2026-04-08T22:13:03.461Z","stream":"stdout","chunk":"[agents] synced openai-codex credentials from external cli\n"}
+{"ts":"2026-04-08T22:13:27.265Z","stream":"stdout","chunk":"No reply from agent.\n"}

@@ -1,0 +1,2 @@
+{"ts":"2026-04-08T23:42:07.189Z","stream":"stdout","chunk":"[paperclip] Skipping saved session resume for task \"ae527462-ab1e-4362-a62d-28ae885a0563\" because wake reason is issue_assigned.\n"}
+{"ts":"2026-04-08T23:42:17.975Z","stream":"stdout","chunk":"HEARTBEAT_OK:executor\n"}

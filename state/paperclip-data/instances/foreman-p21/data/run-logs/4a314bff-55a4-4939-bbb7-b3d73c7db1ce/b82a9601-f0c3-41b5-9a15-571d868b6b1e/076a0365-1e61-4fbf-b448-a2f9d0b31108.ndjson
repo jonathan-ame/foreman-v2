@@ -1,0 +1,2 @@
+{"ts":"2026-04-09T05:51:36.243Z","stream":"stdout","chunk":"HEARTBEAT_OK:executor\n"}
+{"ts":"2026-04-09T05:51:36.254Z","stream":"stderr","chunk":"/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-chief-executor.sh: line 264: unexpected EOF while looking for matching `\"'\n"}

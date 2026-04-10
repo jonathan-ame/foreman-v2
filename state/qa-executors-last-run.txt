@@ -1,0 +1,20 @@
+=== Foreman Paperclip/OpenClaw executor QA ===
+Time (UTC): 2026-04-10T00:18:29.204851+00:00
+API: http://127.0.0.1:3125  Paperclip:200  OpenClaw:200
+
+--- Static checks ---
+  [PASS] chief bash bash -n 
+  [PASS] worker bash bash -n 
+  [PASS] chief py ast.parse 
+  [PASS] worker py ast.parse 
+
+--- E2E run 1/1: [EXT-QA E2E 1/1] 20260410-001829 ---
+  CEO heartbeat exit=0
+  Child still todo; invoking worker heartbeat (fallback)
+  Worker fallback exit=0
+  parent=FOR-60 status=in_review  child=FOR-61 status=done  worker_comment=True  strict_pass=True
+
+--- Summary ---
+  E2E strict pass: 1/1
+  Static: PASS
+  OVERALL: PASS

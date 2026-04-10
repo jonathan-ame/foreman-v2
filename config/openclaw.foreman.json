@@ -34,12 +34,12 @@
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ",
+            id: "Qwen/Qwen3-30B-A3B-Instruct-2507",
             name: "Foreman v2 Planner",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 65536,
+            contextWindow: 16384,
             maxTokens: 8192,
           },
         ],

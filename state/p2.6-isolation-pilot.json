@@ -1,0 +1,22 @@
+{
+  "timestamp": "2026-04-09T00:17:06Z",
+  "api_base": "http://127.0.0.1:3110/api",
+  "company_a": {
+    "id": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "name": "Foreman",
+    "marker": "isolation-a-1775693826",
+    "issue_id": "ab5f23a9-2240-46c2-9968-3132d0142772"
+  },
+  "company_b": {
+    "id": "00ca3ed6-7ad2-43f1-a862-5d5295bbac0c",
+    "name": "Foreman-Isolation-B",
+    "marker": "isolation-b-1775693826",
+    "issue_id": "8dc1b742-ef45-4ccb-9137-f17cdd54bf20"
+  },
+  "verification": {
+    "a_sees_a": true,
+    "b_sees_b": true,
+    "a_sees_b": false,
+    "b_sees_a": false
+  }
+}

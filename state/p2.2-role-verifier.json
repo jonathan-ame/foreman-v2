@@ -1,0 +1,34 @@
+{
+  "timestamp": "2026-04-08T23:50:09Z",
+  "api_base": "http://127.0.0.1:3110/api",
+  "company": {
+    "id": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "name": "Foreman"
+  },
+  "results": [
+    {
+      "agent_name": "CEO",
+      "agent_id": "b82a9601-f0c3-41b5-9a15-571d868b6b1e",
+      "expected_marker": "HEARTBEAT_OK:executor",
+      "run_id": "93c22627-dabe-4a1b-9223-522c2cc222e7",
+      "status": "succeeded",
+      "stdout_excerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e\" for this run.\nHEARTBEAT_OK:executor\n"
+    },
+    {
+      "agent_name": "OpenClawWorker",
+      "agent_id": "94183066-a375-4870-be76-062cc80f34ce",
+      "expected_marker": "HEARTBEAT_OK:planner",
+      "run_id": "27f3e06d-c8c8-450e-aa92-fcd0ed0d7c8b",
+      "status": "succeeded",
+      "stdout_excerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\" for this run.\nHEARTBEAT_OK:planner\n"
+    },
+    {
+      "agent_name": "EmbeddingWorker",
+      "agent_id": "865d128d-1e01-4daa-b571-f61b81d31097",
+      "expected_marker": "HEARTBEAT_OK:embedding",
+      "run_id": "975b7659-138f-41ef-b15b-dda4620e52c1",
+      "status": "succeeded",
+      "stdout_excerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/865d128d-1e01-4daa-b571-f61b81d31097\" for this run.\nHEARTBEAT_OK:embedding\n"
+    }
+  ]
+}

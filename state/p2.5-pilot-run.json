@@ -1,0 +1,20 @@
+{
+  "timestamp": "2026-04-09T00:01:37Z",
+  "api_base": "http://127.0.0.1:3110/api",
+  "company": {
+    "id": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "name": "Foreman"
+  },
+  "job_id": "p2.5-pilot-chief-of-staff-heartbeat",
+  "agent": {
+    "id": "2ffc0df3-83be-4fcf-a7ee-73e20570ea4e",
+    "name": "ChiefOfStaff"
+  },
+  "run": {
+    "id": "728a0035-ce39-4c8e-939f-de94ef704195",
+    "status": "succeeded",
+    "error": null,
+    "stdout_excerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/2ffc0df3-83be-4fcf-a7ee-73e20570ea4e\" for this run.\nHEARTBEAT_OK:executor\n",
+    "stderr_excerpt": ""
+  }
+}

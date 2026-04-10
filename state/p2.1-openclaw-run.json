@@ -1,0 +1,61 @@
+{
+  "run": {
+    "id": "7bbd677d-cc69-48f2-b270-329bcd81f5bd",
+    "companyId": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce",
+    "agentId": "94183066-a375-4870-be76-062cc80f34ce",
+    "invocationSource": "on_demand",
+    "triggerDetail": "manual",
+    "status": "failed",
+    "startedAt": "2026-04-08T22:08:35.411Z",
+    "finishedAt": "2026-04-08T22:08:35.446Z",
+    "error": "Failed to start command \"openclaw agent --session-id paperclip-p21-openclaw -m \"Reply with exactly OPENCLAW_OK and nothing else.\"\" in \"/Users/jonathanborgia/foreman-git/foreman-v2\". Verify adapter command, working directory, and PATH (/Users/jonathanborgia/.npm/_npx/53a42c7f91f1c220/node_modules/.bin:/Users/jonathanborgia/foreman-git/foreman-v2/node_modules/.bin:/Users/jonathanborgia/foreman-git/node_modules/.bin:/Users/jonathanborgia/node_modules/.bin:/Users/node_modules/.bin:/node_modules/.bin:/Users/jonathanborgia/.nvm/versions/node/v24.14.1/lib/node_modules/npm/node_modules/@npmcli/run-script/lib/node-gyp-bin:/Users/jonathanborgia/.opencode/bin:/Users/jonathanborgia/.local/bin:/opt/homebrew/opt/openjdk/bin:/Users/jonathanborgia/.nvm/versions/node/v24.14.1/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/System/Cryptexes/App/usr/bin:/usr/bin:/bin:/usr/sbin:/sbin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin:/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin:/Library/Apple/usr/bin:/Users/jonathanborgia/.opencode/bin:/Users/jonathanborgia/.local/bin:/opt/homebrew/opt/openjdk/bin:/Users/jonathanborgia/.nvm/versions/node/v24.14.1/bin:/Library/Frameworks/Python.framework/Versions/3.13/bin).",
+    "wakeupRequestId": "47a83a7e-08ff-47f4-9674-e65444d0f8a1",
+    "exitCode": null,
+    "signal": null,
+    "usageJson": null,
+    "resultJson": null,
+    "sessionIdBefore": null,
+    "sessionIdAfter": null,
+    "logStore": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/94183066-a375-4870-be76-062cc80f34ce/7bbd677d-cc69-48f2-b270-329bcd81f5bd.ndjson",
+    "logBytes": 308,
+    "logSha256": "2104efcc0adb2b7379dc28ab5362b3e0600608057c080e4e8451c0b6e3906482",
+    "logCompressed": false,
+    "stdoutExcerpt": "[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\" for this run.\n",
+    "stderrExcerpt": "",
+    "errorCode": "adapter_failed",
+    "externalRunId": null,
+    "processPid": null,
+    "processStartedAt": null,
+    "retryOfRunId": null,
+    "processLossRetryCount": 0,
+    "contextSnapshot": {
+      "actorId": "local-board",
+      "wakeSource": "on_demand",
+      "triggeredBy": "board",
+      "wakeTriggerDetail": "manual",
+      "paperclipWorkspace": {
+        "cwd": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce",
+        "mode": "shared_workspace",
+        "source": "agent_home",
+        "repoRef": null,
+        "repoUrl": null,
+        "strategy": "project_primary",
+        "agentHome": "/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce",
+        "projectId": null,
+        "branchName": null,
+        "workspaceId": null,
+        "worktreePath": null
+      },
+      "paperclipWorkspaces": []
+    },
+    "createdAt": "2026-04-08T22:08:35.346Z",
+    "updatedAt": "2026-04-08T22:08:35.446Z"
+  },
+  "log": {
+    "runId": "7bbd677d-cc69-48f2-b270-329bcd81f5bd",
+    "store": "local_file",
+    "logRef": "4a314bff-55a4-4939-bbb7-b3d73c7db1ce/94183066-a375-4870-be76-062cc80f34ce/7bbd677d-cc69-48f2-b270-329bcd81f5bd.ndjson",
+    "content": "{\"ts\":\"2026-04-08T22:08:35.436Z\",\"stream\":\"stdout\",\"chunk\":\"[paperclip] No project or prior session workspace was available. Using fallback workspace \\\"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/94183066-a375-4870-be76-062cc80f34ce\\\" for this run.\\n\"}\n"
+  }
+}

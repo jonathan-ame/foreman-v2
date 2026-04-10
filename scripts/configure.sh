@@ -6,9 +6,25 @@ ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
 TEMPLATE_FILE="${ROOT_DIR}/config/openclaw.foreman.json"
 STATE_FILE="${ROOT_DIR}/state/pods.json"
+CHECKSUM_FILE="${ROOT_DIR}/state/openclaw-config-checksum.txt"
 OPENCLAW_HOME="${HOME}/.openclaw"
 TARGET_CONFIG="${OPENCLAW_HOME}/openclaw.json"
 OPENCLAW_ENV_FILE="${OPENCLAW_HOME}/.env"
+
+write_config_checksum() {
+  local source_file="$1"
+  mkdir -p "$(dirname "${CHECKSUM_FILE}")"
+  python3 - "${source_file}" "${CHECKSUM_FILE}" <<'PY'
+import hashlib
+import pathlib
+import sys
+
+source = pathlib.Path(sys.argv[1])
+target = pathlib.Path(sys.argv[2])
+digest = hashlib.sha256(source.read_bytes()).hexdigest()
+target.write_text(digest + "\n", encoding="utf-8")
+PY
+}
 
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2
@@ -40,18 +56,8 @@ EXECUTOR_BASE_URL=""
 PLANNER_BASE_URL=""
 EMBEDDING_BASE_URL=""
 
-while IFS=$'\t' read -r role base_url; do
-  case "${role}" in
-    executor) EXECUTOR_BASE_URL="${base_url}" ;;
-    planner) PLANNER_BASE_URL="${base_url}" ;;
-    embedding) EMBEDDING_BASE_URL="${base_url}" ;;
-    *)
-      echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
-      exit 1
-      ;;
-  esac
-done < <(
-  python3 - "${STATE_FILE}" <<'PY'
+pod_lines_file="$(mktemp)"
+python3 - "${STATE_FILE}" > "${pod_lines_file}" <<'PY'
 import json
 import re
 import sys
@@ -61,7 +67,7 @@ path = sys.argv[1]
 expected_roles = {
     "embedding": "Qwen/Qwen3-Embedding-8B",
     "executor": "Qwen/Qwen3-14B-AWQ",
-    "planner": "Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ",
+    "planner": "Qwen/Qwen3-30B-A3B-Instruct-2507",
 }
 
 try:
@@ -128,7 +134,19 @@ for role, model in expected_roles.items():
         )
     print(f"{role}\t{base}")
 PY
-)
+
+while IFS=$'\t' read -r role base_url; do
+  case "${role}" in
+    executor) EXECUTOR_BASE_URL="${base_url}" ;;
+    planner) PLANNER_BASE_URL="${base_url}" ;;
+    embedding) EMBEDDING_BASE_URL="${base_url}" ;;
+    *)
+      echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
+      exit 1
+      ;;
+  esac
+done < "${pod_lines_file}"
+rm -f "${pod_lines_file}"
 
 if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" ]]; then
   echo "ERROR: Failed to extract all required base URLs from ${STATE_FILE}." >&2
@@ -189,6 +207,7 @@ with open(dst, "w", encoding="utf-8") as f:
     f.write(data)
 PY
 rm -f "${tmp_rendered}"
+write_config_checksum "${TARGET_CONFIG}"
 
 openclaw_env_tmp="$(mktemp)"
 cat > "${openclaw_env_tmp}" <<EOF
@@ -202,6 +221,7 @@ mv "${openclaw_env_tmp}" "${OPENCLAW_ENV_FILE}"
 
 echo "Wrote ${TARGET_CONFIG}"
 echo "Wrote ${OPENCLAW_ENV_FILE}"
+echo "Wrote ${CHECKSUM_FILE}"
 
 json_error_check() {
   local role="$1"
@@ -317,7 +337,7 @@ PY
 }
 
 check_models_and_chat "executor" "${EXECUTOR_BASE_URL}" "Qwen/Qwen3-14B-AWQ"
-check_models_and_chat "planner" "${PLANNER_BASE_URL}" "Qwen/Qwen3-30B-A3B-Instruct-2507-AWQ"
+check_models_and_chat "planner" "${PLANNER_BASE_URL}" "Qwen/Qwen3-30B-A3B-Instruct-2507"
 
 check_models_only() {
   local role="$1"

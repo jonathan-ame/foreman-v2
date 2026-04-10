@@ -1,0 +1,11 @@
+{
+  "pods": [
+    {
+      "logical_name": "manual-override",
+      "pod_id": "a1xgb0lhyvrr4s",
+      "base_url": "",
+      "proxy_url": "",
+      "status": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+{"ts":"2026-04-09T01:50:37.785Z","stream":"stdout","chunk":"[paperclip] No project or prior session workspace was available. Using fallback workspace \"/Users/jonathanborgia/foreman-git/foreman-v2/state/paperclip-data/instances/foreman-p21/workspaces/b82a9601-f0c3-41b5-9a15-571d868b6b1e\" for this run.\n"}
+{"ts":"2026-04-09T01:50:50.616Z","stream":"stdout","chunk":"HEARTBEAT_OK:executor\n"}

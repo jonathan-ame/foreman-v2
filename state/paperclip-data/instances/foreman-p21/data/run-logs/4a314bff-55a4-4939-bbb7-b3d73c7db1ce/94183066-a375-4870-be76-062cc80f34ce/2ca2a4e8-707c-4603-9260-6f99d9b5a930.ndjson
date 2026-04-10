@@ -1,0 +1,2 @@
+{"ts":"2026-04-09T06:04:22.389Z","stream":"stdout","chunk":"HEARTBEAT_OK:executor\n"}
+{"ts":"2026-04-09T06:04:22.397Z","stream":"stderr","chunk":"/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh: line 187: syntax error near unexpected token `TASK_ID,'\n"}
