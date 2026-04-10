@@ -7,6 +7,84 @@ ENV_FILE="${ROOT_DIR}/.env"
 STATE_DIR="${ROOT_DIR}/state"
 STATE_FILE="${STATE_DIR}/pods.json"
 
+DRY_RUN_SKU_CHAIN=0
+PROVISION_MODE="production"
+TRAINING_LIFETIME=""
+TRAINING_GPU="NVIDIA H100 PCIe"
+
+for arg in "$@"; do
+  case "${arg}" in
+    --dry-run-sku-chain) DRY_RUN_SKU_CHAIN=1 ;;
+    --mode=production) PROVISION_MODE="production" ;;
+    --mode=training) PROVISION_MODE="training" ;;
+    --lifetime=*) TRAINING_LIFETIME="${arg#--lifetime=}" ;;
+    --gpu=*) TRAINING_GPU="${arg#--gpu=}" ;;
+    *)
+      echo "ERROR: Unknown arguments: ${arg}" >&2
+      exit 1
+      ;;
+  esac
+done
+
+if [[ "${PROVISION_MODE}" == "training" ]]; then
+  if [[ -z "${TRAINING_LIFETIME}" ]]; then
+    echo "ERROR: --lifetime is required when --mode=training." >&2
+    exit 1
+  fi
+fi
+
+export PROVISION_MODE TRAINING_LIFETIME TRAINING_GPU
+
+if [[ "${DRY_RUN_SKU_CHAIN}" -eq 1 ]]; then
+  python3 - <<'PY'
+DEFAULT_GPU_PREFERENCE_CHAIN = [
+    "NVIDIA A100 80GB PCIe",
+    "NVIDIA A100-SXM4-80GB",
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition",
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",
+    "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "NVIDIA H100 PCIe",
+    "NVIDIA H100 NVL",
+    "NVIDIA H100 80GB HBM3",
+    "NVIDIA H200",
+    "NVIDIA H200 NVL",
+]
+
+GPU_ID_ALIASES: dict = {}
+
+roles = ["executor", "planner", "reviewer"]
+print("[dry-run] SKU chain validation (no RunPod API calls)")
+print("[dry-run] default chain order (official RunPod API type IDs):")
+for idx, sku in enumerate(DEFAULT_GPU_PREFERENCE_CHAIN, start=1):
+    print(f"  {idx}. {sku}")
+
+for role in roles:
+    chain = DEFAULT_GPU_PREFERENCE_CHAIN[:]
+    print(f"[dry-run] {role} iteration simulation:")
+    for attempt in range(1, len(chain) + 2):
+        sku = chain[(attempt - 1) % len(chain)]
+        print(f"  attempt {attempt}: {sku}")
+
+def rank_for_gpu(current_gpu: str) -> int:
+    current = current_gpu.strip().lower()
+    for idx, pref in enumerate(DEFAULT_GPU_PREFERENCE_CHAIN):
+        if current == pref.strip().lower():
+            return idx
+    return -1
+
+print("[dry-run] up-tier eligibility simulation:")
+for sample in ["NVIDIA H200", "NVIDIA H100 PCIe", "NVIDIA A100 80GB PCIe"]:
+    rank = rank_for_gpu(sample)
+    if rank <= 0:
+        print(f"  current={sample}: already top-preference or unknown, no up-tier candidates")
+        continue
+    better = DEFAULT_GPU_PREFERENCE_CHAIN[:rank]
+    print(f"  current={sample} (rank {rank}): better candidates -> {', '.join(better)}")
+print("[dry-run] validation completed successfully.")
+PY
+  exit 0
+fi
+
 if [[ ! -f "${ENV_FILE}" ]]; then
   echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2
   exit 1
@@ -28,16 +106,23 @@ python3 - "${STATE_FILE}" <<'PY'
 import datetime as dt
 import json
 import os
+import re
 import signal
+import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 
 API_KEY = os.environ["RUNPOD_API_KEY"]
+PROVISION_MODE = os.environ.get("PROVISION_MODE", "production").strip().lower()
+TRAINING_LIFETIME = os.environ.get("TRAINING_LIFETIME", "").strip()
+TRAINING_GPU = os.environ.get("TRAINING_GPU", "NVIDIA H100 PCIe").strip() or "NVIDIA H100 PCIe"
 STATE_FILE = sys.argv[1]
 STATE_DIR = os.path.dirname(STATE_FILE)
 LOG_DIR = os.path.join(STATE_DIR, "logs")
+TRAINING_STATE_FILE = os.path.join(STATE_DIR, "training-pods.json")
+TRAINING_JOB_LOG_DIR = os.path.join(STATE_DIR, "training-jobs")
 
 REST_BASE = "https://rest.runpod.io/v1"
 GRAPHQL_URL = "https://api.runpod.io/graphql"
@@ -47,9 +132,31 @@ MODE_E_WINDOW_SECONDS = 5 * 60
 POD_RUNNING_TIMEOUT_SECONDS = 15 * 60
 HEALTH_RETRIES = 80
 HEALTH_RETRY_SECONDS = 30
+MISSING_ROLE_RETRY_SECONDS = 300
 
 VLLM_IMAGE = "vllm/vllm-openai:latest"
+TRAINING_IMAGE = "runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04"
 PROXY_PORT = 8000
+
+# GPU type IDs must match the official RunPod REST API enum exactly.
+# Verified 2026-04-09 against https://rest.runpod.io/v1/openapi.json
+# Ordered: best price-performance first; premium tiers at the end.
+DEFAULT_GPU_PREFERENCE_CHAIN = [
+    "NVIDIA A100 80GB PCIe",                               # ~$1.39/hr
+    "NVIDIA A100-SXM4-80GB",                               # ~$1.49/hr
+    "NVIDIA RTX PRO 6000 Blackwell Server Edition",        # ~$1.89/hr
+    "NVIDIA RTX PRO 6000 Blackwell Workstation Edition",   # ~$1.89/hr
+    "NVIDIA RTX PRO 6000 Blackwell Max-Q Workstation Edition",
+    "NVIDIA H100 PCIe",                                    # ~$2.49/hr
+    "NVIDIA H100 NVL",                                     # ~$2.49/hr
+    "NVIDIA H100 80GB HBM3",                               # ~$2.99/hr (SXM class)
+    "NVIDIA H200",                                         # ~$3.59/hr
+    "NVIDIA H200 NVL",                                     # top tier
+]
+
+# All entries in DEFAULT_GPU_PREFERENCE_CHAIN are exact official API strings;
+# no aliases are needed. Kept empty for backward compatibility.
+GPU_ID_ALIASES: dict[str, list[str]] = {}
 
 ROSTER = [
     {
@@ -74,16 +181,10 @@ ROSTER = [
     },
     {
         "logical_name": "executor",
-        "model_id": "Qwen/Qwen3-14B-AWQ",
-        "gpu_candidates": [
-            "NVIDIA RTX A4500",
-            "NVIDIA RTX 4000 Ada Generation",
-            "NVIDIA A40",
-            "NVIDIA RTX A5000",
-        ],
+        "model_id": "Qwen/Qwen2.5-32B-Instruct",
+        "gpu_preference_chain": DEFAULT_GPU_PREFERENCE_CHAIN,
         "docker_start_cmd": [
-            "--model", "Qwen/Qwen3-14B-AWQ",
-            "--quantization", "awq_marlin",
+            "--model", "Qwen/Qwen2.5-32B-Instruct",
             "--dtype", "half",
             "--enable-auto-tool-choice",
             "--tool-call-parser", "hermes",
@@ -98,16 +199,28 @@ ROSTER = [
     },
     {
         "logical_name": "planner",
-        "model_id": "Qwen/Qwen3-30B-A3B-Instruct-2507",
-        "gpu_candidates": [
-            "NVIDIA A40",
-            "NVIDIA RTX A6000",
-            "NVIDIA L40S",
-        ],
+        "model_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        "gpu_preference_chain": DEFAULT_GPU_PREFERENCE_CHAIN,
         "docker_start_cmd": [
-            "--model", "Qwen/Qwen3-30B-A3B-Instruct-2507",
-            "--quantization", "fp8",
-            "--max-model-len", "16384",
+            "--model", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+            "--dtype", "half",
+            "--max-model-len", "32768",
+            "--gpu-memory-utilization", "0.85",
+            "--max-num-seqs", "8",
+            "--trust-remote-code",
+            "--host", "0.0.0.0",
+            "--port", "8000",
+        ],
+        "env": {},
+    },
+    {
+        "logical_name": "reviewer",
+        "model_id": "Qwen/Qwen2.5-Coder-32B-Instruct",
+        "gpu_preference_chain": DEFAULT_GPU_PREFERENCE_CHAIN,
+        "docker_start_cmd": [
+            "--model", "Qwen/Qwen2.5-Coder-32B-Instruct",
+            "--dtype", "half",
+            "--max-model-len", "32768",
             "--gpu-memory-utilization", "0.85",
             "--max-num-seqs", "8",
             "--trust-remote-code",
@@ -365,14 +478,8 @@ def graphql(query: str, role: str = "graphql") -> dict:
     return payload
 
 
-def is_mode_e(status: int, payload: dict | str) -> bool:
-    if status in {429, 500, 502, 503, 504, 0}:
-        return True
-    text = payload_text(payload)
-    return "timeout" in text
-
-
 def is_mode_a(status: int, payload: dict | str) -> bool:
+    """Capacity/availability errors — GPU not available right now, retry later."""
     text = payload_text(payload)
     capacity_needles = (
         "no gpu available",
@@ -388,6 +495,16 @@ def is_mode_a(status: int, payload: dict | str) -> bool:
     if status in {400, 409, 422} and any(n in text for n in capacity_needles):
         return True
     return False
+
+
+def is_mode_e(status: int, payload: dict | str) -> bool:
+    """Infrastructure/transient errors — NOT capacity (those are Mode A)."""
+    if is_mode_a(status, payload):
+        return False
+    if status in {429, 500, 502, 503, 504, 0}:
+        return True
+    text = payload_text(payload)
+    return "timeout" in text
 
 
 def mode_b_error(status: int, payload: dict | str) -> bool:
@@ -448,12 +565,216 @@ def save_state_incremental(entry: dict) -> None:
     write_state_atomic(state)
 
 
+def remove_state_role(role_name: str) -> None:
+    state = load_state()
+    pods = [p for p in state.get("pods", []) if p.get("logical_name") != role_name]
+    state["pods"] = sorted(pods, key=lambda x: x.get("logical_name", ""))
+    write_state_atomic(state)
+
+
 def clear_state() -> None:
     write_state_atomic({"pods": []})
 
 
+def parse_lifetime_seconds(raw: str) -> int:
+    match = re.fullmatch(r"(\d+)([smhd])", raw.strip().lower())
+    if not match:
+        raise RunPodModeBError(
+            role="training",
+            mode="B",
+            safe_message=(
+                "Invalid --lifetime format. Use one of: <N>s, <N>m, <N>h, <N>d "
+                "(example: --lifetime=10h)."
+            ),
+            status=400,
+            category="invalid_training_lifetime",
+        )
+    value = int(match.group(1))
+    unit = match.group(2)
+    mult = {"s": 1, "m": 60, "h": 3600, "d": 86400}[unit]
+    seconds = value * mult
+    if seconds <= 0:
+        raise RunPodModeBError(
+            role="training",
+            mode="B",
+            safe_message="Training lifetime must be greater than zero.",
+            status=400,
+            category="invalid_training_lifetime",
+        )
+    if seconds > 24 * 3600:
+        raise RunPodModeBError(
+            role="training",
+            mode="B",
+            safe_message="Training lifetime cannot exceed 24h.",
+            status=400,
+            category="training_lifetime_too_long",
+        )
+    return seconds
+
+
+def load_training_state() -> dict:
+    if not os.path.exists(TRAINING_STATE_FILE):
+        return {"pods": []}
+    try:
+        with open(TRAINING_STATE_FILE, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception as exc:
+        raise RunPodUnclassifiedError(
+            role="training",
+            mode="U",
+            safe_message=f"Failed parsing {TRAINING_STATE_FILE}: {exc}",
+            status=500,
+            category="training_state_invalid",
+        )
+    if not isinstance(payload, dict) or not isinstance(payload.get("pods"), list):
+        raise RunPodUnclassifiedError(
+            role="training",
+            mode="U",
+            safe_message=f"Invalid training state structure in {TRAINING_STATE_FILE}.",
+            status=500,
+            category="training_state_invalid",
+        )
+    return payload
+
+
+def save_training_entry(entry: dict) -> None:
+    state = load_training_state()
+    pods = [p for p in state.get("pods", []) if p.get("pod_id") != entry.get("pod_id")]
+    pods.append(entry)
+    state["pods"] = sorted(pods, key=lambda x: x.get("created_at", ""))
+    tmp_path = f"{TRAINING_STATE_FILE}.tmp-{int(time.time() * 1000)}"
+    with open(tmp_path, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2)
+        f.write("\n")
+    os.replace(tmp_path, TRAINING_STATE_FILE)
+
+
+def schedule_training_teardown(pod_id: str, lifetime_seconds: int) -> tuple[str, str]:
+    os.makedirs(TRAINING_JOB_LOG_DIR, exist_ok=True)
+    log_path = os.path.join(TRAINING_JOB_LOG_DIR, f"{pod_id}-teardown.log")
+    script = (
+        "import json, os, time, urllib.request, urllib.error\n"
+        f"time.sleep({lifetime_seconds})\n"
+        "pod_id = os.environ['TRAINING_POD_ID']\n"
+        "api_key = os.environ['RUNPOD_API_KEY']\n"
+        "req = urllib.request.Request(\n"
+        "    f'https://rest.runpod.io/v1/pods/{pod_id}',\n"
+        "    headers={'Authorization': f'Bearer {api_key}'},\n"
+        "    method='DELETE',\n"
+        ")\n"
+        "try:\n"
+        "    with urllib.request.urlopen(req, timeout=60) as resp:\n"
+        "        print(json.dumps({'pod_id': pod_id, 'status': resp.getcode()}), flush=True)\n"
+        "except urllib.error.HTTPError as exc:\n"
+        "    print(json.dumps({'pod_id': pod_id, 'status': exc.code, 'error': 'http_error'}), flush=True)\n"
+        "except Exception as exc:\n"
+        "    print(json.dumps({'pod_id': pod_id, 'error': str(exc)}), flush=True)\n"
+    )
+    env = dict(os.environ)
+    env["TRAINING_POD_ID"] = pod_id
+    proc = subprocess.Popen(  # noqa: S603
+        [sys.executable, "-c", script],
+        stdout=open(log_path, "a", encoding="utf-8"),
+        stderr=subprocess.STDOUT,
+        env=env,
+        start_new_session=True,
+    )
+    return str(proc.pid), log_path
+
+
 def current_hourly_cost() -> float:
     return sum(float(p.get("hourly_rate", 0.0)) for p in created_pods)
+
+
+def remove_created_role(role_name: str) -> None:
+    global created_pods
+    created_pods = [p for p in created_pods if p.get("logical_name") != role_name]
+
+
+def upsert_created_role(entry: dict) -> None:
+    global created_pods
+    role_name = entry.get("logical_name")
+    created_pods = [p for p in created_pods if p.get("logical_name") != role_name]
+    created_pods.append(entry)
+    created_pods.sort(key=lambda x: x.get("logical_name", ""))
+
+
+def get_role_by_name(role_name: str) -> dict:
+    for role in ROSTER:
+        if role.get("logical_name") == role_name:
+            return role
+    raise RunPodModeBError(
+        role=role_name,
+        mode="B",
+        safe_message=f"Unknown role: {role_name}",
+        status=400,
+        category="unknown_role",
+    )
+
+
+def _norm_gpu(value: str | None) -> str:
+    return str(value or "").strip().lower()
+
+
+def role_preference_chain(role: dict) -> list[str]:
+    chain = (
+        role.get("gpu_preference_chain")
+        or role.get("gpu_candidates")
+        or DEFAULT_GPU_PREFERENCE_CHAIN
+    )
+    if not isinstance(chain, list) or not chain:
+        raise RunPodModeBError(
+            role=role["logical_name"],
+            mode="B",
+            safe_message=f"GPU preference chain is missing/invalid for role {role['logical_name']}.",
+            status=400,
+            category="invalid_gpu_chain",
+        )
+    return chain
+
+
+def preference_index_for_running_gpu(role: dict, current_gpu: str) -> int:
+    current = _norm_gpu(current_gpu)
+    chain = role_preference_chain(role)
+    for idx, pref in enumerate(chain):
+        aliases = [pref] + GPU_ID_ALIASES.get(pref, [])
+        if any(current == _norm_gpu(a) for a in aliases):
+            return idx
+    return -1
+
+
+def preference_index_for_candidate(role: dict, candidate: dict) -> int:
+    chain = role_preference_chain(role)
+    preferred = candidate.get("requested_preference")
+    if preferred in chain:
+        return chain.index(preferred)
+    gpu_id = candidate.get("id")
+    for idx, pref in enumerate(chain):
+        aliases = [pref] + GPU_ID_ALIASES.get(pref, [])
+        if any(_norm_gpu(gpu_id) == _norm_gpu(a) for a in aliases):
+            return idx
+    return -1
+
+
+def resolve_better_gpu_candidates(role: dict, current_gpu: str) -> list[dict]:
+    current_idx = preference_index_for_running_gpu(role, current_gpu)
+    if current_idx <= 0:
+        return []
+    resolved = resolve_gpu_candidates(role)
+    return [
+        c
+        for c in resolved
+        if 0 <= preference_index_for_candidate(role, c) < current_idx
+    ]
+
+
+def teardown_single_pod(pod_id: str, role_name: str) -> None:
+    status, payload = api_request("DELETE", f"{REST_BASE}/pods/{pod_id}")
+    if status in {200, 202, 204, 404}:
+        print_status(f"Removed failed {role_name} pod {pod_id} before retry.")
+        return
+    msg = safe_message_from_payload(payload)
+    print_status(f"WARNING: Failed to remove {role_name} pod {pod_id}: HTTP {status}; message={msg}")
 
 
 def print_billing_window(role_waiting: str, attempt: int, next_wait: int, elapsed: int, total_window: int) -> None:
@@ -464,7 +785,7 @@ def print_billing_window(role_waiting: str, attempt: int, next_wait: int, elapse
             f"{pod['logical_name']} pod RUNNING (${pod['hourly_rate']:.2f}/hr) — waiting for {role_waiting} GPU..."
         )
     print_status(
-        f"Currently billing: ${hourly:.2f}/hr (${per_min:.4f}/min) for {len(created_pods)} of 3 pods"
+        f"Currently billing: ${hourly:.2f}/hr (${per_min:.4f}/min) for {len(created_pods)} of {len(ROSTER)} pods"
     )
     remaining = max(total_window - elapsed, 0)
     print_status(
@@ -553,7 +874,8 @@ def reconcile_existing_state_or_abort() -> None:
         print_status(f"Backed up empty prior state file to {backup} and reset state/pods.json.")
         return
 
-    alive = []
+    alive_entries: list[dict] = []
+    alive_entries_runtime: list[dict] = []
     for row in pods:
         pod_id = str(row.get("pod_id") or "").strip()
         role = str(row.get("logical_name") or "unknown")
@@ -563,7 +885,10 @@ def reconcile_existing_state_or_abort() -> None:
         if status == 200 and isinstance(payload, dict):
             desired = str(payload.get("desiredStatus") or payload.get("status") or "").upper()
             if desired and is_alive_status(desired):
-                alive.append((role, pod_id, desired))
+                hydrated = dict(row)
+                hydrated["status"] = "healthy" if desired == "RUNNING" else desired.lower()
+                alive_entries_runtime.append({**hydrated, "preexisting": True})
+                alive_entries.append(hydrated)
         elif status == 404:
             continue
         elif status in {401, 403}:
@@ -596,18 +921,20 @@ def reconcile_existing_state_or_abort() -> None:
                 ),
             )
 
-    if alive:
-        details = ", ".join([f"{r}:{p}({s})" for r, p, s in alive])
-        raise RunPodModeBError(
-            role="startup",
-            mode="B",
-            safe_message=(
-                "Found existing pods from a previous run still running: "
-                f"{details}. Run ./scripts/teardown.sh first to clean up, then rerun this script."
-            ),
-            status=409,
-            category="existing_running_state",
+    if alive_entries:
+        alive_entries.sort(key=lambda x: x.get("logical_name", ""))
+        alive_entries_runtime.sort(key=lambda x: x.get("logical_name", ""))
+        created_pods.extend(alive_entries_runtime)
+        write_state_atomic({"pods": alive_entries})
+        details = ", ".join(
+            f"{p.get('logical_name')}:{p.get('pod_id')}({p.get('status')})"
+            for p in alive_entries
         )
+        print_status(
+            "Resuming with already-running pods from existing state: "
+            f"{details}. Missing roles will be provisioned."
+        )
+        return
 
     backup = f"{STATE_FILE}.bak-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
     os.replace(STATE_FILE, backup)
@@ -617,7 +944,8 @@ def reconcile_existing_state_or_abort() -> None:
 
 def teardown_created_pods(reason: str) -> None:
     global teardown_in_progress, teardown_force_window_until
-    if not created_pods:
+    teardown_targets = [p for p in created_pods if not p.get("preexisting")]
+    if not teardown_targets:
         print_status(f"Teardown skipped: no pods created in this run ({reason}).")
         return
     print_status(f"Teardown started ({reason}).")
@@ -625,7 +953,7 @@ def teardown_created_pods(reason: str) -> None:
     teardown_force_window_until = 0.0
     failures = []
     try:
-        for pod in reversed(created_pods):
+        for pod in reversed(teardown_targets):
             pod_id = pod["pod_id"]
             status, payload = api_request("DELETE", f"{REST_BASE}/pods/{pod_id}")
             if status in {404}:
@@ -647,55 +975,102 @@ def teardown_created_pods(reason: str) -> None:
             print_status(f"Teardown debug details for {pod_id}: {log_path}")
         print_status("Teardown finished with failures; state file retained for manual cleanup.")
     else:
-        clear_state()
-        print_status("Teardown completed successfully; state/pods.json reset.")
+        preserved = [
+            {k: v for k, v in pod.items() if k != "preexisting"}
+            for pod in created_pods
+            if pod.get("preexisting")
+        ]
+        if preserved:
+            write_state_atomic({"pods": preserved})
+            print_status("Teardown completed for new pods; preserved preexisting state entries.")
+        else:
+            clear_state()
+            print_status("Teardown completed successfully; state/pods.json reset.")
 
 
 def resolve_gpu_candidates(role: dict) -> list[dict]:
+    """Return an ordered list of candidate GPU dicts for the given role.
+
+    Attempts to enrich each candidate via GraphQL (availability/price data).
+    If GraphQL is unavailable (403, 500, etc.) falls back to using the preference
+    chain IDs directly — the actual pod creation call will confirm availability.
+    Because GPU_ID_ALIASES is now empty and all chain IDs are exact official API
+    strings, no alias probing is needed.
+    """
+    chain = (
+        role.get("gpu_preference_chain")
+        or role.get("gpu_candidates")
+        or DEFAULT_GPU_PREFERENCE_CHAIN
+    )
+    if not isinstance(chain, list) or not chain:
+        raise RunPodModeBError(
+            role=role["logical_name"],
+            mode="B",
+            safe_message=f"GPU preference chain is missing/invalid for role {role['logical_name']}.",
+            status=400,
+            category="invalid_gpu_chain",
+        )
+
     fields = """
 id
 displayName
 memoryInGb
 secureCloud
 securePrice
-threeMonthPrice
-sixMonthPrice
-lowestPrice(input:{gpuCount:1,secureCloud:true}) {
-  stockStatus
-  uninterruptablePrice
-}
 """
     out = []
-    for gpu_id in role["gpu_candidates"]:
-        query = f"""
+    graphql_available = True
+    for preferred_id in chain:
+        enriched = None
+        if graphql_available:
+            query = f"""
 query {{
-  gpuTypes(input: {{id: "{gpu_id}"}}) {{
+  gpuTypes(input: {{id: "{preferred_id}"}}) {{
     {fields}
   }}
 }}
 """
-        data = graphql(query, role=f"gpu-resolve-{role['logical_name']}")
-        items = (data.get("data") or {}).get("gpuTypes") or []
-        if not items:
-            continue
-        row = items[0]
-        if not row.get("secureCloud"):
-            continue
-        if row.get("securePrice") is None:
-            continue
-        out.append(row)
+            try:
+                data = graphql(query, role=f"gpu-resolve-{role['logical_name']}")
+                items = (data.get("data") or {}).get("gpuTypes") or []
+                if items:
+                    row = items[0]
+                    if row.get("secureCloud") and row.get("securePrice") is not None:
+                        row["requested_preference"] = preferred_id
+                        enriched = row
+            except Exception as gql_err:
+                # GraphQL is forbidden or unavailable for this key — fall back to
+                # using IDs directly. The pod creation call is the authoritative
+                # availability check.
+                graphql_available = False
+                print_status(
+                    f"GraphQL unavailable ({gql_err!s:.80}); "
+                    "falling back to direct REST provisioning for GPU candidates."
+                )
+
+        if enriched is None:
+            # Use the chain ID directly; let the REST pod creation call decide.
+            enriched = {
+                "id": preferred_id,
+                "displayName": preferred_id,
+                "memoryInGb": None,
+                "secureCloud": True,
+                "securePrice": None,
+                "requested_preference": preferred_id,
+            }
+        out.append(enriched)
+
     if not out:
         raise RunPodModeAError(
             role=role["logical_name"],
             mode="A",
             safe_message=(
                 "No acceptable Secure Cloud GPU found from candidate list. "
-                f"Candidates checked: {', '.join(role['gpu_candidates'])}."
+                f"Candidates checked: {', '.join(chain)}."
             ),
             status=409,
             category="out_of_capacity",
         )
-    out.sort(key=lambda r: float(r["securePrice"]))
     return out
 
 
@@ -709,32 +1084,55 @@ query {
 """
     data = graphql(query, role="balance-check")
     balance = float(((data.get("data") or {}).get("myself") or {}).get("clientBalance") or 0.0)
-    required = required_hourly * 24
+    min_hours_raw = os.environ.get("RUNPOD_MIN_BALANCE_HOURS", "24").strip()
+    try:
+        min_hours = float(min_hours_raw)
+    except ValueError:
+        raise RunPodModeBError(
+            role="balance-check",
+            mode="B",
+            safe_message=(
+                f"Invalid RUNPOD_MIN_BALANCE_HOURS value: {min_hours_raw!r}. "
+                "Expected a positive number."
+            ),
+            status=400,
+            category="invalid_balance_window",
+        )
+    if min_hours <= 0:
+        raise RunPodModeBError(
+            role="balance-check",
+            mode="B",
+            safe_message=(
+                f"Invalid RUNPOD_MIN_BALANCE_HOURS value: {min_hours_raw!r}. "
+                "Expected a positive number."
+            ),
+            status=400,
+            category="invalid_balance_window",
+        )
+    required = required_hourly * min_hours
     if balance < required:
         raise RunPodModeBError(
             role="balance-check",
             mode="B",
             safe_message=(
-                f"Insufficient RunPod balance. Need at least ${required:.2f} for 24 hours; "
+                f"Insufficient RunPod balance. Need at least ${required:.2f} for {min_hours:g} hours; "
                 f"current balance is ${balance:.2f}. Aborting before creating any pod."
             ),
             status=402,
             category="insufficient_balance",
         )
     print_status(
-        f"Balance check passed: ${balance:.2f} available; 24-hour minimum required is ${required:.2f}."
+        f"Balance check passed: ${balance:.2f} available; {min_hours:g}-hour minimum required is ${required:.2f}."
     )
 
 
-def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> dict:
+def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict, dict]:
     role_name = role["logical_name"]
-    gpu_ids = [g["id"] for g in gpu_candidates]
-    payload = {
+    payload_base = {
         "name": f"foreman-v2-{role_name}",
         "computeType": "GPU",
         "cloudType": "SECURE",
         "imageName": VLLM_IMAGE,
-        "gpuTypeIds": gpu_ids,
         "gpuCount": 1,
         "containerDiskInGb": 80,
         "volumeInGb": 50,
@@ -750,13 +1148,52 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> dict:
     started = time.time()
     attempt = 1
     wait_seconds = 60
+    candidate_idx = 0
+    mode_a_cycle = 1
     while True:
+        selected = gpu_candidates[candidate_idx]
+        payload = dict(payload_base)
+        payload["gpuTypeIds"] = [selected["id"]]
         status, resp = api_request("POST", f"{REST_BASE}/pods", payload)
 
         if status in {200, 201} and isinstance(resp, dict) and resp.get("id"):
-            return resp
+            return resp, selected
 
         elapsed = int(time.time() - started)
+
+        # Check Mode A (capacity) before Mode E (infrastructure) — capacity errors
+        # from RunPod arrive as HTTP 500 with "no instances currently available" and
+        # must trigger SKU chain advancement, not infrastructure retry.
+        if is_mode_a(status, resp):
+            candidate_idx += 1
+            if candidate_idx < len(gpu_candidates):
+                next_id = gpu_candidates[candidate_idx]["id"]
+                print_status(
+                    f"Mode A (capacity) for {role_name} on {selected['id']}; "
+                    f"trying next preferred SKU: {next_id}"
+                )
+                attempt += 1
+                continue
+
+            candidate_idx = 0
+            if elapsed >= MODE_A_WINDOW_SECONDS:
+                raise build_mode_error(
+                    RunPodModeAError,
+                    role=role_name,
+                    mode="A",
+                    status=status,
+                    payload=resp,
+                    fallback_message=(
+                        f"Could not provision {role_name} on Secure Cloud within 15 minutes due to capacity."
+                    ),
+                )
+            print_billing_window(role_name, mode_a_cycle, wait_seconds, elapsed, MODE_A_WINDOW_SECONDS)
+            time.sleep(wait_seconds)
+            wait_seconds = min(wait_seconds * 2, 240)
+            mode_a_cycle += 1
+            attempt += 1
+            continue
+
         if is_mode_e(status, resp):
             if elapsed >= MODE_E_WINDOW_SECONDS:
                 raise build_mode_error(
@@ -771,28 +1208,10 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> dict:
                 )
             msg = safe_message_from_payload(resp)
             print_status(
-                f"Mode E while creating {role_name}: HTTP {status}; message={msg}. Retrying in {wait_seconds}s."
+                f"Mode E (infra) for {role_name}: HTTP {status}; message={msg}. Retrying in {wait_seconds}s."
             )
             time.sleep(wait_seconds)
             wait_seconds = min(wait_seconds * 2, 120)
-            attempt += 1
-            continue
-
-        if is_mode_a(status, resp):
-            if elapsed >= MODE_A_WINDOW_SECONDS:
-                raise build_mode_error(
-                    RunPodModeAError,
-                    role=role_name,
-                    mode="A",
-                    status=status,
-                    payload=resp,
-                    fallback_message=(
-                        f"Could not provision {role_name} on Secure Cloud within 15 minutes due to capacity."
-                    ),
-                )
-            print_billing_window(role_name, attempt, wait_seconds, elapsed, MODE_A_WINDOW_SECONDS)
-            time.sleep(wait_seconds)
-            wait_seconds = min(wait_seconds * 2, 240)
             attempt += 1
             continue
 
@@ -951,6 +1370,129 @@ def health_check_with_mode_d(role: dict, pod: dict) -> str:
     )
 
 
+def run_cmd_checked(cmd: list[str], env_overrides: dict | None = None) -> tuple[int, str]:
+    env = dict(os.environ)
+    if env_overrides:
+        env.update(env_overrides)
+    proc = subprocess.run(  # noqa: S603
+        cmd,
+        capture_output=True,
+        text=True,
+        env=env,
+        cwd=os.path.dirname(STATE_DIR),
+    )
+    out = (proc.stdout or "") + (proc.stderr or "")
+    return proc.returncode, out
+
+
+def role_gateway_smoke(role_name: str) -> tuple[bool, str]:
+    if role_name == "executor":
+        code, out = run_cmd_checked(
+            [
+                "openclaw",
+                "agent",
+                "--session-id",
+                f"uptier-executor-{int(time.time())}",
+                "-m",
+                "Reply with exactly CUTOVER_OK and nothing else.",
+            ]
+        )
+        return (code == 0 and "CUTOVER_OK" in out), out
+    code, out = run_cmd_checked(
+        [os.path.join(os.path.dirname(STATE_DIR), "scripts", "paperclip-role-dispatch.sh")],
+        env_overrides={"PAPERCLIP_ROLE": role_name},
+    )
+    return (code == 0 and f"HEARTBEAT_OK:{role_name}" in out), out
+
+
+def apply_gateway_config_with_restart() -> None:
+    root_dir = os.path.dirname(STATE_DIR)
+    configure = os.path.join(root_dir, "scripts", "configure.sh")
+    code, out = run_cmd_checked([configure])
+    if code != 0:
+        raise RunPodUnclassifiedError(
+            role="gateway",
+            mode="U",
+            safe_message="Failed running configure.sh during up-tier cutover.",
+            status=500,
+            category="configure_failed",
+            log_path=write_debug_log("gateway", "U", code, {"output": out}),
+        )
+    code, out = run_cmd_checked(["openclaw", "gateway", "restart"])
+    if code != 0:
+        raise RunPodUnclassifiedError(
+            role="gateway",
+            mode="U",
+            safe_message="Failed restarting OpenClaw gateway during up-tier cutover.",
+            status=500,
+            category="gateway_restart_failed",
+            log_path=write_debug_log("gateway", "U", code, {"output": out}),
+        )
+    time.sleep(60)
+
+
+def attempt_uptier_swap(role: dict, old_entry: dict, better_candidates: list[dict]) -> tuple[bool, str]:
+    role_name = role["logical_name"]
+    old_pod_id = old_entry["pod_id"]
+    old_pref_idx = preference_index_for_running_gpu(role, old_entry.get("gpu_type", ""))
+    if old_pref_idx <= 0:
+        return False, f"{role_name} already at top-preference GPU."
+    if not better_candidates:
+        return False, f"{role_name} has no higher-preference candidates currently resolvable."
+
+    try:
+        created, selected_gpu = create_pod_with_modes(role, better_candidates)
+        new_pod_id = created["id"]
+        running_pod = wait_for_running_or_mode_c(new_pod_id, role_name)
+        base_url = health_check_with_mode_d(role, running_pod)
+
+        machine = running_pod.get("machine") or {}
+        new_gpu = machine.get("gpuTypeId") or running_pod.get("gpuTypeId") or selected_gpu["id"]
+        new_rate = float(selected_gpu.get("securePrice") or old_entry.get("hourly_rate", 0.0))
+        new_entry = dict(old_entry)
+        new_entry.update(
+            {
+                "pod_id": new_pod_id,
+                "base_url": base_url,
+                "proxy_url": base_url,
+                "gpu_type": new_gpu,
+                "hourly_rate": new_rate,
+                "region": machine.get("dataCenterId") or machine.get("location") or old_entry.get("region", "unknown"),
+                "status": "healthy",
+                "provisioned_at": now_iso(),
+            }
+        )
+        if old_entry.get("preexisting"):
+            new_entry["preexisting"] = True
+
+        save_state_incremental({k: v for k, v in new_entry.items() if k != "preexisting"})
+        upsert_created_role(new_entry)
+        apply_gateway_config_with_restart()
+        ok, smoke_out = role_gateway_smoke(role_name)
+        if not ok:
+            save_state_incremental({k: v for k, v in old_entry.items() if k != "preexisting"})
+            upsert_created_role(old_entry)
+            apply_gateway_config_with_restart()
+            teardown_single_pod(new_pod_id, role_name)
+            return False, f"Gateway smoke failed for {role_name}; rollback applied. Output: {smoke_out[:500]}"
+
+        teardown_single_pod(old_pod_id, role_name)
+        return True, (
+            f"{role_name} up-tiered successfully: {old_entry.get('gpu_type')} -> {new_gpu} "
+            f"(pod {old_pod_id} -> {new_pod_id})"
+        )
+    except (RunPodModeAError, RunPodModeEError) as exc:
+        return False, f"Up-tier deferred for {role_name} ({exc.mode}): {exc.safe_message}"
+    except (RunPodModeCError, RunPodModeDError) as exc:
+        if exc.pod_id:
+            teardown_single_pod(exc.pod_id, role_name)
+        return False, f"Up-tier failed health/start for {role_name} ({exc.mode}): {exc.safe_message}"
+    except RunPodScriptError as exc:
+        if exc.log_path:
+            print_status(f"Debug details: {exc.log_path}")
+        return False, f"Up-tier failed for {role_name} ({exc.mode}): {exc.safe_message}"
+
+
 def on_interrupt(signum, frame):  # noqa: ANN001
     del signum, frame
     global teardown_force_window_until
@@ -973,11 +1515,76 @@ def monthly_cost(hourly: float) -> float:
     return hourly * 24 * 30
 
 
+def run_training_mode() -> int:
+    lifetime_seconds = parse_lifetime_seconds(TRAINING_LIFETIME)
+    training_role = {
+        "logical_name": "training",
+        "model_id": "training-job",
+        "gpu_preference_chain": [TRAINING_GPU],
+        "docker_start_cmd": ["sleep", "infinity"],
+        "env": {},
+    }
+
+    gpu_candidates = resolve_gpu_candidates(training_role)
+    selected = gpu_candidates[0]
+    check_balance(float(selected.get("securePrice") or 0.0))
+    print_status(
+        "Training mode requested. Provisioning one Secure Cloud training pod "
+        f"using preference chain: {', '.join(training_role['gpu_preference_chain'])}."
+    )
+
+    created, selected_gpu = create_pod_with_modes(training_role, gpu_candidates)
+    pod_id = created["id"]
+    running = wait_for_running_or_mode_c(pod_id, "training")
+    machine = running.get("machine") or {}
+    base_url = f"https://{pod_id}-{PROXY_PORT}.proxy.runpod.net/v1"
+
+    scheduler_pid, scheduler_log = schedule_training_teardown(pod_id, lifetime_seconds)
+    teardown_at = dt.datetime.utcnow() + dt.timedelta(seconds=lifetime_seconds)
+
+    entry = {
+        "pod_id": pod_id,
+        "name": created.get("name") or f"foreman-v2-training-{pod_id}",
+        "gpu_type": machine.get("gpuTypeId") or selected_gpu["id"],
+        "hourly_rate": float(created.get("costPerHr") or selected_gpu.get("securePrice") or 0.0),
+        "proxy_url": base_url,
+        "lifetime_seconds": lifetime_seconds,
+        "teardown_at_utc": teardown_at.replace(microsecond=0).isoformat() + "Z",
+        "scheduler_pid": scheduler_pid,
+        "scheduler_log": scheduler_log,
+        "created_at": now_iso(),
+        "status": str(running.get("desiredStatus") or "unknown").lower(),
+    }
+    save_training_entry(entry)
+
+    print("Training pod provisioned successfully.")
+    print(f"pod_id: {pod_id}")
+    print(f"api_endpoint: {base_url}")
+    print(f"dashboard_url: https://runpod.io/console/pods/{pod_id}")
+    print(f"scheduled_teardown_utc: {entry['teardown_at_utc']}")
+    print(f"teardown_scheduler_pid: {scheduler_pid}")
+    print(f"teardown_scheduler_log: {scheduler_log}")
+    print(f"training_state: {TRAINING_STATE_FILE}")
+    return 0
+
+
 def main() -> int:
     signal.signal(signal.SIGINT, on_interrupt)
     signal.signal(signal.SIGTERM, on_interrupt)
 
     try:
+        if PROVISION_MODE == "training":
+            return run_training_mode()
+
+        if PROVISION_MODE != "production":
+            raise RunPodModeBError(
+                role="startup",
+                mode="B",
+                safe_message=f"Unsupported --mode value: {PROVISION_MODE}",
+                status=400,
+                category="invalid_mode",
+            )
+
         reconcile_existing_state_or_abort()
 
         chosen = {}
@@ -985,14 +1592,15 @@ def main() -> int:
         for role in ROSTER:
             candidates = resolve_gpu_candidates(role)
             chosen[role["logical_name"]] = candidates
-            cheapest = candidates[0]
-            total_hourly_estimate += float(cheapest["securePrice"])
+            first_priced = next((c for c in candidates if c.get("securePrice") is not None), None)
+            if first_priced is not None:
+                total_hourly_estimate += float(first_priced["securePrice"])
             gpu_summary = ", ".join(
-                f"{g['id']}(${float(g['securePrice']):.2f}/hr)"
+                f"{g['id']}(${float(g['securePrice']):.2f}/hr)" if g.get("securePrice") is not None else g["id"]
                 for g in candidates
             )
             print_status(
-                f"GPU candidates for {role['logical_name']} (cheapest first): {gpu_summary}"
+                f"GPU candidates for {role['logical_name']} (preference order): {gpu_summary}"
             )
 
         check_balance(total_hourly_estimate)
@@ -1014,91 +1622,151 @@ def main() -> int:
             return preserve_and_warn("U", exc.role, exc.safe_message, exc.log_path)
         return 1
 
-    for role in ROSTER:
-        role_name = role["logical_name"]
-        gpu_candidates = chosen[role_name]
-        try:
-            gpu_ids_str = ", ".join(g["id"] for g in gpu_candidates)
-            print_status(f"Provisioning {role_name} pod on Secure Cloud (candidates: {gpu_ids_str})...")
-            created = create_pod_with_modes(role, gpu_candidates)
-            pod_id = created["id"]
+    while True:
+        missing_roles = [
+            role for role in ROSTER if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
+        ]
 
-            # Persist immediately after create to minimize any untracked-billing window.
-            preliminary_base_url = f"https://{pod_id}-{PROXY_PORT}.proxy.runpod.net/v1"
-            gpu_price_map = {g["id"]: float(g["securePrice"]) for g in gpu_candidates}
-            entry = {
-                "logical_name": role_name,
-                "pod_id": pod_id,
-                "base_url": preliminary_base_url,
-                "proxy_url": preliminary_base_url,
-                "model_id": role["model_id"],
-                "gpu_type": gpu_candidates[0]["id"],
-                "hourly_rate": float(gpu_candidates[0]["securePrice"]),
-                "region": "pending",
-                "status": "provisioning",
-                "provisioned_at": now_iso(),
-            }
-            created_pods.append(entry)
-            save_state_incremental(entry)
-            print_status(f"Created {role_name} pod: {pod_id} (recorded in state immediately)")
-
-            preliminary_gpu = (
-                created.get("gpuTypeId")
-                or (created.get("machine") or {}).get("gpuTypeId")
-                or entry["gpu_type"]
-            )
-            preliminary_rate = gpu_price_map.get(preliminary_gpu, entry["hourly_rate"])
-            entry.update({"gpu_type": preliminary_gpu, "hourly_rate": preliminary_rate})
-            save_state_incremental(entry)
-
-            running_pod = wait_for_running_or_mode_c(pod_id, role_name)
-            base_url = health_check_with_mode_d(role, running_pod)
-
-            machine = running_pod.get("machine") or {}
-            actual_gpu_id = (machine.get("gpuTypeId") or
-                             running_pod.get("gpuTypeId") or
-                             preliminary_gpu)
-            hourly_rate = gpu_price_map.get(actual_gpu_id, preliminary_rate)
-            status = str(running_pod.get("desiredStatus") or "unknown").lower()
-            entry.update({
-                "base_url": base_url,
-                "proxy_url": base_url,
-                "gpu_type": actual_gpu_id,
-                "hourly_rate": hourly_rate,
-                "region": machine.get("dataCenterId") or machine.get("location") or "unknown",
-                "status": "healthy" if status == "running" else status,
-            })
-            save_state_incremental(entry)
-            print_status(f"{role_name} healthy at {base_url} ({entry['region']}).")
-        except RunPodModeAError as exc:
-            return preserve_and_warn("A", role_name, exc.safe_message, exc.log_path)
-        except RunPodModeEError as exc:
-            return preserve_and_warn("E", role_name, exc.safe_message, exc.log_path)
-        except RunPodModeBError as exc:
-            print_status(f"ERROR: {exc.safe_message}")
-            if exc.log_path:
-                print_status(f"Debug details: {exc.log_path}")
-            teardown_created_pods("mode-b-failure")
-            return 1
-        except RunPodModeCError as exc:
-            pause_for_inspection(exc)
-            teardown_created_pods("mode-c-failure")
-            return 1
-        except RunPodModeDError as exc:
-            pause_for_inspection(exc)
-            teardown_created_pods("mode-d-failure")
-            return 1
-        except RunPodUnclassifiedError as exc:
-            print_status(f"ERROR: {exc.safe_message}")
-            if exc.log_path:
-                print_status(f"Debug details: {exc.log_path}")
-            if created_pods:
+        for role in missing_roles:
+            role_name = role["logical_name"]
+            gpu_candidates = chosen[role_name]
+            try:
+                gpu_ids_str = ", ".join(g["id"] for g in gpu_candidates)
                 print_status(
-                    "Unclassified error encountered after healthy pods were created. "
-                    "Preserving existing pods for safety."
+                    f"Provisioning {role_name} pod on Secure Cloud (candidates: {gpu_ids_str})..."
                 )
-                return preserve_and_warn("U", role_name, exc.safe_message, exc.log_path)
-            return 1
+                created, selected_gpu = create_pod_with_modes(role, gpu_candidates)
+                pod_id = created["id"]
+
+                # Persist immediately after create to minimize any untracked-billing window.
+                preliminary_base_url = f"https://{pod_id}-{PROXY_PORT}.proxy.runpod.net/v1"
+                # Use the actual cost from the creation response; fall back to the
+                # candidate's listed securePrice, then 0.0 if neither is available.
+                actual_cost = float(
+                    created.get("costPerHr")
+                    or selected_gpu.get("securePrice")
+                    or 0.0
+                )
+                gpu_price_map = {
+                    g["id"]: float(g["securePrice"]) if g.get("securePrice") is not None else actual_cost
+                    for g in gpu_candidates
+                }
+                entry = {
+                    "logical_name": role_name,
+                    "pod_id": pod_id,
+                    "base_url": preliminary_base_url,
+                    "proxy_url": preliminary_base_url,
+                    "model_id": role["model_id"],
+                    "gpu_type": selected_gpu["id"],
+                    "hourly_rate": actual_cost,
+                    "region": "pending",
+                    "status": "provisioning",
+                    "provisioned_at": now_iso(),
+                }
+                created_pods.append(entry)
+                save_state_incremental(entry)
+                print_status(f"Created {role_name} pod: {pod_id} (recorded in state immediately)")
+
+                preliminary_gpu = (
+                    created.get("gpuTypeId")
+                    or (created.get("machine") or {}).get("gpuTypeId")
+                    or entry["gpu_type"]
+                )
+                preliminary_rate = gpu_price_map.get(preliminary_gpu, entry["hourly_rate"])
+                entry.update({"gpu_type": preliminary_gpu, "hourly_rate": preliminary_rate})
+                save_state_incremental(entry)
+
+                running_pod = wait_for_running_or_mode_c(pod_id, role_name)
+                base_url = health_check_with_mode_d(role, running_pod)
+
+                machine = running_pod.get("machine") or {}
+                actual_gpu_id = (
+                    machine.get("gpuTypeId") or running_pod.get("gpuTypeId") or preliminary_gpu
+                )
+                hourly_rate = gpu_price_map.get(actual_gpu_id, preliminary_rate)
+                status = str(running_pod.get("desiredStatus") or "unknown").lower()
+                entry.update(
+                    {
+                        "base_url": base_url,
+                        "proxy_url": base_url,
+                        "gpu_type": actual_gpu_id,
+                        "hourly_rate": hourly_rate,
+                        "region": machine.get("dataCenterId") or machine.get("location") or "unknown",
+                        "status": "healthy" if status == "running" else status,
+                    }
+                )
+                save_state_incremental(entry)
+                print_status(f"{role_name} healthy at {base_url} ({entry['region']}).")
+            except (RunPodModeAError, RunPodModeEError) as exc:
+                print_status(f"{role_name} not yet available ({exc.mode}): {exc.safe_message}.")
+                if exc.log_path:
+                    print_status(f"Debug details: {exc.log_path}")
+                continue
+            except (RunPodModeCError, RunPodModeDError) as exc:
+                if exc.pod_id:
+                    teardown_single_pod(exc.pod_id, role_name)
+                remove_created_role(role_name)
+                remove_state_role(role_name)
+                print_status(f"{role_name} pod failed health startup ({exc.mode}); will retry in next cycle.")
+                if exc.log_path:
+                    print_status(f"Debug details: {exc.log_path}")
+                continue
+            except RunPodModeBError as exc:
+                print_status(f"ERROR: {exc.safe_message}")
+                if exc.log_path:
+                    print_status(f"Debug details: {exc.log_path}")
+                return 1
+            except RunPodUnclassifiedError as exc:
+                print_status(f"ERROR: {exc.safe_message}")
+                if exc.log_path:
+                    print_status(f"Debug details: {exc.log_path}")
+                return 1
+
+        still_missing = [
+            role["logical_name"]
+            for role in ROSTER
+            if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
+        ]
+        fallback_roles: list[str] = []
+        for entry in list(created_pods):
+            role_name = str(entry.get("logical_name") or "")
+            if not role_name:
+                continue
+            role = get_role_by_name(role_name)
+            if str(entry.get("status") or "").lower() != "healthy":
+                continue
+            current_gpu = str(entry.get("gpu_type") or "")
+            current_idx = preference_index_for_running_gpu(role, current_gpu)
+            if current_idx <= 0:
+                continue
+            better_candidates = resolve_better_gpu_candidates(role, current_gpu)
+            if not better_candidates:
+                continue
+            fallback_roles.append(role_name)
+            better_ids = ", ".join(c["id"] for c in better_candidates)
+            print_status(
+                f"{role_name} is on fallback GPU {current_gpu}; higher-preference candidates: {better_ids}. "
+                "Attempting safe up-tier."
+            )
+            swapped, message = attempt_uptier_swap(role, entry, better_candidates)
+            print_status(message)
+
+        if not still_missing and not fallback_roles:
+            break
+
+        if still_missing:
+            print_status(
+                "Missing roles after this cycle: "
+                + ", ".join(still_missing)
+                + f". Retrying all missing roles in {MISSING_ROLE_RETRY_SECONDS}s while keeping healthy pods running."
+            )
+        elif fallback_roles:
+            print_status(
+                "All roles are provisioned, but fallback pods remain for: "
+                + ", ".join(sorted(set(fallback_roles)))
+                + f". Polling for higher-preference GPUs again in {MISSING_ROLE_RETRY_SECONDS}s."
+            )
+        time.sleep(MISSING_ROLE_RETRY_SECONDS)
 
     total = current_hourly_cost()
     print()
