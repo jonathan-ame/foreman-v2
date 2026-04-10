@@ -1128,18 +1128,26 @@ query {
 
 def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict, dict]:
     role_name = role["logical_name"]
+    # Disk sizing: vllm/vllm-openai:latest image is ~15-20 GB.
+    # A 32B fp16 model is ~64 GB. We redirect HF_HOME to /workspace so that
+    # model weights land on the network volume (100 GB) rather than the
+    # container disk. Container disk only needs to hold the image + vLLM state.
+    role_env = dict(role.get("env") or {})
+    role_env.setdefault("HF_HOME", "/workspace/hf_cache")
+    role_env.setdefault("HUGGINGFACE_HUB_CACHE", "/workspace/hf_cache/hub")
+
     payload_base = {
         "name": f"foreman-v2-{role_name}",
         "computeType": "GPU",
         "cloudType": "SECURE",
         "imageName": VLLM_IMAGE,
         "gpuCount": 1,
-        "containerDiskInGb": 80,
-        "volumeInGb": 50,
+        "containerDiskInGb": 40,
+        "volumeInGb": 100,
         "volumeMountPath": "/workspace",
         "ports": [f"{PROXY_PORT}/http"],
         "interruptible": False,
-        "env": role.get("env") or {},
+        "env": role_env,
         "dockerStartCmd": role.get("docker_start_cmd") or [],
         "dataCenterPriority": "availability",
         "gpuTypePriority": "custom",
