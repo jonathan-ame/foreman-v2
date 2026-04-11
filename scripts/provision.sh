@@ -130,7 +130,7 @@ GRAPHQL_URL = "https://api.runpod.io/graphql"
 MODE_A_WINDOW_SECONDS = 15 * 60
 MODE_E_WINDOW_SECONDS = 5 * 60
 POD_RUNNING_TIMEOUT_SECONDS = 15 * 60
-HEALTH_RETRIES = 80
+HEALTH_RETRIES = 120   # 60-minute window: 120 × 30s; 32B model needs ~30-45 min
 HEALTH_RETRY_SECONDS = 30
 MISSING_ROLE_RETRY_SECONDS = 300
 
@@ -1142,8 +1142,8 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict,
         "cloudType": "SECURE",
         "imageName": VLLM_IMAGE,
         "gpuCount": 1,
-        "containerDiskInGb": 40,
-        "volumeInGb": 100,
+        "containerDiskInGb": 60,   # vllm image ~25 GB + runtime headroom
+        "volumeInGb": 100,         # 64 GB model weights + cache
         "volumeMountPath": "/workspace",
         "ports": [f"{PROXY_PORT}/http"],
         "interruptible": False,
