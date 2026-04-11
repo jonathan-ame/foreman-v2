@@ -102,6 +102,43 @@ fi
 
 mkdir -p "${STATE_DIR}"
 
+LOCK_DIR="${STATE_DIR}/.provision.lock"
+LOCK_PID_FILE="${LOCK_DIR}/pid"
+
+release_lock() {
+  if [[ -d "${LOCK_DIR}" ]]; then
+    local owner_pid=""
+    if [[ -f "${LOCK_PID_FILE}" ]]; then
+      owner_pid="$(<"${LOCK_PID_FILE}")"
+    fi
+    if [[ -z "${owner_pid}" || "${owner_pid}" == "$$" ]]; then
+      rm -rf "${LOCK_DIR}"
+    fi
+  fi
+}
+
+if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
+  existing_pid=""
+  if [[ -f "${LOCK_PID_FILE}" ]]; then
+    existing_pid="$(<"${LOCK_PID_FILE}")"
+  fi
+
+  if [[ -n "${existing_pid}" ]] && kill -0 "${existing_pid}" 2>/dev/null; then
+    echo "ERROR: Another provision.sh is already running (pid ${existing_pid}). Exiting." >&2
+    exit 1
+  fi
+
+  echo "WARNING: Found stale provision lock. Recovering..." >&2
+  rm -rf "${LOCK_DIR}"
+  if ! mkdir "${LOCK_DIR}" 2>/dev/null; then
+    echo "ERROR: Unable to acquire provision lock at ${LOCK_DIR}." >&2
+    exit 1
+  fi
+fi
+
+echo "$$" > "${LOCK_PID_FILE}"
+trap release_lock EXIT
+
 python3 - "${STATE_FILE}" <<'PY'
 import datetime as dt
 import json
@@ -188,8 +225,8 @@ ROSTER = [
             "--dtype", "half",
             "--enable-auto-tool-choice",
             "--tool-call-parser", "hermes",
-            "--max-model-len", "32768",
-            "--gpu-memory-utilization", "0.85",
+            "--max-model-len", "8192",
+            "--gpu-memory-utilization", "0.90",
             "--max-num-seqs", "8",
             "--trust-remote-code",
             "--host", "0.0.0.0",
@@ -204,8 +241,8 @@ ROSTER = [
         "docker_start_cmd": [
             "--model", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
             "--dtype", "half",
-            "--max-model-len", "32768",
-            "--gpu-memory-utilization", "0.85",
+            "--max-model-len", "8192",
+            "--gpu-memory-utilization", "0.90",
             "--max-num-seqs", "8",
             "--trust-remote-code",
             "--host", "0.0.0.0",
@@ -220,8 +257,8 @@ ROSTER = [
         "docker_start_cmd": [
             "--model", "Qwen/Qwen2.5-Coder-32B-Instruct",
             "--dtype", "half",
-            "--max-model-len", "32768",
-            "--gpu-memory-utilization", "0.85",
+            "--max-model-len", "8192",
+            "--gpu-memory-utilization", "0.90",
             "--max-num-seqs", "8",
             "--trust-remote-code",
             "--host", "0.0.0.0",
@@ -862,6 +899,156 @@ def pause_for_inspection(err: RunPodScriptError) -> None:
         print("(non-interactive shell detected — proceeding with teardown automatically)")
 
 
+def _list_all_live_pods() -> list[dict]:
+    """Fetch every pod from RunPod REST API."""
+    status, payload = api_request("GET", f"{REST_BASE}/pods")
+    if status != 200 or not isinstance(payload, list):
+        print_status(f"Warning: could not list live RunPod pods (HTTP {status}); skipping orphan audit.")
+        return []
+    return payload
+
+
+def _extract_network_volume_id(pod: dict) -> str | None:
+    direct = str(pod.get("networkVolumeId") or "").strip()
+    if direct:
+        return direct
+    nested = pod.get("networkVolume")
+    if isinstance(nested, dict):
+        nested_id = str(nested.get("id") or "").strip()
+        if nested_id:
+            return nested_id
+    return None
+
+
+def _active_attached_network_volume_ids() -> set[str]:
+    attached: set[str] = set()
+    for pod in _list_all_live_pods():
+        name = str(pod.get("name") or "")
+        if not name.startswith("foreman-v2-"):
+            continue
+        desired = str(pod.get("desiredStatus") or pod.get("status") or "").upper()
+        if desired and not is_alive_status(desired):
+            continue
+        vol_id = _extract_network_volume_id(pod)
+        if vol_id:
+            attached.add(vol_id)
+    return attached
+
+
+def _sweep_unattached_network_volumes() -> None:
+    attached_ids = _active_attached_network_volume_ids()
+    for vol in list_network_volumes(force_refresh=True):
+        if not isinstance(vol, dict):
+            continue
+        vol_name = str(vol.get("name") or "")
+        if not vol_name.startswith(f"{NETWORK_VOLUME_PREFIX}-"):
+            continue
+        vol_id = str(vol.get("id") or "").strip()
+        if not vol_id:
+            continue
+        if vol_id in attached_ids:
+            continue
+        teardown_network_volume(vol_id, vol_name, "unattached-sweep")
+
+
+def _reconcile_untracked_live_pods() -> None:
+    """Adopt or delete foreman-v2-* pods that aren't in created_pods.
+
+    When multiple untracked pods exist for the same role, the one with
+    the best GPU preference rank is adopted; the rest are deleted.
+    """
+    tracked_ids = {p["pod_id"] for p in created_pods if p.get("pod_id")}
+    roster_names = {r["logical_name"] for r in ROSTER}
+    filled_roles = {p["logical_name"] for p in created_pods if p.get("logical_name")}
+
+    candidates_by_role: dict[str, list[dict]] = {}
+    delete_immediately: list[dict] = []
+
+    for pod in _list_all_live_pods():
+        pod_id = pod.get("id", "")
+        name = pod.get("name", "")
+        if pod_id in tracked_ids:
+            continue
+        if not name.startswith("foreman-v2-"):
+            continue
+        role_suffix = name.removeprefix("foreman-v2-").split("-")[0]
+        desired = str(pod.get("desiredStatus") or "").upper()
+        if role_suffix in roster_names and role_suffix not in filled_roles and is_alive_status(desired):
+            candidates_by_role.setdefault(role_suffix, []).append(pod)
+        else:
+            delete_immediately.append(pod)
+
+    for pod in delete_immediately:
+        pod_id = pod.get("id", "")
+        name = pod.get("name", "")
+        role_suffix = name.removeprefix("foreman-v2-").split("-")[0]
+        print_status(f"Deleting orphan pod {pod_id} ({name}): role '{role_suffix}' already filled or not needed.")
+        teardown_single_pod(pod_id, role_suffix or "orphan")
+
+    for role_suffix, pods in candidates_by_role.items():
+        role = get_role_by_name(role_suffix)
+
+        def _gpu_rank(p: dict) -> int:
+            gpu = (p.get("machine") or {}).get("gpuTypeId") or ""
+            idx = preference_index_for_running_gpu(role, gpu)
+            return idx if idx >= 0 else 9999
+
+        pods.sort(key=_gpu_rank)
+        best = pods[0]
+        losers = pods[1:]
+
+        for loser in losers:
+            lid = loser.get("id", "")
+            lname = loser.get("name", "")
+            print_status(f"Deleting duplicate untracked pod {lid} ({lname}) for role {role_suffix}: keeping {best['id']}.")
+            teardown_single_pod(lid, role_suffix)
+
+        pod_id = best["id"]
+        machine = best.get("machine") or {}
+        gpu_type = machine.get("gpuTypeId") or "unknown"
+        hourly = float(best.get("costPerHr") or 0.0)
+        desired = str(best.get("desiredStatus") or "").upper()
+        base_url = f"https://{pod_id}-{PROXY_PORT}.proxy.runpod.net/v1"
+        entry = {
+            "logical_name": role_suffix,
+            "pod_id": pod_id,
+            "base_url": base_url,
+            "proxy_url": base_url,
+            "model_id": role["model_id"],
+            "gpu_type": gpu_type,
+            "hourly_rate": hourly,
+            "region": machine.get("dataCenterId") or machine.get("location") or "unknown",
+            "status": "healthy" if desired == "RUNNING" else desired.lower(),
+            "provisioned_at": now_iso(),
+            "preexisting": True,
+        }
+        created_pods.append(entry)
+        filled_roles.add(role_suffix)
+        save_state_incremental({k: v for k, v in entry.items() if k != "preexisting"})
+        print_status(f"Adopted untracked live pod {pod_id} (GPU={gpu_type}) for role {role_suffix}.")
+
+
+def _sweep_orphan_pods() -> None:
+    """Delete any foreman-v2-* pods on RunPod whose IDs are not in created_pods.
+
+    Called at the top of each provisioning cycle to clean up pods that
+    were created but lost track of (e.g. script killed mid-operation).
+    Unlike _reconcile_untracked_live_pods (startup-only), this never adopts
+    because mid-loop we only trust pods we explicitly created or reconciled.
+    """
+    tracked_ids = {p["pod_id"] for p in created_pods if p.get("pod_id")}
+    for pod in _list_all_live_pods():
+        pod_id = pod.get("id", "")
+        name = pod.get("name", "")
+        if pod_id in tracked_ids:
+            continue
+        if not name.startswith("foreman-v2-"):
+            continue
+        role_suffix = name.removeprefix("foreman-v2-").split("-")[0]
+        print_status(f"Orphan sweep: deleting untracked pod {pod_id} ({name}).")
+        teardown_single_pod(pod_id, role_suffix or "orphan")
+
+
 def reconcile_existing_state_or_abort() -> None:
     if not os.path.exists(STATE_FILE):
         return
@@ -934,12 +1121,14 @@ def reconcile_existing_state_or_abort() -> None:
             "Resuming with already-running pods from existing state: "
             f"{details}. Missing roles will be provisioned."
         )
-        return
+    else:
+        backup = f"{STATE_FILE}.bak-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
+        os.replace(STATE_FILE, backup)
+        clear_state()
+        print_status(f"Backed up prior state to {backup} and reset state/pods.json.")
 
-    backup = f"{STATE_FILE}.bak-{dt.datetime.utcnow().strftime('%Y%m%d-%H%M%S')}"
-    os.replace(STATE_FILE, backup)
-    clear_state()
-    print_status(f"Backed up prior state to {backup} and reset state/pods.json.")
+    _reconcile_untracked_live_pods()
+    _sweep_unattached_network_volumes()
 
 
 def teardown_created_pods(reason: str) -> None:
@@ -1126,15 +1315,72 @@ query {
     )
 
 
-def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict, dict]:
+NETWORK_VOLUME_PREFIX = "foreman-v2"
+NETWORK_VOLUME_CACHE: dict[str, list[dict]] = {}
+
+
+def list_network_volumes(force_refresh: bool = False) -> list[dict]:
+    if not force_refresh and NETWORK_VOLUME_CACHE.get("_all"):
+        return NETWORK_VOLUME_CACHE["_all"]
+    status, resp = api_request("GET", f"{REST_BASE}/networkvolumes")
+    if status == 200 and isinstance(resp, list):
+        NETWORK_VOLUME_CACHE["_all"] = resp
+        return resp
+    return []
+
+
+def find_network_volume(role_name: str, data_center_id: str | None = None) -> dict | None:
+    target_name = f"{NETWORK_VOLUME_PREFIX}-{role_name}"
+    for vol in list_network_volumes():
+        if vol.get("name") == target_name:
+            if data_center_id and vol.get("dataCenterId") != data_center_id:
+                continue
+            return vol
+    return None
+
+
+def create_network_volume(role_name: str, size_gb: int, data_center_id: str) -> dict:
+    vol_name = f"{NETWORK_VOLUME_PREFIX}-{role_name}"
+    payload = {
+        "name": vol_name,
+        "size": size_gb,
+        "dataCenterId": data_center_id,
+    }
+    status, resp = api_request("POST", f"{REST_BASE}/networkvolumes", payload)
+    if status in {200, 201} and isinstance(resp, dict) and resp.get("id"):
+        NETWORK_VOLUME_CACHE.pop("_all", None)
+        print_status(f"Created network volume '{vol_name}' ({size_gb}GB) in {data_center_id}: {resp['id']}")
+        return resp
+    raise RunPodModeEError(
+        role=role_name,
+        mode="E",
+        safe_message=f"Failed to create network volume '{vol_name}': HTTP {status}; {safe_message_from_payload(resp)}",
+        status=status,
+        category="volume_creation_failed",
+    )
+
+
+def teardown_network_volume(volume_id: str, volume_name: str, reason: str) -> None:
+    status, payload = api_request("DELETE", f"{REST_BASE}/networkvolumes/{volume_id}")
+    if status in {200, 202, 204, 404}:
+        NETWORK_VOLUME_CACHE.pop("_all", None)
+        print_status(f"Removed network volume {volume_name} ({volume_id}) [{reason}].")
+        return
+    msg = safe_message_from_payload(payload)
+    print_status(
+        f"WARNING: Failed to remove network volume {volume_name} ({volume_id}) [{reason}]: "
+        f"HTTP {status}; message={msg}"
+    )
+
+
+def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict, dict, dict | None]:
     role_name = role["logical_name"]
-    # Disk sizing: vllm/vllm-openai:latest image is ~15-20 GB.
-    # A 32B fp16 model is ~64 GB. We redirect HF_HOME to /workspace so that
-    # model weights land on the network volume (100 GB) rather than the
-    # container disk. Container disk only needs to hold the image + vLLM state.
     role_env = dict(role.get("env") or {})
     role_env.setdefault("HF_HOME", "/workspace/hf_cache")
     role_env.setdefault("HUGGINGFACE_HUB_CACHE", "/workspace/hf_cache/hub")
+    model_id = role.get("model_id", "")
+    is_large_model = any(s in model_id.lower() for s in ["32b", "30b", "70b", "72b"])
+    vol_size = 100 if is_large_model else 30
 
     payload_base = {
         "name": f"foreman-v2-{role_name}",
@@ -1142,15 +1388,15 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict,
         "cloudType": "SECURE",
         "imageName": VLLM_IMAGE,
         "gpuCount": 1,
-        "containerDiskInGb": 80,   # vllm/vllm-openai unpacks to ~35-40 GB; 80 GB provides headroom
-        "volumeInGb": 100,         # 64 GB model weights go here via HF_HOME
+        "containerDiskInGb": 80,
         "volumeMountPath": "/workspace",
         "ports": [f"{PROXY_PORT}/http"],
         "interruptible": False,
         "env": role_env,
         "dockerStartCmd": role.get("docker_start_cmd") or [],
-        "dataCenterPriority": "availability",
         "gpuTypePriority": "custom",
+        "volumeInGb": 100,
+        "dataCenterPriority": "availability",
     }
 
     started = time.time()
@@ -1162,10 +1408,42 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict,
         selected = gpu_candidates[candidate_idx]
         payload = dict(payload_base)
         payload["gpuTypeIds"] = [selected["id"]]
+        created_volume: dict | None = None
+
+        selected_dc = str(selected.get("dataCenterId") or "").strip()
+        existing_volume = find_network_volume(role_name, selected_dc if selected_dc else None)
+        if not existing_volume:
+            existing_volume = find_network_volume(role_name)
+
+        if existing_volume and existing_volume.get("id"):
+            payload["networkVolumeId"] = existing_volume["id"]
+            payload.pop("volumeInGb", None)
+            existing_dc = str(existing_volume.get("dataCenterId") or "").strip()
+            if existing_dc:
+                payload["dataCenterIds"] = [existing_dc]
+                payload["dataCenterPriority"] = "custom"
+            print_status(
+                f"Using existing network volume '{existing_volume['name']}' ({existing_volume.get('size', '?')}GB) "
+                f"in {existing_volume.get('dataCenterId', '?')} for {role_name} (attach-only provisioning)"
+            )
+        elif selected_dc:
+            created_volume = create_network_volume(role_name, vol_size, selected_dc)
+            payload["networkVolumeId"] = created_volume["id"]
+            payload["dataCenterIds"] = [selected_dc]
+            payload["dataCenterPriority"] = "custom"
+            payload.pop("volumeInGb", None)
+
         status, resp = api_request("POST", f"{REST_BASE}/pods", payload)
 
         if status in {200, 201} and isinstance(resp, dict) and resp.get("id"):
-            return resp, selected
+            return resp, selected, created_volume
+
+        if created_volume and created_volume.get("id"):
+            teardown_network_volume(
+                str(created_volume["id"]),
+                str(created_volume.get("name") or f"{NETWORK_VOLUME_PREFIX}-{role_name}"),
+                "pod-create-failed",
+            )
 
         elapsed = int(time.time() - started)
 
@@ -1439,6 +1717,25 @@ def apply_gateway_config_with_restart() -> None:
     time.sleep(60)
 
 
+def _uptier_rollback(
+    role_name: str,
+    old_entry: dict,
+    new_pod_id: str | None,
+    created_volume: dict | None,
+) -> None:
+    """Restore old entry in state/created_pods and tear down the replacement pod."""
+    save_state_incremental({k: v for k, v in old_entry.items() if k != "preexisting"})
+    upsert_created_role(old_entry)
+    if new_pod_id:
+        teardown_single_pod(new_pod_id, role_name)
+    if created_volume and created_volume.get("id"):
+        teardown_network_volume(
+            str(created_volume["id"]),
+            str(created_volume.get("name") or f"{NETWORK_VOLUME_PREFIX}-{role_name}"),
+            "uptier-rollback",
+        )
+
+
 def attempt_uptier_swap(role: dict, old_entry: dict, better_candidates: list[dict]) -> tuple[bool, str]:
     role_name = role["logical_name"]
     old_pod_id = old_entry["pod_id"]
@@ -1448,8 +1745,10 @@ def attempt_uptier_swap(role: dict, old_entry: dict, better_candidates: list[dic
     if not better_candidates:
         return False, f"{role_name} has no higher-preference candidates currently resolvable."
 
+    new_pod_id: str | None = None
+    created_volume: dict | None = None
     try:
-        created, selected_gpu = create_pod_with_modes(role, better_candidates)
+        created, selected_gpu, created_volume = create_pod_with_modes(role, better_candidates)
         new_pod_id = created["id"]
         running_pod = wait_for_running_or_mode_c(new_pod_id, role_name)
         base_url = health_check_with_mode_d(role, running_pod)
@@ -1478,10 +1777,7 @@ def attempt_uptier_swap(role: dict, old_entry: dict, better_candidates: list[dic
         apply_gateway_config_with_restart()
         ok, smoke_out = role_gateway_smoke(role_name)
         if not ok:
-            save_state_incremental({k: v for k, v in old_entry.items() if k != "preexisting"})
-            upsert_created_role(old_entry)
-            apply_gateway_config_with_restart()
-            teardown_single_pod(new_pod_id, role_name)
+            _uptier_rollback(role_name, old_entry, new_pod_id, created_volume)
             return False, f"Gateway smoke failed for {role_name}; rollback applied. Output: {smoke_out[:500]}"
 
         teardown_single_pod(old_pod_id, role_name)
@@ -1494,8 +1790,15 @@ def attempt_uptier_swap(role: dict, old_entry: dict, better_candidates: list[dic
     except (RunPodModeCError, RunPodModeDError) as exc:
         if exc.pod_id:
             teardown_single_pod(exc.pod_id, role_name)
+        if created_volume and created_volume.get("id"):
+            teardown_network_volume(
+                str(created_volume["id"]),
+                str(created_volume.get("name") or f"{NETWORK_VOLUME_PREFIX}-{role_name}"),
+                "uptier-health-failed",
+            )
         return False, f"Up-tier failed health/start for {role_name} ({exc.mode}): {exc.safe_message}"
     except RunPodScriptError as exc:
+        _uptier_rollback(role_name, old_entry, new_pod_id, created_volume)
         if exc.log_path:
             print_status(f"Debug details: {exc.log_path}")
         return False, f"Up-tier failed for {role_name} ({exc.mode}): {exc.safe_message}"
@@ -1541,7 +1844,7 @@ def run_training_mode() -> int:
         f"using preference chain: {', '.join(training_role['gpu_preference_chain'])}."
     )
 
-    created, selected_gpu = create_pod_with_modes(training_role, gpu_candidates)
+    created, selected_gpu, _training_created_volume = create_pod_with_modes(training_role, gpu_candidates)
     pod_id = created["id"]
     running = wait_for_running_or_mode_c(pod_id, "training")
     machine = running.get("machine") or {}
@@ -1631,6 +1934,9 @@ def main() -> int:
         return 1
 
     while True:
+        _sweep_unattached_network_volumes()
+        _sweep_orphan_pods()
+
         missing_roles = [
             role for role in ROSTER if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
         ]
@@ -1638,12 +1944,13 @@ def main() -> int:
         for role in missing_roles:
             role_name = role["logical_name"]
             gpu_candidates = chosen[role_name]
+            created_volume: dict | None = None
             try:
                 gpu_ids_str = ", ".join(g["id"] for g in gpu_candidates)
                 print_status(
                     f"Provisioning {role_name} pod on Secure Cloud (candidates: {gpu_ids_str})..."
                 )
-                created, selected_gpu = create_pod_with_modes(role, gpu_candidates)
+                created, selected_gpu, created_volume = create_pod_with_modes(role, gpu_candidates)
                 pod_id = created["id"]
 
                 # Persist immediately after create to minimize any untracked-billing window.
@@ -1705,6 +2012,7 @@ def main() -> int:
                 )
                 save_state_incremental(entry)
                 print_status(f"{role_name} healthy at {base_url} ({entry['region']}).")
+
             except (RunPodModeAError, RunPodModeEError) as exc:
                 print_status(f"{role_name} not yet available ({exc.mode}): {exc.safe_message}.")
                 if exc.log_path:
@@ -1713,6 +2021,12 @@ def main() -> int:
             except (RunPodModeCError, RunPodModeDError) as exc:
                 if exc.pod_id:
                     teardown_single_pod(exc.pod_id, role_name)
+                if created_volume and created_volume.get("id"):
+                    teardown_network_volume(
+                        str(created_volume["id"]),
+                        str(created_volume.get("name") or f"{NETWORK_VOLUME_PREFIX}-{role_name}"),
+                        "startup-health-failed",
+                    )
                 remove_created_role(role_name)
                 remove_state_role(role_name)
                 print_status(f"{role_name} pod failed health startup ({exc.mode}); will retry in next cycle.")
@@ -1736,9 +2050,12 @@ def main() -> int:
             if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
         ]
         fallback_roles: list[str] = []
+        uptier_attempted_this_cycle: set[str] = set()
         for entry in list(created_pods):
             role_name = str(entry.get("logical_name") or "")
             if not role_name:
+                continue
+            if role_name in uptier_attempted_this_cycle:
                 continue
             role = get_role_by_name(role_name)
             if str(entry.get("status") or "").lower() != "healthy":
@@ -1751,6 +2068,7 @@ def main() -> int:
             if not better_candidates:
                 continue
             fallback_roles.append(role_name)
+            uptier_attempted_this_cycle.add(role_name)
             better_ids = ", ".join(c["id"] for c in better_candidates)
             print_status(
                 f"{role_name} is on fallback GPU {current_gpu}; higher-preference candidates: {better_ids}. "
@@ -1795,8 +2113,26 @@ def main() -> int:
 try:
     code = main()
 except KeyboardInterrupt:
-    print_status("Interrupt received. Tearing down all pods created in this run...")
-    teardown_created_pods("user-interrupt")
+    provisioning = [
+        p for p in created_pods
+        if not p.get("preexisting")
+        and str(p.get("status") or "").lower() not in {"healthy", "running"}
+    ]
+    healthy = [p for p in created_pods if str(p.get("status") or "").lower() in {"healthy", "running"}]
+    if provisioning:
+        print_status(
+            f"Interrupt received. Tearing down {len(provisioning)} pod(s) still provisioning; "
+            f"preserving {len(healthy)} healthy pod(s)."
+        )
+        for pod in provisioning:
+            teardown_single_pod(pod["pod_id"], pod.get("logical_name", "unknown"))
+            remove_created_role(pod.get("logical_name", ""))
+            remove_state_role(pod.get("logical_name", ""))
+    else:
+        print_status(
+            f"Interrupt received. All {len(healthy)} pod(s) are healthy; preserving them. "
+            "State file is up to date. Re-run provision.sh to resume."
+        )
     code = 1
 except Exception as exc:
     log_path = write_debug_log("fatal", "U", None, {"error": str(exc)})

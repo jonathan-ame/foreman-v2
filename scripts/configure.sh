@@ -55,6 +55,7 @@ fi
 EXECUTOR_BASE_URL=""
 PLANNER_BASE_URL=""
 EMBEDDING_BASE_URL=""
+REVIEWER_BASE_URL=""
 
 pod_lines_file="$(mktemp)"
 python3 - "${STATE_FILE}" > "${pod_lines_file}" <<'PY'
@@ -66,8 +67,9 @@ from urllib.parse import urlparse
 path = sys.argv[1]
 expected_roles = {
     "embedding": "Qwen/Qwen3-Embedding-8B",
-    "executor": "Qwen/Qwen3-14B-AWQ",
-    "planner": "Qwen/Qwen3-30B-A3B-Instruct-2507",
+    "executor": "Qwen/Qwen2.5-32B-Instruct",
+    "planner": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+    "reviewer": "Qwen/Qwen2.5-Coder-32B-Instruct",
 }
 
 try:
@@ -105,8 +107,8 @@ missing = [r for r in expected_roles if r not in by_role]
 if missing:
     raise SystemExit("ERROR: state/pods.json is missing roles: " + ", ".join(missing))
 
-if len(by_role) != 3:
-    raise SystemExit("ERROR: state/pods.json must contain exactly three roles (executor, planner, embedding).")
+if len(by_role) != 4:
+    raise SystemExit("ERROR: state/pods.json must contain exactly four roles (executor, planner, embedding, reviewer).")
 
 url_pattern = re.compile(r"^https://[^/]+(?:/v1)?/?$")
 for role, model in expected_roles.items():
@@ -140,6 +142,7 @@ while IFS=$'\t' read -r role base_url; do
     executor) EXECUTOR_BASE_URL="${base_url}" ;;
     planner) PLANNER_BASE_URL="${base_url}" ;;
     embedding) EMBEDDING_BASE_URL="${base_url}" ;;
+    reviewer) REVIEWER_BASE_URL="${base_url}" ;;
     *)
       echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
       exit 1
@@ -148,11 +151,11 @@ while IFS=$'\t' read -r role base_url; do
 done < "${pod_lines_file}"
 rm -f "${pod_lines_file}"
 
-if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" ]]; then
+if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" || -z "${REVIEWER_BASE_URL}" ]]; then
   echo "ERROR: Failed to extract all required base URLs from ${STATE_FILE}." >&2
   exit 1
 fi
-export EXECUTOR_BASE_URL PLANNER_BASE_URL EMBEDDING_BASE_URL
+export EXECUTOR_BASE_URL PLANNER_BASE_URL EMBEDDING_BASE_URL REVIEWER_BASE_URL
 
 mkdir -p "${OPENCLAW_HOME}"
 
@@ -202,6 +205,7 @@ with open(src, "r", encoding="utf-8") as f:
 data = data.replace("__EXECUTOR_BASE_URL__", os.environ["EXECUTOR_BASE_URL"])  # type: ignore[name-defined]
 data = data.replace("__PLANNER_BASE_URL__", os.environ["PLANNER_BASE_URL"])  # type: ignore[name-defined]
 data = data.replace("__EMBEDDING_BASE_URL__", os.environ["EMBEDDING_BASE_URL"])  # type: ignore[name-defined]
+data = data.replace("__REVIEWER_BASE_URL__", os.environ["REVIEWER_BASE_URL"])  # type: ignore[name-defined]
 
 with open(dst, "w", encoding="utf-8") as f:
     f.write(data)
@@ -215,6 +219,7 @@ RUNPOD_API_KEY=${RUNPOD_API_KEY}
 EXECUTOR_BASE_URL=${EXECUTOR_BASE_URL}
 PLANNER_BASE_URL=${PLANNER_BASE_URL}
 EMBEDDING_BASE_URL=${EMBEDDING_BASE_URL}
+REVIEWER_BASE_URL=${REVIEWER_BASE_URL}
 EOF
 chmod 600 "${openclaw_env_tmp}"
 mv "${openclaw_env_tmp}" "${OPENCLAW_ENV_FILE}"
@@ -336,8 +341,9 @@ PY
   rm -f "${out_file}" "${chat_out}"
 }
 
-check_models_and_chat "executor" "${EXECUTOR_BASE_URL}" "Qwen/Qwen3-14B-AWQ"
-check_models_and_chat "planner" "${PLANNER_BASE_URL}" "Qwen/Qwen3-30B-A3B-Instruct-2507"
+check_models_and_chat "executor" "${EXECUTOR_BASE_URL}" "Qwen/Qwen2.5-32B-Instruct"
+check_models_and_chat "planner" "${PLANNER_BASE_URL}" "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
+check_models_and_chat "reviewer" "${REVIEWER_BASE_URL}" "Qwen/Qwen2.5-Coder-32B-Instruct"
 
 check_models_only() {
   local role="$1"
@@ -416,4 +422,4 @@ if not isinstance(embedding, list) or not embedding:
 PY
 rm -f "${embed_probe_out}"
 
-echo "RunPod endpoint verification passed for executor, planner, and embedding."
+echo "RunPod endpoint verification passed for executor, planner, reviewer, and embedding."

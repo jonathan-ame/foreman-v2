@@ -1,7 +1,7 @@
 # Foreman v2 (Phase 1 Complete, Phase 2 In Progress)
 
 Foreman v2 is a packaging/wrapper layer around OpenClaw that is wired to a
-three-endpoint RunPod Secure Cloud roster (`embedding`, `executor`, `planner`).
+four-endpoint RunPod Secure Cloud roster (`embedding`, `executor`, `planner`, `reviewer`).
 Phase 1 packaged and validated the OpenClaw + RunPod baseline. Phase 2 starts
 with Paperclip as the org layer, with OpenClaw running as agents under
 Paperclip control.
@@ -13,7 +13,7 @@ sibling distribution workspace and provisioning layer.
 
 - Node.js 24.x, or Node.js >= 22.16
 - A valid RunPod API key (`RUNPOD_API_KEY`)
-- Sufficient RunPod account balance for all three always-on pods
+- Sufficient RunPod account balance for all four always-on pods
 
 ## Setup
 
@@ -25,6 +25,7 @@ sibling distribution workspace and provisioning layer.
 
 2. Edit `.env` and set:
    - `RUNPOD_API_KEY`
+   - (optional) `RUNPOD_MIN_BALANCE_HOURS` (default `24`; use `4` for controlled H100 retry loops)
 
 3. Install OpenClaw:
 
@@ -37,6 +38,8 @@ sibling distribution workspace and provisioning layer.
    ```bash
    ./scripts/provision.sh
    ```
+
+   Quality-first cutover policy uses H100-backed `executor`, `planner`, and `reviewer` roles.
 
 5. Configure OpenClaw for Foreman v2:
 
@@ -52,7 +55,7 @@ sibling distribution workspace and provisioning layer.
 
 ## Verify Phase 1
 
-1. Run smoke test (executor + planner + embedding):
+1. Run smoke test (executor + planner + reviewer + embedding):
 
    ```bash
    ./scripts/smoke-test.sh
@@ -68,12 +71,23 @@ sibling distribution workspace and provisioning layer.
    ./scripts/teardown.sh
    ```
 
+4. Cleanup stale RunPod storage volumes (dry-run first):
+
+   ```bash
+   ./scripts/cleanup-stale-volumes.sh --dry-run
+   ./scripts/cleanup-stale-volumes.sh --apply
+   ```
+
+   By default this targets names with prefix `foreman-models-`. Configure
+   keep-list and limits via `.env` (`RUNPOD_VOLUME_KEEP_NAMES`,
+   `RUNPOD_VOLUME_CLEANUP_MAX_DELETE`).
+
 ## Phase 1 Scope (Corrected)
 
 - Install OpenClaw locally
 - Provision a three-pod Secure Cloud vLLM roster
 - Configure OpenClaw with provider-per-role endpoints
-- Verify executor/planner/embedding end-to-end health checks
+- Verify executor/planner/reviewer/embedding end-to-end health checks
 
 ## Explicit Non-goals (Phase 1)
 
@@ -138,6 +152,7 @@ The dispatch script enforces:
 
 - `executor` path via OpenClaw agent
 - `planner` path via planner pod `/chat/completions`
+- `reviewer` path via reviewer pod `/chat/completions`
 - `embedding` path via embedding pod `/embeddings`
 
 Failure behavior is loud by design (non-zero exit on unknown role, provider mismatch, HTTP failure, or OpenClaw fallback patterns).

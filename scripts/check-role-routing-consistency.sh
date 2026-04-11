@@ -24,10 +24,10 @@ state = json.loads(state_path.read_text(encoding="utf-8"))
 oc = json.loads(oc_path.read_text(encoding="utf-8"))
 
 roles = routing.get("roles") or {}
-required_roles = {"executor", "planner", "embedding"}
+required_roles = {"executor", "planner", "embedding", "reviewer"}
 if not required_roles.issubset(set(roles.keys())):
     raise SystemExit(
-        "ERROR: role-routing must include executor/planner/embedding roles."
+        "ERROR: role-routing must include executor/planner/embedding/reviewer roles."
     )
 
 pods = {p.get("logical_name"): p for p in state.get("pods", []) if isinstance(p, dict)}

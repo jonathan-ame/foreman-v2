@@ -3,7 +3,7 @@
   agents: {
     defaults: {
       model: {
-        primary: "executor/Qwen/Qwen3-14B-AWQ",
+        primary: "executor/Qwen/Qwen2.5-32B-Instruct",
       },
       workspace: "~/.openclaw/workspace",
     },
@@ -18,13 +18,13 @@
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-14B-AWQ",
+            id: "Qwen/Qwen2.5-32B-Instruct",
             name: "Foreman v2 Executor",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
             contextWindow: 32768,
-            maxTokens: 8192,
+            maxTokens: 2048,
           },
         ],
       },
@@ -34,13 +34,29 @@
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-30B-A3B-Instruct-2507",
+            id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
             name: "Foreman v2 Planner",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
             contextWindow: 16384,
-            maxTokens: 8192,
+            maxTokens: 2048,
+          },
+        ],
+      },
+      reviewer: {
+        baseUrl: "__REVIEWER_BASE_URL__",
+        apiKey: "${RUNPOD_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "Qwen/Qwen2.5-Coder-32B-Instruct",
+            name: "Foreman v2 Reviewer",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 32768,
+            maxTokens: 2048,
           },
         ],
       },

@@ -111,13 +111,13 @@ case "${transport}" in
     echo "HEARTBEAT_OK:${ROLE}"
     ;;
   openai_chat)
-    python3 - "${base_url}" "${api_key}" "${model_id}" <<'PY'
+    python3 - "${base_url}" "${api_key}" "${model_id}" "${ROLE}" <<'PY'
 import json
 import sys
 import urllib.request
 import urllib.error
 
-base_url, api_key, model_id = sys.argv[1:4]
+base_url, api_key, model_id, role = sys.argv[1:5]
 payload = {
     "model": model_id,
     "messages": [{"role": "user", "content": "Reply with exactly HEARTBEAT_OK and nothing else."}],
@@ -136,18 +136,18 @@ req = urllib.request.Request(
 try:
     with urllib.request.urlopen(req, timeout=60) as resp:
         if resp.getcode() < 200 or resp.getcode() >= 300:
-            raise SystemExit(f"ERROR: planner route failed with HTTP {resp.getcode()}.")
+            raise SystemExit(f"ERROR: {role} route failed with HTTP {resp.getcode()}.")
         out = json.loads(resp.read().decode())
 except urllib.error.HTTPError as exc:
-    raise SystemExit(f"ERROR: planner route failed with HTTP {exc.code}.")
+    raise SystemExit(f"ERROR: {role} route failed with HTTP {exc.code}.")
 
 choices = out.get("choices") or []
 if not choices or not isinstance(choices[0], dict):
-    raise SystemExit("ERROR: planner route response missing choices.")
+    raise SystemExit(f"ERROR: {role} route response missing choices.")
 msg = choices[0].get("message") or {}
 content = (msg.get("content") if isinstance(msg, dict) else "") or ""
 if "HEARTBEAT_OK" not in str(content):
-    raise SystemExit("ERROR: planner route returned unexpected content.")
+    raise SystemExit(f"ERROR: {role} route returned unexpected content.")
 PY
     echo "HEARTBEAT_OK:${ROLE}"
     ;;

@@ -643,6 +643,12 @@ Decisions are recorded with the most recent at the top. Each entry includes the 
 **Rationale:** The earlier commitment to Buffer + Supermetrics + Power BI was made in a different context and may not still be the right architecture by the time Phase 3 starts. Recording the target phase preserves the intent (this feature is coming) without prematurely committing to implementation details that may have aged poorly. When Phase 3 starts, the architecture conversation reopens fresh.
 **What would trigger a revisit:** When Phase 3 planning begins, this entry will be replaced with a current decision about the Phase 3 stack.
 
+### D26: H100->A100 migration safety behavior and execution gate
+**Decided:** During 2026-04-10 migration execution
+**Decision:** Keep already-healthy pods running during missing-role retries; only retry unprovisioned roles every 300 seconds. Also block final cutover verification until all required runtime roles (`executor`, `planner`, `reviewer`) are present in `state/pods.json`.
+**Rationale:** A prior failure mode decommissioned healthy resumed pods when balance or capacity checks failed before full roster completion. That behavior increases downtime risk and directly conflicts with quality-first migration constraints. Preserving healthy pods while retrying only missing roles minimizes disruption and keeps partial service available while RunPod capacity fluctuates.
+**What would trigger a revisit:** If RunPod adds deterministic reservation APIs or queueing semantics that make "retry missing roles while preserving healthy pods" obsolete.
+
 ---
 
 ## Deferred work — Phase 2+ backlog (preview)

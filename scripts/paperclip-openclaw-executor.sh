@@ -13,6 +13,8 @@ import os
 import re
 import subprocess
 import time
+import uuid
+from pathlib import Path
 from urllib.parse import urlparse
 import urllib.error
 import urllib.request
@@ -127,6 +129,7 @@ def is_openclaw_llm_outcome_failure(text: str) -> bool:
         "llm request failed: provider returned an invalid streaming response",
         "message ordering conflict",
         "session history looks corrupted",
+        "agent couldn't generate a response",
     )
     if any(n in t for n in needles):
         return True
@@ -134,6 +137,57 @@ def is_openclaw_llm_outcome_failure(text: str) -> bool:
     if len(t) < 120 and ("timed out" in t or "rate limit" in t or "unauthorized" in t):
         return True
     return False
+
+
+def is_substantive_deliverable(text: str) -> bool:
+    """
+    Guard against false-success runs where OpenClaw returns trivial status words
+    (e.g., "completed") that are not a real issue deliverable.
+    """
+    t = (text or "").strip()
+    if not t:
+        return False
+    tl = t.lower()
+    trivial_exact = {
+        "done",
+        "completed",
+        "complete",
+        "ok",
+        "success",
+        "succeeded",
+        "finished",
+    }
+    if tl in trivial_exact:
+        return False
+    non_substantive_markers = (
+        "[compaction-safeguard]",
+        "no reply from agent",
+        "no real conversation messages to summarize",
+        "writing compaction boundary",
+    )
+    if any(marker in tl for marker in non_substantive_markers):
+        return False
+    # Very short outputs are almost always non-deliverables in this workflow.
+    if len(t) < 120:
+        return False
+    # Prefer multi-structure responses: markdown sections, bullets, or 2+ lines.
+    if "\n" not in t and "###" not in t and "-" not in t:
+        return False
+    return True
+
+
+def make_valid_session_id(company_id: str, agent_id: str, task_id: str, run_id: str) -> str:
+    """
+    OpenClaw gateway rejects overly long/invalid session ids.
+    Keep to a compact, predictable ASCII slug.
+    """
+    def _slug(s: str, n: int = 8) -> str:
+        cleaned = re.sub(r"[^a-zA-Z0-9]", "", (s or ""))
+        return (cleaned[:n] or "x").lower()
+
+    ts = int(time.time())
+    rid = _slug(run_id, 6)
+    return f"pc-{_slug(company_id)}-{_slug(agent_id)}-{_slug(task_id)}-{rid}-{ts}"
 
 
 def resolve_openclaw_subprocess_timeout_sec() -> int:
@@ -184,15 +238,68 @@ def fetch_latest_user_comments(issue_id: str, limit: int = 5) -> str:
     user_comments = []
     for c in items:
         body = (c.get("body") or c.get("comment") or c.get("content") or "").strip()
+        if not body:
+            continue
+
+        # local-board comments do not reliably preserve agent/user authorship in this environment.
+        # Filter out our own structured execution updates so reruns don't ingest prior agent output.
+        normalized = body.lower()
+        if (
+            normalized.startswith("openclawworker execution update for `")
+            or normalized.startswith("openclawworker could not complete `")
+            or "### deliverable / execution notes" in normalized
+        ):
+            continue
+
         author_agent = c.get("authorAgentId") or c.get("agentId") or ""
         if author_agent and author_agent == AGENT_ID:
             continue
-        if body:
-            user_comments.append(body)
+        user_comments.append(body)
     if not user_comments:
         return ""
     combined = "\n---\n".join(user_comments[:3])
     return combined[:2000]
+
+
+def detect_local_repo_context() -> str:
+    """
+    Provide concrete local-repo context so the agent can analyze code from disk
+    instead of treating GitHub URL availability as a blocker.
+    """
+    candidates = [
+        Path("/Users/jonathanborgia/foreman-git/foreman-v2"),
+        Path("/Users/jonathanborgia/foreman-git/foreman"),
+    ]
+    for path in candidates:
+        if not (path / ".git").exists():
+            continue
+        try:
+            head = subprocess.run(
+                ["git", "-C", str(path), "rev-parse", "--short", "HEAD"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            ).stdout.strip()
+            branch = subprocess.run(
+                ["git", "-C", str(path), "branch", "--show-current"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=False,
+            ).stdout.strip()
+            return (
+                "Local repository is available and must be used for analysis.\n"
+                f"- local_path: {path}\n"
+                f"- branch: {branch or 'unknown'}\n"
+                f"- head: {head or 'unknown'}\n"
+                "Do not treat GitHub URL accessibility as a blocker when local_path is present."
+            )
+        except Exception:
+            continue
+    return (
+        "No local repository path was detected. If GitHub URL access fails, report the specific command/error."
+    )
 
 
 def req(method: str, path: str, payload=None):
@@ -285,11 +392,13 @@ if user_comments:
         "\n\n## Recent user comments (address these specifically):\n"
         f"{user_comments}\n"
     )
+repo_context = detect_local_repo_context()
 
 exec_prompt = (
     "You are OpenClawWorker. Execute this delegated issue and produce a concrete deliverable in markdown.\n\n"
     f"Issue: {identifier} - {title}\n"
     f"Description: {description_compact}\n"
+    f"\n## Repository access context\n{repo_context}\n"
     f"{comment_block}\n"
     "Return markdown with:\n"
     "1) Deliverable (the actual output the operator asked for — plans, copy, checklist, etc.)\n"
@@ -298,27 +407,62 @@ exec_prompt = (
     "Be concise but complete. Do not refuse solely for length; prioritize usefulness.\n"
     "Do not include package-install speculation."
 )
-session_id = f"{COMPANY_ID}-{AGENT_ID}-{TASK_ID}-{RUN_ID}" if RUN_ID else f"{COMPANY_ID}-{AGENT_ID}-{TASK_ID}"
+session_suffix = RUN_ID or f"hb-{int(time.time())}-{uuid.uuid4().hex[:8]}"
+session_id = make_valid_session_id(COMPANY_ID, AGENT_ID, TASK_ID, session_suffix)
 
 oc_timeout = resolve_openclaw_subprocess_timeout_sec()
 agent_notes = ""
 agent_ok = False
-try:
-    agent_proc = subprocess.run(
-        ["openclaw", "agent", "--session-id", session_id, "-m", exec_prompt],
-        capture_output=True,
-        text=True,
-        timeout=oc_timeout,
-        check=False,
-    )
-    if agent_proc.returncode == 0:
-        agent_notes = (agent_proc.stdout or "").strip()
-        agent_ok = bool(agent_notes) and not is_openclaw_llm_outcome_failure(agent_notes)
-    else:
+
+def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool = False) -> tuple[bool, str]:
+    try:
+        cmd = ["openclaw", "agent", "--session-id", current_session_id, "-m", prompt]
+        if local_mode:
+            cmd.insert(2, "--local")
+        agent_proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=oc_timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired:
+        return False, f"OpenClaw agent timed out (>{oc_timeout}s; adapter budget aligns with Paperclip process timeout)."
+
+    if agent_proc.returncode != 0:
         stderr = (agent_proc.stderr or "").strip()
-        agent_notes = f"OpenClaw agent exited with code {agent_proc.returncode}. stderr: {stderr[:400]}"
-except subprocess.TimeoutExpired:
-    agent_notes = f"OpenClaw agent timed out (>{oc_timeout}s; adapter budget aligns with Paperclip process timeout)."
+        return False, f"OpenClaw agent exited with code {agent_proc.returncode}. stderr: {stderr[:400]}"
+
+    output = (agent_proc.stdout or "").strip()
+    if not output:
+        return False, "OpenClaw returned empty output."
+    if is_openclaw_llm_outcome_failure(output):
+        return False, f"OpenClaw returned failure-like output. Raw output preview: {output[:300]}"
+    if not is_substantive_deliverable(output):
+        return False, f"OpenClaw returned non-substantive output. Raw output preview: {output[:300]}"
+    return True, output
+
+# Attempt 1: standard issue prompt.
+agent_ok, agent_notes = run_openclaw_attempt(exec_prompt, session_id)
+
+# Attempt 2: stricter prompt on non-substantive outcome.
+if not agent_ok:
+    retry_prompt = (
+        exec_prompt
+        + "\n\nIMPORTANT: Your response must be a project-specific markdown deliverable grounded in the repository context. "
+          "Do not return status words like 'completed' or any compaction notice. "
+          "Include concrete findings and actions specific to this issue."
+    )
+    retry_session_id = make_valid_session_id(COMPANY_ID, AGENT_ID, TASK_ID, f"{session_suffix}-retry")
+    retry_ok, retry_notes = run_openclaw_attempt(retry_prompt, retry_session_id, local_mode=True)
+    if retry_ok:
+        agent_ok = True
+        agent_notes = retry_notes
+    else:
+        agent_notes = (
+            f"{agent_notes}\n\nSecond attempt also failed non-substantively.\n"
+            f"{retry_notes}"
+        )
 
 if agent_ok:
     comment = (
@@ -340,5 +484,6 @@ patch_issue(
         "Narrow the task, fix OpenClaw/gateway availability, or re-run manually after adjusting scope."
     ),
 )
-print("HEARTBEAT_OK:executor")
+print("HEARTBEAT_FAIL:executor")
+raise SystemExit(1)
 PY

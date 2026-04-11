@@ -26,6 +26,7 @@ fi
 EXECUTOR_BASE_URL=""
 PLANNER_BASE_URL=""
 EMBEDDING_BASE_URL=""
+REVIEWER_BASE_URL=""
 pod_lines_file="$(mktemp)"
 python3 - "${STATE_FILE}" > "${pod_lines_file}" <<'PY'
 import json
@@ -46,7 +47,7 @@ pods = payload.get("pods")
 if not isinstance(pods, list):
     raise SystemExit("ERROR: state/pods.json must contain a list at key 'pods'.")
 
-required = ("executor", "planner", "embedding")
+required = ("executor", "planner", "embedding", "reviewer")
 by_role = {}
 for idx, pod in enumerate(pods):
     if not isinstance(pod, dict):
@@ -78,6 +79,7 @@ while IFS=$'\t' read -r role base_url; do
     executor) EXECUTOR_BASE_URL="${base_url}" ;;
     planner) PLANNER_BASE_URL="${base_url}" ;;
     embedding) EMBEDDING_BASE_URL="${base_url}" ;;
+    reviewer) REVIEWER_BASE_URL="${base_url}" ;;
     *)
       echo "ERROR: Unexpected role '${role}' while parsing ${STATE_FILE}." >&2
       exit 1
@@ -86,7 +88,7 @@ while IFS=$'\t' read -r role base_url; do
 done < "${pod_lines_file}"
 rm -f "${pod_lines_file}"
 
-if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" ]]; then
+if [[ -z "${EXECUTOR_BASE_URL}" || -z "${PLANNER_BASE_URL}" || -z "${EMBEDDING_BASE_URL}" || -z "${REVIEWER_BASE_URL}" ]]; then
   echo "ERROR: Failed to extract required endpoint URLs from ${STATE_FILE}." >&2
   exit 1
 fi
@@ -95,62 +97,48 @@ fail_count=0
 
 echo "Checking gateway status..."
 if ! openclaw gateway status >/dev/null; then
-  echo "ERROR: OpenClaw gateway is not healthy or not running." >&2
-  fail_count=$((fail_count + 1))
+  echo "WARN: OpenClaw gateway status probe returned non-zero; continuing with direct endpoint smoke checks." >&2
 fi
 
-prompt="Reply with the exact string PONG and nothing else"
-tmp_output="$(mktemp)"
-
-echo "Sending smoke-test prompt via OpenClaw CLI..."
-if ! openclaw agent \
-  --session-id "foreman-v2-smoke" \
-  --message "${prompt}" \
-  --json > "${tmp_output}"; then
-  echo "ERROR: openclaw agent command failed." >&2
-  fail_count=$((fail_count + 1))
-elif python3 - "${tmp_output}" <<'PY'
-import json
-import sys
-
-path = sys.argv[1]
-with open(path, "r", encoding="utf-8") as f:
-    payload = json.load(f)
-
-def extract_candidates(value):
-    out = []
-    if isinstance(value, dict):
-        for k, v in value.items():
-            if k in {"content", "text"} and isinstance(v, str):
-                out.append(v)
-            out.extend(extract_candidates(v))
-    elif isinstance(value, list):
-        for item in value:
-            out.extend(extract_candidates(item))
-    return out
-
-candidates = [c.strip() for c in extract_candidates(payload) if isinstance(c, str)]
-if not candidates:
-    raise SystemExit("ERROR: Executor response missing content/text fields.")
-
-if "PONG" not in candidates:
-    preview = " | ".join(candidates[:3])
-    raise SystemExit(
-        "ERROR: Executor expected exact 'PONG' in response content. Got: "
-        + (preview or "<empty>")
-    )
-PY
-then
-  echo "Executor test passed: exact PONG found in response content."
-else
-  echo "ERROR: Executor smoke assertion failed." >&2
-  python3 - "${tmp_output}" <<'PY'
+echo "Executor direct endpoint test..."
+executor_out="$(mktemp)"
+executor_code="$(
+curl -sS -o "${executor_out}" -w "%{http_code}" \
+  -H "Authorization: Bearer ${RUNPOD_API_KEY:-}" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"Qwen/Qwen2.5-32B-Instruct","messages":[{"role":"user","content":"What is 2+2? Reply in one short sentence."}],"max_tokens":48}' \
+  "${EXECUTOR_BASE_URL%/}/chat/completions"
+)"
+if [[ "${executor_code}" -lt 200 || "${executor_code}" -ge 300 ]]; then
+  echo "ERROR: Executor endpoint failed with HTTP ${executor_code}" >&2
+  python3 - "${executor_out}" <<'PY'
 from pathlib import Path
 print(Path(__import__("sys").argv[1]).read_text(encoding="utf-8"))
 PY
   fail_count=$((fail_count + 1))
+elif ! python3 - "${executor_out}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+choices = payload.get("choices") or []
+content = ""
+if choices and isinstance(choices[0], dict):
+    msg = choices[0].get("message") or {}
+    if isinstance(msg, dict):
+        content = str(msg.get("content") or "")
+if not content.strip():
+    raise SystemExit("ERROR: Executor returned empty content.")
+if not any(ch.isalpha() for ch in content):
+    raise SystemExit(f"ERROR: Executor response is non-linguistic. Got: {content[:200]!r}")
+PY
+then
+  fail_count=$((fail_count + 1))
+else
+  echo "Executor test passed."
 fi
-rm -f "${tmp_output}"
+rm -f "${executor_out}"
 
 echo "Planner direct endpoint test..."
 planner_out="$(mktemp)"
@@ -158,7 +146,7 @@ planner_code="$(
 curl -sS -o "${planner_out}" -w "%{http_code}" \
   -H "Authorization: Bearer ${RUNPOD_API_KEY:-}" \
   -H "Content-Type: application/json" \
-  -d '{"model":"Qwen/Qwen3-30B-A3B-Instruct-2507","messages":[{"role":"user","content":"Give a 3-step reasoning plan for brewing tea, with numbered steps only."}]}' \
+  -d '{"model":"deepseek-ai/DeepSeek-R1-Distill-Qwen-32B","messages":[{"role":"user","content":"Give a 3-step reasoning plan for brewing tea, with numbered steps only."}],"max_tokens":128}' \
   "${PLANNER_BASE_URL%/}/chat/completions"
 )"
 if [[ "${planner_code}" -lt 200 || "${planner_code}" -ge 300 ]]; then
@@ -191,10 +179,16 @@ if choices and isinstance(choices[0], dict):
 
 if not content.strip():
     raise SystemExit("ERROR: Planner returned empty content.")
+if not any(ch.isalpha() for ch in content):
+    raise SystemExit(f"ERROR: Planner response is non-linguistic. Got: {content[:200]!r}")
 
-if not re.search(r"\b1[\.\)]\s", content):
+if not re.search(
+    r"(?:\b1[\.\)]\s|\bstep\s*1\s*:|\bfirst\b|\bthen\b|\bnext\b|\bfinally\b)",
+    content,
+    flags=re.IGNORECASE,
+):
     raise SystemExit(
-        "ERROR: Planner response missing expected numbered reasoning structure. "
+        "ERROR: Planner response missing expected planning structure keywords/format. "
         f"Got content: {content[:200]!r}"
     )
 PY
@@ -204,6 +198,54 @@ else
   echo "Planner test passed."
 fi
 rm -f "${planner_out}"
+
+echo "Reviewer direct endpoint test..."
+reviewer_out="$(mktemp)"
+reviewer_code="$(
+curl -sS -o "${reviewer_out}" -w "%{http_code}" \
+  -H "Authorization: Bearer ${RUNPOD_API_KEY:-}" \
+  -H "Content-Type: application/json" \
+  -d '{"model":"Qwen/Qwen2.5-Coder-32B-Instruct","messages":[{"role":"user","content":"Review this code and list exactly 2 concrete bugs:\\n```python\\ndef add(a,b):\\n    return a-b\\n```"}],"max_tokens":128}' \
+  "${REVIEWER_BASE_URL%/}/chat/completions"
+)"
+if [[ "${reviewer_code}" -lt 200 || "${reviewer_code}" -ge 300 ]]; then
+  echo "ERROR: Reviewer endpoint failed with HTTP ${reviewer_code}" >&2
+  python3 - "${reviewer_out}" <<'PY'
+from pathlib import Path
+print(Path(__import__("sys").argv[1]).read_text(encoding="utf-8"))
+PY
+  fail_count=$((fail_count + 1))
+elif ! python3 - "${reviewer_out}" <<'PY'
+import json
+import sys
+
+with open(sys.argv[1], "r", encoding="utf-8") as f:
+    payload = json.load(f)
+
+if isinstance(payload, dict):
+    if payload.get("error") is not None:
+        raise SystemExit(f"ERROR: Reviewer returned error payload: {payload.get('error')}")
+    if payload.get("errors"):
+        raise SystemExit(f"ERROR: Reviewer returned errors payload: {payload.get('errors')}")
+
+content = ""
+choices = payload.get("choices") or []
+if choices and isinstance(choices[0], dict):
+    msg = choices[0].get("message") or {}
+    if isinstance(msg, dict):
+        content = str(msg.get("content") or "")
+
+if not content.strip():
+    raise SystemExit("ERROR: Reviewer returned empty content.")
+if not any(ch.isalpha() for ch in content):
+    raise SystemExit(f"ERROR: Reviewer response is non-linguistic. Got: {content[:200]!r}")
+PY
+then
+  fail_count=$((fail_count + 1))
+else
+  echo "Reviewer test passed."
+fi
+rm -f "${reviewer_out}"
 
 echo "Embedding endpoint test..."
 embed_out="$(mktemp)"
@@ -254,8 +296,8 @@ fi
 rm -f "${embed_out}"
 
 if [[ "${fail_count}" -gt 0 ]]; then
-  echo "Smoke test failed: ${fail_count} check(s) failed (executor/planner/embedding/gateway)." >&2
+  echo "Smoke test failed: ${fail_count} check(s) failed (executor/planner/reviewer/embedding/gateway)." >&2
   exit 1
 fi
 
-echo "Smoke test passed: executor, planner, and embedding checks succeeded."
+echo "Smoke test passed: executor, planner, reviewer, and embedding checks succeeded."

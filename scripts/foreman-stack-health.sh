@@ -62,17 +62,14 @@ required_snippets = [
     "providers",
     "executor",
     "planner",
+    "reviewer",
     "embedding",
     "baseUrl",
 ]
 for snippet in required_snippets:
     if snippet not in normalized:
         raise SystemExit(1)
-if "fm043taeerxjo2-8000.proxy.runpod.net/v1" not in normalized:
-    raise SystemExit(1)
-if "tko1uoa413myi6-8000.proxy.runpod.net/v1" not in normalized:
-    raise SystemExit(1)
-if "xfz6l2tqiw5sf8-8000.proxy.runpod.net/v1" not in normalized:
+if "__executor_base_url__" in normalized or "__planner_base_url__" in normalized or "__reviewer_base_url__" in normalized or "__embedding_base_url__" in normalized:
     raise SystemExit(1)
 PY
 }

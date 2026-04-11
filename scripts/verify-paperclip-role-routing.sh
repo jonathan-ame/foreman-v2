@@ -34,6 +34,7 @@ else:
         ("CEO", "HEARTBEAT_OK:executor"),
         ("OpenClawWorker", "HEARTBEAT_OK:planner"),
         ("EmbeddingWorker", "HEARTBEAT_OK:embedding"),
+        ("ReviewerWorker", "HEARTBEAT_OK:reviewer"),
     ]
 evidence_path = Path(os.path.abspath(__import__("sys").argv[1]))
 evidence_path.parent.mkdir(parents=True, exist_ok=True)
