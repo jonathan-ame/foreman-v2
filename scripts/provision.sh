@@ -1142,8 +1142,8 @@ def create_pod_with_modes(role: dict, gpu_candidates: list[dict]) -> tuple[dict,
         "cloudType": "SECURE",
         "imageName": VLLM_IMAGE,
         "gpuCount": 1,
-        "containerDiskInGb": 60,   # vllm image ~25 GB + runtime headroom
-        "volumeInGb": 100,         # 64 GB model weights + cache
+        "containerDiskInGb": 80,   # vllm/vllm-openai unpacks to ~35-40 GB; 80 GB provides headroom
+        "volumeInGb": 100,         # 64 GB model weights go here via HF_HOME
         "volumeMountPath": "/workspace",
         "ports": [f"{PROXY_PORT}/http"],
         "interruptible": False,
