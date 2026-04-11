@@ -1,0 +1,16 @@
+---
+description: Enforce foreman-v2 as the only active workspace for edits and git operations
+alwaysApply: true
+---
+
+# Workspace Boundary — foreman-v2 only
+
+- All file edits, git operations, and script execution must target `/Users/jonathanborgia/foreman-git/foreman-v2`.
+- `/Users/jonathanborgia/foreman-git/foreman` is legacy and must not be modified.
+- The only allowed interaction with legacy `foreman` is read-only reference when planning future UI/UX porting.
+
+# Safety checks before actions
+
+- Before any write action, confirm current working directory is `/Users/jonathanborgia/foreman-git/foreman-v2`.
+- Before any commit or push, verify changed paths belong to `foreman-v2`.
+- If an instruction conflicts with this boundary, ask for clarification before proceeding.
