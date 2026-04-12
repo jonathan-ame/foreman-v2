@@ -203,6 +203,220 @@ def resolve_openclaw_subprocess_timeout_sec() -> int:
     return max(90, min(inner, adapter_sec - 10))
 
 
+def load_jsonc(path: str) -> dict:
+    """Read ~/.openclaw/openclaw.json tolerating // and /* */ comments."""
+    raw = Path(path).read_text(encoding="utf-8")
+    # Strip block comments
+    out = []
+    i = 0
+    while i < len(raw):
+        if raw[i : i + 2] == "/*":
+            end = raw.find("*/", i + 2)
+            if end == -1:
+                break
+            i = end + 2
+            continue
+        out.append(raw[i])
+        i += 1
+    text = "".join(out)
+    lines = []
+    for line in text.splitlines():
+        stripped = line
+        if "//" in stripped:
+            in_string = False
+            escape = False
+            rebuilt = []
+            j = 0
+            while j < len(stripped):
+                ch = stripped[j]
+                if escape:
+                    rebuilt.append(ch)
+                    escape = False
+                    j += 1
+                    continue
+                if ch == "\\" and in_string:
+                    escape = True
+                    rebuilt.append(ch)
+                    j += 1
+                    continue
+                if ch == '"':
+                    in_string = not in_string
+                    rebuilt.append(ch)
+                    j += 1
+                    continue
+                if ch == "/" and j + 1 < len(stripped) and stripped[j + 1] == "/" and not in_string:
+                    break
+                rebuilt.append(ch)
+                j += 1
+            stripped = "".join(rebuilt)
+        lines.append(stripped)
+    clean = "\n".join(lines)
+    return json.loads(clean)
+
+
+def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None:
+    """
+    Probe executor vLLM /models from ~/.openclaw/openclaw.json before invoking `openclaw agent`.
+    On failure, PATCH issue to blocked with diagnostics and exit 1.
+    """
+    cfg_path = Path.home() / ".openclaw" / "openclaw.json"
+    diag_prefix = f"OpenClawWorker endpoint preflight failed for `{identifier}`."
+    if not cfg_path.is_file():
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                f"Missing OpenClaw config file: {cfg_path}\n"
+                "Run ./scripts/configure.sh after provisioning pods."
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (missing openclaw.json)")
+        raise SystemExit(1)
+    raw_cfg = cfg_path.read_text(encoding="utf-8")
+    cfg: dict | None = None
+    try:
+        cfg = load_jsonc(raw_cfg)
+    except Exception:
+        cfg = None
+
+    def extract_executor_regex(text: str) -> tuple[str, str]:
+        m = re.search(
+            r"executor\s*:\s*\{[^}]*baseUrl\s*:\s*\"([^\"]+)\"[^}]*apiKey\s*:\s*\"([^\"]*)\"",
+            text,
+            flags=re.S,
+        )
+        if not m:
+            return "", ""
+        return m.group(1).strip().rstrip("/"), (m.group(2) or "").strip()
+
+    base_url = ""
+    cfg_api_key = ""
+    if isinstance(cfg, dict):
+        models_block = cfg.get("models") if isinstance(cfg.get("models"), dict) else {}
+        providers = models_block.get("providers") if isinstance(models_block.get("providers"), dict) else {}
+        ex = providers.get("executor") if isinstance(providers.get("executor"), dict) else {}
+        base_url = str(ex.get("baseUrl") or "").strip().rstrip("/")
+        cfg_api_key = str(ex.get("apiKey") or "").strip()
+    if not base_url or not cfg_api_key:
+        br, kr = extract_executor_regex(raw_cfg)
+        base_url = base_url or br
+        cfg_api_key = cfg_api_key or kr
+    env_key = (os.environ.get("RUNPOD_API_KEY") or "").strip()
+    api_key = cfg_api_key or env_key
+    expected_model = "Qwen/Qwen2.5-32B-Instruct"
+    if not base_url:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                "models.providers.executor.baseUrl is missing in ~/.openclaw/openclaw.json."
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (no executor baseUrl)")
+        raise SystemExit(1)
+    if not api_key:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                "No API key for executor probe: set models.providers.executor.apiKey in openclaw.json "
+                "or export RUNPOD_API_KEY in the adapter environment."
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (no api key for probe)")
+        raise SystemExit(1)
+
+    models_url = f"{base_url}/models"
+    try:
+        req_http = urllib.request.Request(
+            models_url,
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Accept": "application/json",
+                "User-Agent": "foreman-v2/paperclip-openclaw-executor (1.0)",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req_http, timeout=45) as resp:
+            code = resp.getcode()
+            body = resp.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        body = (exc.read() or b"").decode("utf-8", errors="replace")
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                f"GET {models_url} => HTTP {exc.code}\n"
+                f"Body (truncated): {body[:1200]}"
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (executor /models http error)")
+        raise SystemExit(1)
+    except Exception as exc:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                f"GET {models_url} unreachable or error: {exc}"
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (executor /models unreachable)")
+        raise SystemExit(1)
+
+    if code < 200 or code >= 300:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                f"GET {models_url} => HTTP {code}\n"
+                f"Body (truncated): {body[:1200]}"
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (executor /models non-2xx)")
+        raise SystemExit(1)
+
+    try:
+        payload = json.loads(body) if body else {}
+    except json.JSONDecodeError as exc:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=f"{diag_prefix}\n\nExecutor /models returned non-JSON: {exc}",
+        )
+        print("HEARTBEAT_FAIL:executor (executor /models non-json)")
+        raise SystemExit(1)
+
+    if isinstance(payload, dict) and payload.get("error") is not None:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=f"{diag_prefix}\n\nExecutor /models error field: {payload.get('error')}",
+        )
+        print("HEARTBEAT_FAIL:executor (executor /models error payload)")
+        raise SystemExit(1)
+
+    model_rows = payload.get("data") if isinstance(payload.get("data"), list) else []
+    model_ids = [m.get("id") for m in model_rows if isinstance(m, dict)]
+    if expected_model not in model_ids:
+        patch_issue(
+            issue_id,
+            status="blocked",
+            comment=(
+                f"{diag_prefix}\n\n"
+                f"Expected model {expected_model!r} not listed by executor /models. "
+                f"Got ids (sample): {', '.join(str(x) for x in model_ids[:12] if x)}"
+            ),
+        )
+        print("HEARTBEAT_FAIL:executor (executor model mismatch)")
+        raise SystemExit(1)
+
+
 def wait_for_wake_issue_ready(initial_task_id: str, max_wait_sec: int = 20) -> str:
     """
     Comment/reopen wakes can race the DB: issue may not yet be todo+assigned when the process starts.
@@ -409,6 +623,8 @@ exec_prompt = (
 )
 session_suffix = RUN_ID or f"hb-{int(time.time())}-{uuid.uuid4().hex[:8]}"
 session_id = make_valid_session_id(COMPANY_ID, AGENT_ID, TASK_ID, session_suffix)
+
+preflight_executor_openclaw_endpoint(TASK_ID, identifier)
 
 oc_timeout = resolve_openclaw_subprocess_timeout_sec()
 agent_notes = ""

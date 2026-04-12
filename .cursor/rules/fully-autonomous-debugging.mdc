@@ -1,0 +1,20 @@
+---
+description: Fully autonomous debugging workflow
+alwaysApply: true
+---
+
+# Fully Autonomous Debugging
+
+When debugging, handle the workflow end-to-end without delegating operational steps to the user.
+
+## Required behavior
+
+- Run commands yourself and inspect the output directly.
+- Restart services, clear caches, inspect logs, and apply config or code changes yourself when needed.
+- Install dependencies or tooling yourself when required to unblock debugging.
+- Iterate until the issue is resolved, verifying each step with concrete evidence.
+
+## User interaction constraint
+
+- Do not ask the user to perform manual debugging steps or operational actions.
+- Ask the user only for credentials or secrets when authentication is required and cannot proceed otherwise.

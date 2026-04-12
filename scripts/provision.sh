@@ -225,7 +225,7 @@ ROSTER = [
             "--dtype", "half",
             "--enable-auto-tool-choice",
             "--tool-call-parser", "hermes",
-            "--max-model-len", "8192",
+            "--max-model-len", "16384",
             "--gpu-memory-utilization", "0.90",
             "--max-num-seqs", "8",
             "--trust-remote-code",
@@ -1589,6 +1589,28 @@ def wait_for_running_or_mode_c(pod_id: str, role_name: str) -> dict:
     )
 
 
+def probe_role_vllm_models(entry: dict) -> tuple[bool, str]:
+    """Lightweight liveness: GET {base_url}/models and confirm configured model_id is listed."""
+    base_url = str(entry.get("base_url") or entry.get("proxy_url") or "").strip().rstrip("/")
+    model_id = str(entry.get("model_id") or "").strip()
+    role_name = str(entry.get("logical_name") or "")
+    if not base_url or not model_id:
+        return False, "missing base_url or model_id on state entry"
+    models_url = f"{base_url}/models"
+    status, resp = api_request("GET", models_url, timeout=25)
+    if status != 200:
+        return False, f"GET {models_url} => HTTP {status}"
+    if not isinstance(resp, dict):
+        return False, "/models returned non-object JSON"
+    rows = resp.get("data") or []
+    if not isinstance(rows, list):
+        return False, "/models missing data[]"
+    ids = [m.get("id") for m in rows if isinstance(m, dict)]
+    if model_id not in ids:
+        return False, f"model_id {model_id!r} not listed (sample={ids[:5]!r})"
+    return True, role_name
+
+
 def health_check_with_mode_d(role: dict, pod: dict) -> str:
     pod_id = pod["id"]
     role_name = role["logical_name"]
@@ -1694,7 +1716,7 @@ def role_gateway_smoke(role_name: str) -> tuple[bool, str]:
 def apply_gateway_config_with_restart() -> None:
     root_dir = os.path.dirname(STATE_DIR)
     configure = os.path.join(root_dir, "scripts", "configure.sh")
-    code, out = run_cmd_checked([configure])
+    code, out = run_cmd_checked([configure, "--check-pods", "--strict"])
     if code != 0:
         raise RunPodUnclassifiedError(
             role="gateway",
@@ -1933,9 +1955,39 @@ def main() -> int:
             return preserve_and_warn("U", exc.role, exc.safe_message, exc.log_path)
         return 1
 
+    pending_gateway_refresh = False
+    liveness_fail_streak: dict[str, int] = {}
+
     while True:
         _sweep_unattached_network_volumes()
         _sweep_orphan_pods()
+
+        roster_names = {r["logical_name"] for r in ROSTER}
+        for entry in list(created_pods):
+            role_name = str(entry.get("logical_name") or "")
+            if not role_name or role_name not in roster_names:
+                continue
+            st = str(entry.get("status") or "").lower()
+            if st not in {"healthy", "running"}:
+                liveness_fail_streak.pop(role_name, None)
+                continue
+            ok, detail = probe_role_vllm_models(entry)
+            if ok:
+                liveness_fail_streak.pop(role_name, None)
+                continue
+            n = liveness_fail_streak.get(role_name, 0) + 1
+            liveness_fail_streak[role_name] = n
+            print_status(f"Liveness probe failed for {role_name} ({n}/3): {detail}")
+            if n < 3:
+                continue
+            print_status(
+                f"{role_name} marked unhealthy after 3 consecutive liveness failures; "
+                "removing from tracked state so it reprovisions (orphan pod will be swept)."
+            )
+            remove_created_role(role_name)
+            remove_state_role(role_name)
+            liveness_fail_streak.pop(role_name, None)
+            pending_gateway_refresh = True
 
         missing_roles = [
             role for role in ROSTER if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
@@ -2012,6 +2064,7 @@ def main() -> int:
                 )
                 save_state_incremental(entry)
                 print_status(f"{role_name} healthy at {base_url} ({entry['region']}).")
+                pending_gateway_refresh = True
 
             except (RunPodModeAError, RunPodModeEError) as exc:
                 print_status(f"{role_name} not yet available ({exc.mode}): {exc.safe_message}.")
@@ -2049,6 +2102,17 @@ def main() -> int:
             for role in ROSTER
             if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
         ]
+        if not still_missing and pending_gateway_refresh:
+            try:
+                apply_gateway_config_with_restart()
+            except RunPodUnclassifiedError as exc:
+                print_status(
+                    f"WARNING: configure.sh / gateway restart after role changes failed: {exc.safe_message}"
+                )
+                if exc.log_path:
+                    print_status(f"Debug details: {exc.log_path}")
+            pending_gateway_refresh = False
+
         fallback_roles: list[str] = []
         uptier_attempted_this_cycle: set[str] = set()
         for entry in list(created_pods):

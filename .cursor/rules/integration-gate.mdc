@@ -1,0 +1,23 @@
+---
+description: Require integration-check.sh before commit when integration surface changes.
+alwaysApply: true
+---
+
+# Integration gate (foreman-v2)
+
+Before **every commit** in this repository, run:
+
+`./scripts/integration-check.sh`
+
+from the foreman-v2 root (`/Users/jonathanborgia/foreman-git/foreman-v2`). Fix any **FAIL** results that are in scope for your change before pushing.
+
+## Re-run when touching integration surfaces
+
+Run `./scripts/integration-check.sh` again after edits to any of:
+
+- `scripts/paperclip-openclaw-executor.sh`
+- `scripts/provision.sh`
+- `scripts/configure.sh`
+- `config/openclaw.foreman.json`
+
+Treat a non-zero exit from the script as a blocker for commit when failures are caused by or related to your changes.

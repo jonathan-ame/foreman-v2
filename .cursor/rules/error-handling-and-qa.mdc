@@ -1,0 +1,36 @@
+---
+description: Error handling and QA requirements — never silence errors, always QA before marking done
+alwaysApply: true
+---
+
+# Rule 1 — Never silence errors
+
+When an error occurs, debug and resolve the root cause immediately, or create a follow-up task that includes:
+
+- Full error message
+- Stack trace
+- Reproduction steps
+
+Never suppress, catch-and-ignore, or silently work around errors without understanding the root cause.
+
+**Prohibited patterns:**
+
+- Empty catch blocks
+- Broad `try/except` with `pass`
+- `TODO: fix later` comments without a corresponding tracked follow-up task
+
+# Rule 2 — QA before done
+
+A task is not complete until QA passes with zero errors and zero warnings.
+
+**Required QA minimum:**
+
+- Build/compile cleanly
+- Run relevant test suites
+- Manually verify happy path and primary edge cases
+
+**QA scoping rule for surfaced errors:**
+
+- **In-scope error** (caused by or directly related to the current task changes): must be fixed before task completion.
+- **Out-of-scope error** (pre-existing and unrelated): create an immediate follow-up task with full context, then continue.
+- If scope is uncertain, treat the error as in-scope.

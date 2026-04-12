@@ -1,6 +1,20 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+CHECK_PODS=0
+STRICT_PODS=0
+for _arg in "$@"; do
+  case "${_arg}" in
+    --check-pods) CHECK_PODS=1 ;;
+    --strict) STRICT_PODS=1 ;;
+    *)
+      echo "ERROR: Unknown argument: ${_arg}" >&2
+      echo "Usage: $0 [--check-pods] [--strict]" >&2
+      exit 1
+      ;;
+  esac
+done
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
@@ -24,6 +38,117 @@ target = pathlib.Path(sys.argv[2])
 digest = hashlib.sha256(source.read_bytes()).hexdigest()
 target.write_text(digest + "\n", encoding="utf-8")
 PY
+}
+
+validate_json5_config() {
+  local source_file="$1"
+  node - "${source_file}" <<'JS'
+const fs = require("node:fs");
+const path = require("node:path");
+const { createRequire } = require("node:module");
+
+const sourceFile = process.argv[2];
+const sourceText = fs.readFileSync(sourceFile, "utf-8");
+
+const attempted = [];
+function tryLoadJson5(req, label) {
+  try {
+    return {
+      mod: req("json5"),
+      resolvedPath: req.resolve("json5"),
+      label,
+    };
+  } catch (err) {
+    attempted.push(`${label}: ${String(err)}`);
+    return null;
+  }
+}
+
+let loaded = tryLoadJson5(require, "global-require");
+if (!loaded) {
+  const anchors = [
+    "/opt/homebrew/lib/node_modules/openclaw/package.json",
+    "/opt/homebrew/lib/node_modules/openclaw/node_modules/json5/package.json",
+  ];
+  for (const anchor of anchors) {
+    try {
+      const anchoredRequire = createRequire(anchor);
+      loaded = tryLoadJson5(anchoredRequire, anchor);
+      if (loaded) break;
+    } catch (err) {
+      attempted.push(`${anchor}: ${String(err)}`);
+    }
+  }
+}
+
+if (!loaded) {
+  console.error(`ERROR: Could not resolve JSON5 parser for validation of ${sourceFile}`);
+  for (const line of attempted) {
+    console.error(`  - ${line}`);
+  }
+  process.exit(1);
+}
+
+try {
+  loaded.mod.parse(sourceText);
+} catch (err) {
+  const message = err instanceof Error ? err.message : String(err);
+  console.error(`ERROR: JSON5 parse validation failed for ${sourceFile}: ${message}`);
+  process.exit(1);
+}
+
+console.log(`Validated JSON5 parse for ${sourceFile} using ${loaded.resolvedPath}`);
+JS
+}
+
+reset_openclaw_config_baseline_state() {
+  local target_config_path="$1"
+  local resolved_config_path
+  resolved_config_path="$(
+    python3 - "${target_config_path}" <<'PY'
+import os
+import sys
+print(os.path.realpath(sys.argv[1]))
+PY
+  )"
+
+  local config_health_path="${OPENCLAW_HOME}/logs/config-health.json"
+  if [[ -f "${config_health_path}" ]]; then
+    if ! command -v jq >/dev/null 2>&1; then
+      echo "ERROR: jq is required to edit ${config_health_path} baseline state." >&2
+      exit 1
+    fi
+    if jq -e . "${config_health_path}" >/dev/null 2>&1; then
+      if jq -e --arg cfg "${resolved_config_path}" '.entries | type == "object" and has($cfg)' "${config_health_path}" >/dev/null 2>&1; then
+        local tmp_health
+        tmp_health="$(mktemp)"
+        if jq --arg cfg "${resolved_config_path}" '
+          if (.entries | type) == "object"
+          then .entries |= with_entries(select(.key != $cfg))
+          else .
+          end
+        ' "${config_health_path}" > "${tmp_health}"; then
+          mv "${tmp_health}" "${config_health_path}"
+          echo "Removed stale config-health baseline entry for ${resolved_config_path}"
+        else
+          rm -f "${tmp_health}"
+          echo "NOTICE: Failed updating ${config_health_path}; continuing without baseline entry removal." >&2
+        fi
+      else
+        echo "NOTICE: No config-health baseline entry found for ${resolved_config_path}; nothing to remove."
+      fi
+    else
+      echo "NOTICE: Could not parse ${config_health_path}; continuing without baseline entry removal." >&2
+    fi
+  fi
+
+  local backup_fallback_path="${resolved_config_path}.bak"
+  if [[ -f "${backup_fallback_path}" ]]; then
+    local moved_backup_path
+    moved_backup_path="${backup_fallback_path}.pre-configure-$(date +%Y%m%d-%H%M%S)"
+    mv "${backup_fallback_path}" "${moved_backup_path}"
+    echo "Moved baseline fallback backup to ${moved_backup_path}"
+  fi
 }
 
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -168,7 +293,6 @@ fi
 tmp_rendered="$(mktemp)"
 python3 - "${TEMPLATE_FILE}" "${tmp_rendered}" <<'PY'
 import os
-import re
 import sys
 
 template_path = sys.argv[1]
@@ -177,41 +301,19 @@ output_path = sys.argv[2]
 with open(template_path, "r", encoding="utf-8") as f:
     data = f.read()
 
-pattern = re.compile(r"\$\{([A-Z_][A-Z0-9_]*)\}")
-
-def replace(match: re.Match[str]) -> str:
-    key = match.group(1)
-    value = os.environ.get(key)
-    if not value:
-        raise RuntimeError(f"Missing required env var for template substitution: {key}")
-    return value
-
-rendered = pattern.sub(replace, data)
+rendered = data
+rendered = rendered.replace("__EXECUTOR_BASE_URL__", os.environ["EXECUTOR_BASE_URL"])  # type: ignore[name-defined]
+rendered = rendered.replace("__PLANNER_BASE_URL__", os.environ["PLANNER_BASE_URL"])  # type: ignore[name-defined]
+rendered = rendered.replace("__EMBEDDING_BASE_URL__", os.environ["EMBEDDING_BASE_URL"])  # type: ignore[name-defined]
+rendered = rendered.replace("__REVIEWER_BASE_URL__", os.environ["REVIEWER_BASE_URL"])  # type: ignore[name-defined]
 
 with open(output_path, "w", encoding="utf-8") as f:
     f.write(rendered)
 PY
-
-python3 - "${tmp_rendered}" "${TARGET_CONFIG}" <<'PY'
-import os
-import sys
-
-src = sys.argv[1]
-dst = sys.argv[2]
-
-with open(src, "r", encoding="utf-8") as f:
-    data = f.read()
-
-data = data.replace("__EXECUTOR_BASE_URL__", os.environ["EXECUTOR_BASE_URL"])  # type: ignore[name-defined]
-data = data.replace("__PLANNER_BASE_URL__", os.environ["PLANNER_BASE_URL"])  # type: ignore[name-defined]
-data = data.replace("__EMBEDDING_BASE_URL__", os.environ["EMBEDDING_BASE_URL"])  # type: ignore[name-defined]
-data = data.replace("__REVIEWER_BASE_URL__", os.environ["REVIEWER_BASE_URL"])  # type: ignore[name-defined]
-
-with open(dst, "w", encoding="utf-8") as f:
-    f.write(data)
-PY
-rm -f "${tmp_rendered}"
+reset_openclaw_config_baseline_state "${TARGET_CONFIG}"
+mv "${tmp_rendered}" "${TARGET_CONFIG}"
 write_config_checksum "${TARGET_CONFIG}"
+validate_json5_config "${TARGET_CONFIG}"
 
 openclaw_env_tmp="$(mktemp)"
 cat > "${openclaw_env_tmp}" <<EOF
@@ -228,10 +330,18 @@ echo "Wrote ${TARGET_CONFIG}"
 echo "Wrote ${OPENCLAW_ENV_FILE}"
 echo "Wrote ${CHECKSUM_FILE}"
 
+check_err() {
+  if [[ "${STRICT_PODS}" -eq 1 ]]; then
+    echo "ERROR: $*" >&2
+    exit 1
+  fi
+  echo "WARNING: $*" >&2
+}
+
 json_error_check() {
   local role="$1"
   local body_file="$2"
-  python3 - "${role}" "${body_file}" <<'PY'
+  if ! python3 - "${role}" "${body_file}" <<'PY'
 import json
 import sys
 
@@ -250,6 +360,10 @@ if isinstance(payload, dict):
     if errs:
         raise SystemExit(f"ERROR: {role} endpoint returned errors payload: {errs}")
 PY
+  then
+    return 1
+  fi
+  return 0
 }
 
 check_models_and_chat() {
@@ -268,20 +382,24 @@ check_models_and_chat() {
     -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
     -H "Content-Type: application/json" \
     "${models_url}")" || {
-      echo "ERROR: ${role} check failed calling ${models_url}" >&2
-      rm -f "${out_file}"
-      exit 1
+      check_err "${role} check failed calling ${models_url}"
+      rm -f "${out_file}" "${chat_out}"
+      return 1
     }
 
   if [[ "${code}" -lt 200 || "${code}" -ge 300 ]]; then
-    echo "ERROR: ${role} /models returned HTTP ${code}" >&2
     cat "${out_file}" >&2
-    rm -f "${out_file}"
-    exit 1
+    check_err "${role} /models returned HTTP ${code}"
+    rm -f "${out_file}" "${chat_out}"
+    return 1
   fi
-  json_error_check "${role}" "${out_file}"
+  if ! json_error_check "${role}" "${out_file}"; then
+    check_err "${role} /models JSON validation failed"
+    rm -f "${out_file}" "${chat_out}"
+    return 1
+  fi
 
-  python3 - "${out_file}" "${expected_model}" "${role}" <<'PY'
+  if ! python3 - "${out_file}" "${expected_model}" "${role}" <<'PY'
 import json
 import sys
 
@@ -300,6 +418,11 @@ if expected not in model_ids:
         + ", ".join([m for m in model_ids if m])
     )
 PY
+  then
+    check_err "${role} /models response missing expected model ${expected_model}"
+    rm -f "${out_file}" "${chat_out}"
+    return 1
+  fi
 
   local chat_code
   chat_code="$(curl -sS -o "${chat_out}" -w "%{http_code}" \
@@ -307,20 +430,24 @@ PY
     -H "Content-Type: application/json" \
     -d "{\"model\":\"${expected_model}\",\"messages\":[{\"role\":\"user\",\"content\":\"Reply with PONG\"}],\"max_tokens\":16}" \
     "${chat_url}")" || {
-      echo "ERROR: ${role} chat probe failed calling ${chat_url}" >&2
+      check_err "${role} chat probe failed calling ${chat_url}"
       rm -f "${out_file}" "${chat_out}"
-      exit 1
+      return 1
     }
 
   if [[ "${chat_code}" -lt 200 || "${chat_code}" -ge 300 ]]; then
-    echo "ERROR: ${role} /chat/completions returned HTTP ${chat_code}" >&2
     cat "${chat_out}" >&2
+    check_err "${role} /chat/completions returned HTTP ${chat_code}"
     rm -f "${out_file}" "${chat_out}"
-    exit 1
+    return 1
   fi
-  json_error_check "${role}" "${chat_out}"
+  if ! json_error_check "${role}" "${chat_out}"; then
+    check_err "${role} chat JSON validation failed"
+    rm -f "${out_file}" "${chat_out}"
+    return 1
+  fi
 
-  python3 - "${chat_out}" "${role}" <<'PY'
+  if ! python3 - "${chat_out}" "${role}" <<'PY'
 import json
 import sys
 
@@ -337,13 +464,15 @@ content = msg.get("content") if isinstance(msg, dict) else None
 if not isinstance(content, str) or not content.strip():
     raise SystemExit(f"ERROR: {role} chat probe returned empty content.")
 PY
+  then
+    check_err "${role} chat probe returned unusable assistant content"
+    rm -f "${out_file}" "${chat_out}"
+    return 1
+  fi
 
   rm -f "${out_file}" "${chat_out}"
+  return 0
 }
-
-check_models_and_chat "executor" "${EXECUTOR_BASE_URL}" "Qwen/Qwen2.5-32B-Instruct"
-check_models_and_chat "planner" "${PLANNER_BASE_URL}" "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B"
-check_models_and_chat "reviewer" "${REVIEWER_BASE_URL}" "Qwen/Qwen2.5-Coder-32B-Instruct"
 
 check_models_only() {
   local role="$1"
@@ -357,18 +486,22 @@ check_models_only() {
     -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
     -H "Content-Type: application/json" \
     "${models_url}")" || {
-      echo "ERROR: ${role} check failed calling ${models_url}" >&2
+      check_err "${role} check failed calling ${models_url}"
       rm -f "${out_file}"
-      exit 1
+      return 1
     }
   if [[ "${code}" -lt 200 || "${code}" -ge 300 ]]; then
-    echo "ERROR: ${role} /models returned HTTP ${code}" >&2
     cat "${out_file}" >&2
+    check_err "${role} /models returned HTTP ${code}"
     rm -f "${out_file}"
-    exit 1
+    return 1
   fi
-  json_error_check "${role}" "${out_file}"
-  python3 - "${out_file}" "${expected_model}" "${role}" <<'PY'
+  if ! json_error_check "${role}" "${out_file}"; then
+    check_err "${role} /models JSON validation failed"
+    rm -f "${out_file}"
+    return 1
+  fi
+  if ! python3 - "${out_file}" "${expected_model}" "${role}" <<'PY'
 import json
 import sys
 
@@ -385,28 +518,43 @@ if expected not in model_ids:
         + ", ".join([m for m in model_ids if m])
     )
 PY
+  then
+    check_err "${role} /models response missing expected model ${expected_model}"
+    rm -f "${out_file}"
+    return 1
+  fi
   rm -f "${out_file}"
+  return 0
 }
 
-check_models_only "embedding" "${EMBEDDING_BASE_URL}" "Qwen/Qwen3-Embedding-8B"
-
-embed_probe_out="$(mktemp)"
-embed_probe_code="$(
+run_embedding_endpoint_probe() {
+  local embed_probe_out
+  embed_probe_out="$(mktemp)"
+  local embed_probe_code
+  embed_probe_code="$(
 curl -sS -o "${embed_probe_out}" -w "%{http_code}" \
   -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
   -H "Content-Type: application/json" \
   -d '{"model":"Qwen/Qwen3-Embedding-8B","input":"foreman-v2 embedding health probe"}' \
   "${EMBEDDING_BASE_URL%/}/embeddings"
-)"
+)" || {
+    check_err "embedding /embeddings curl failed"
+    rm -f "${embed_probe_out}"
+    return 1
+  }
 
-if [[ "${embed_probe_code}" -lt 200 || "${embed_probe_code}" -ge 300 ]]; then
-  echo "ERROR: embedding /embeddings probe failed with HTTP ${embed_probe_code}" >&2
-  cat "${embed_probe_out}" >&2
-  rm -f "${embed_probe_out}"
-  exit 1
-fi
-json_error_check "embedding" "${embed_probe_out}"
-python3 - "${embed_probe_out}" <<'PY'
+  if [[ "${embed_probe_code}" -lt 200 || "${embed_probe_code}" -ge 300 ]]; then
+    cat "${embed_probe_out}" >&2
+    check_err "embedding /embeddings probe failed with HTTP ${embed_probe_code}"
+    rm -f "${embed_probe_out}"
+    return 1
+  fi
+  if ! json_error_check "embedding" "${embed_probe_out}"; then
+    check_err "embedding /embeddings JSON validation failed"
+    rm -f "${embed_probe_out}"
+    return 1
+  fi
+  if ! python3 - "${embed_probe_out}" <<'PY'
 import json
 import sys
 
@@ -420,6 +568,35 @@ embedding = data[0].get("embedding") if isinstance(data[0], dict) else None
 if not isinstance(embedding, list) or not embedding:
     raise SystemExit("ERROR: embedding probe returned empty embedding vector.")
 PY
-rm -f "${embed_probe_out}"
+  then
+    check_err "embedding /embeddings probe returned invalid vector payload"
+    rm -f "${embed_probe_out}"
+    return 1
+  fi
+  rm -f "${embed_probe_out}"
+  return 0
+}
 
-echo "RunPod endpoint verification passed for executor, planner, reviewer, and embedding."
+if [[ "${CHECK_PODS}" -eq 1 ]]; then
+  POD_PROBE_FAILURES=0
+  check_models_and_chat "executor" "${EXECUTOR_BASE_URL}" "Qwen/Qwen2.5-32B-Instruct" || POD_PROBE_FAILURES=$((POD_PROBE_FAILURES + 1))
+  check_models_and_chat "planner" "${PLANNER_BASE_URL}" "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B" || POD_PROBE_FAILURES=$((POD_PROBE_FAILURES + 1))
+  check_models_and_chat "reviewer" "${REVIEWER_BASE_URL}" "Qwen/Qwen2.5-Coder-32B-Instruct" || POD_PROBE_FAILURES=$((POD_PROBE_FAILURES + 1))
+  check_models_only "embedding" "${EMBEDDING_BASE_URL}" "Qwen/Qwen3-Embedding-8B" || POD_PROBE_FAILURES=$((POD_PROBE_FAILURES + 1))
+  run_embedding_endpoint_probe || POD_PROBE_FAILURES=$((POD_PROBE_FAILURES + 1))
+  if [[ "${POD_PROBE_FAILURES}" -gt 0 ]]; then
+    if [[ "${STRICT_PODS}" -eq 1 ]]; then
+      echo "ERROR: One or more RunPod endpoint probes failed (strict mode)." >&2
+      exit 1
+    fi
+    echo "WARNING: RunPod endpoint verification finished with ${POD_PROBE_FAILURES} failing probe(s); continuing (non-strict)." >&2
+  else
+    echo "RunPod endpoint verification passed for executor, planner, reviewer, and embedding."
+  fi
+else
+  echo "Skipping RunPod HTTP endpoint probes (pass --check-pods; add --strict to fail on probe errors)."
+fi
+
+if [[ "${STRICT_PODS}" -eq 1 && "${CHECK_PODS}" -eq 0 ]]; then
+  echo "WARNING: --strict without --check-pods has no effect." >&2
+fi

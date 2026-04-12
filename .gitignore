@@ -4,3 +4,4 @@ logs/
 *.log
 .openclaw-local/
 state/pods.json
+state/pods.json.bak-*

@@ -1,0 +1,27 @@
+---
+description: Route chat UI work to correct file
+alwaysApply: true
+---
+
+# Foreman UI File Routing
+
+- `dashboard.py` is the server/router/API entrypoint.
+- `dashboard_ui_v3.py` owns the live SPA shell (`NEW_UI_HTML`) for `/chat`, `/projects`, `/inbox`, `/settings`.
+
+## Required mapping before edits
+
+- If task mentions chat bubbles, markdown rendering, RESULTS card, sidebar "Recent projects", or `/chat`, work in `dashboard_ui_v3.py` first.
+- Only edit `dashboard.py` for route handling, backend/API behavior, auth/gating, or legacy templates not used by `/chat`.
+
+## Verification checklist for UI tasks
+
+- Confirm route mapping in `dashboard.py` points `/chat` to `NEW_UI_HTML`.
+- Locate the exact rendering path in `dashboard_ui_v3.py` before changing code.
+- If markdown is involved, check both:
+  - bubble/history/stream rendering (`textContent` vs `innerHTML`)
+  - sidebar project-title rendering (strip markdown for labels)
+
+## Safety rule
+
+- Do not assume `dashboard.py` template strings control the live `/chat` UI.
+- If uncertain, verify with code search before editing.
