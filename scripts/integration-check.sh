@@ -118,64 +118,20 @@ if [[ ! -f "${OPENCLAW_CFG}" ]]; then
   record "config_coherence" "FAIL" "Missing ${OPENCLAW_CFG} (run scripts/configure.sh)"
 else
   coh="$(
-    python3 - "${STATE_FILE}" "${OPENCLAW_CFG}" <<'PY'
+    python3 - "${STATE_FILE}" "${OPENCLAW_CFG}" "${ROOT_DIR}" <<'PY'
 import json
 import sys
 from pathlib import Path
 
-
-def load_jsonc(raw: str) -> dict:
-    out = []
-    i = 0
-    while i < len(raw):
-        if raw[i : i + 2] == "/*":
-            end = raw.find("*/", i + 2)
-            if end == -1:
-                break
-            i = end + 2
-            continue
-        out.append(raw[i])
-        i += 1
-    text = "".join(out)
-    lines = []
-    for line in text.splitlines():
-        stripped = line
-        if "//" in stripped:
-            in_string = False
-            escape = False
-            rebuilt = []
-            j = 0
-            while j < len(stripped):
-                ch = stripped[j]
-                if escape:
-                    rebuilt.append(ch)
-                    escape = False
-                    j += 1
-                    continue
-                if ch == "\\" and in_string:
-                    escape = True
-                    rebuilt.append(ch)
-                    j += 1
-                    continue
-                if ch == '"':
-                    in_string = not in_string
-                    rebuilt.append(ch)
-                    j += 1
-                    continue
-                if ch == "/" and j + 1 < len(stripped) and stripped[j + 1] == "/" and not in_string:
-                    break
-                rebuilt.append(ch)
-                j += 1
-            stripped = "".join(rebuilt)
-        lines.append(stripped)
-    return json.loads("\n".join(lines))
-
-
 state_path = Path(sys.argv[1])
 cfg_path = Path(sys.argv[2])
+root_dir = Path(sys.argv[3])
 if not state_path.is_file():
     print("FAIL|missing state file")
     raise SystemExit(0)
+sys.path.insert(0, str(root_dir / "scripts" / "lib"))
+from openclaw_config_helper import read_openclaw_config_atomic
+
 state = json.loads(state_path.read_text(encoding="utf-8"))
 pods = {
     str(p.get("logical_name")): str(p.get("base_url", "")).strip().rstrip("/")
@@ -183,16 +139,14 @@ pods = {
     if isinstance(p, dict)
 }
 
-raw_cfg = cfg_path.read_text(encoding="utf-8")
-cfg = None
 try:
-    cfg = load_jsonc(raw_cfg)
-except Exception:
-    cfg = None
+    cfg, raw_cfg = read_openclaw_config_atomic(cfg_path, attempts=5, delay_seconds=0.25)
+except Exception as exc:
+    print(f"FAIL|openclaw.json parse/read error after retries: {exc}")
+    raise SystemExit(0)
 
 providers: dict = {}
-if isinstance(cfg, dict):
-    providers = (((cfg.get("models") or {}).get("providers")) or {}) if isinstance(cfg.get("models"), dict) else {}
+providers = (((cfg.get("models") or {}).get("providers")) or {}) if isinstance(cfg.get("models"), dict) else {}
 
 def bases_from_regex(text: str) -> dict[str, str]:
     import re

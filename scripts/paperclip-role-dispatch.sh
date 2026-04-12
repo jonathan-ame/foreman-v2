@@ -32,18 +32,22 @@ if [[ ! -f "${OPENCLAW_CONFIG}" ]]; then
 fi
 
 resolved="$(
-python3 - "${ROUTING_FILE}" "${STATE_FILE}" "${OPENCLAW_CONFIG}" "${ROLE}" <<'PY'
+python3 - "${ROUTING_FILE}" "${STATE_FILE}" "${OPENCLAW_CONFIG}" "${ROLE}" "${ROOT_DIR}" <<'PY'
 import json
 import sys
 
-routing_path, state_path, oc_path, role = sys.argv[1:5]
+routing_path, state_path, oc_path, role, root_dir = sys.argv[1:6]
+
+from pathlib import Path
+
+sys.path.insert(0, str(Path(root_dir) / "scripts" / "lib"))
+from openclaw_config_helper import read_openclaw_config_atomic
 
 with open(routing_path, "r", encoding="utf-8") as f:
     routing = json.load(f)
 with open(state_path, "r", encoding="utf-8") as f:
     state = json.load(f)
-with open(oc_path, "r", encoding="utf-8") as f:
-    oc = json.load(f)
+oc, _ = read_openclaw_config_atomic(oc_path, attempts=5, delay_seconds=0.25)
 
 roles = routing.get("roles") or {}
 if role not in roles:

@@ -5,15 +5,22 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 CONFIG_FILE="${HOME}/.openclaw/openclaw.json"
 CHECKSUM_FILE="${ROOT_DIR}/state/openclaw-config-checksum.txt"
+LAST_RESTORE_FILE="${ROOT_DIR}/state/openclaw-config-last-restore.txt"
 CONFIGURE_SCRIPT="${ROOT_DIR}/scripts/configure.sh"
+HELPER_SCRIPT="${ROOT_DIR}/scripts/lib/openclaw-config-helpers.sh"
 LOG_DIR="/tmp/foreman"
 LOG_FILE="${LOG_DIR}/stack-health.log"
 PAPERCLIP_LABEL="ai.foreman.paperclip"
 PAPERCLIP_PLIST="/Users/jonathanborgia/Library/LaunchAgents/${PAPERCLIP_LABEL}.plist"
+RESTORE_RATE_LIMIT_SECONDS=900
 
 export PATH="/Users/jonathanborgia/.nvm/versions/node/v24.14.1/bin:/Users/jonathanborgia/.local/bin:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"
 
 mkdir -p "${LOG_DIR}"
+mkdir -p "${ROOT_DIR}/state"
+
+# shellcheck source=/dev/null
+source "${HELPER_SCRIPT}"
 
 log() {
   printf '[%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" | tee -a "${LOG_FILE}"
@@ -74,22 +81,47 @@ if "__executor_base_url__" in normalized or "__planner_base_url__" in normalized
 PY
 }
 
-current_config_hash() {
-  python3 - "${CONFIG_FILE}" <<'PY'
-import hashlib
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-print(hashlib.sha256(path.read_bytes()).hexdigest())
-PY
+current_config_scoped_hash() {
+  openclaw_scoped_hash "${CONFIG_FILE}"
 }
 
-expected_config_hash() {
+expected_config_scoped_hash() {
   if [[ ! -f "${CHECKSUM_FILE}" ]]; then
     return 1
   fi
-  tr -d '[:space:]' < "${CHECKSUM_FILE}"
+  local raw
+  raw="$(tr -d '[:space:]' < "${CHECKSUM_FILE}")"
+  if [[ "${raw}" =~ ^scoped-v1:[0-9a-f]{64}$ ]]; then
+    printf '%s\n' "${raw#scoped-v1:}"
+    return 0
+  fi
+  if [[ "${raw}" =~ ^[0-9a-f]{64}$ ]]; then
+    printf 'LEGACY_FULL_HASH\n'
+    return 0
+  fi
+  return 1
+}
+
+write_scoped_checksum() {
+  local scoped_hash="$1"
+  printf 'scoped-v1:%s\n' "${scoped_hash}" > "${CHECKSUM_FILE}"
+}
+
+write_last_restore_timestamp() {
+  date +%s > "${LAST_RESTORE_FILE}"
+}
+
+seconds_since_last_restore() {
+  if [[ ! -f "${LAST_RESTORE_FILE}" ]]; then
+    return 1
+  fi
+  local last now
+  last="$(tr -d '[:space:]' < "${LAST_RESTORE_FILE}")"
+  if [[ ! "${last}" =~ ^[0-9]+$ ]]; then
+    return 1
+  fi
+  now="$(date +%s)"
+  printf '%s\n' "$(( now - last ))"
 }
 
 restore_openclaw_config_if_needed() {
@@ -103,22 +135,47 @@ restore_openclaw_config_if_needed() {
     needs_restore="true"
   else
     local expected_hash
-    expected_hash="$(expected_config_hash || true)"
+    expected_hash="$(expected_config_scoped_hash || true)"
+    local observed_hash
+    observed_hash="$(current_config_scoped_hash)"
+
     if [[ -z "${expected_hash}" ]]; then
-      log "OpenClaw config checksum missing; regenerating via configure.sh."
+      write_scoped_checksum "${observed_hash}"
+      write_last_restore_timestamp
+      log "OpenClaw scoped checksum baseline missing; baseline regenerated."
+      return
+    fi
+
+    if [[ "${expected_hash}" == "LEGACY_FULL_HASH" ]]; then
+      write_scoped_checksum "${observed_hash}"
+      write_last_restore_timestamp
+      log "OpenClaw config checksum format migrated; baseline regenerated."
+      return
+    fi
+
+    if [[ "${observed_hash}" != "${expected_hash}" ]]; then
+      local since_last_restore
+      since_last_restore="$(seconds_since_last_restore || true)"
+      if [[ -n "${since_last_restore}" ]] && (( since_last_restore < RESTORE_RATE_LIMIT_SECONDS )); then
+        log "DRIFT DETECTED but auto-restore suppressed (last restore ${since_last_restore} seconds ago, rate limit ${RESTORE_RATE_LIMIT_SECONDS}s). If this repeats, investigate what is mutating models/agents in ~/.openclaw/openclaw.json."
+        return
+      fi
+      log "OpenClaw scoped checksum drift detected in models/agents; restoring via configure.sh."
       needs_restore="true"
     else
-      local observed_hash
-      observed_hash="$(current_config_hash)"
-      if [[ "${observed_hash}" != "${expected_hash}" ]]; then
-        log "OpenClaw config checksum drift detected; restoring via configure.sh."
-        needs_restore="true"
+      if [[ ! -f "${LAST_RESTORE_FILE}" ]]; then
+        write_last_restore_timestamp
       fi
+      return 0
     fi
   fi
 
   if [[ "${needs_restore}" == "true" ]]; then
     "${CONFIGURE_SCRIPT}" >> "${LOG_FILE}" 2>&1
+    write_last_restore_timestamp
+    local refreshed_hash
+    refreshed_hash="$(current_config_scoped_hash)"
+    write_scoped_checksum "${refreshed_hash}"
     log "OpenClaw configuration refreshed."
   fi
 }

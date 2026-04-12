@@ -7,17 +7,29 @@ set -euo pipefail
 # - runs one `openclaw agent` call bounded by adapter timeoutSec
 # - on success => done + comment; on failure => blocked + comment (no custom retry loops)
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+export FOREMAN_ROOT_DIR="${ROOT_DIR}"
+
 python3 - <<'PY'
 import json
 import os
 import re
 import subprocess
+import sys
 import time
 import uuid
 from pathlib import Path
 from urllib.parse import urlparse
 import urllib.error
 import urllib.request
+
+ROOT_DIR = Path(os.environ.get("FOREMAN_ROOT_DIR", "")).resolve()
+HELPER_DIR = ROOT_DIR / "scripts" / "lib"
+if str(HELPER_DIR) not in sys.path:
+    sys.path.insert(0, str(HELPER_DIR))
+
+from openclaw_config_helper import read_openclaw_config_once_atomic
 
 
 def _normalize_api_base(raw: str) -> str:
@@ -203,57 +215,6 @@ def resolve_openclaw_subprocess_timeout_sec() -> int:
     return max(90, min(inner, adapter_sec - 10))
 
 
-def load_jsonc(path: str) -> dict:
-    """Read ~/.openclaw/openclaw.json tolerating // and /* */ comments."""
-    raw = Path(path).read_text(encoding="utf-8")
-    # Strip block comments
-    out = []
-    i = 0
-    while i < len(raw):
-        if raw[i : i + 2] == "/*":
-            end = raw.find("*/", i + 2)
-            if end == -1:
-                break
-            i = end + 2
-            continue
-        out.append(raw[i])
-        i += 1
-    text = "".join(out)
-    lines = []
-    for line in text.splitlines():
-        stripped = line
-        if "//" in stripped:
-            in_string = False
-            escape = False
-            rebuilt = []
-            j = 0
-            while j < len(stripped):
-                ch = stripped[j]
-                if escape:
-                    rebuilt.append(ch)
-                    escape = False
-                    j += 1
-                    continue
-                if ch == "\\" and in_string:
-                    escape = True
-                    rebuilt.append(ch)
-                    j += 1
-                    continue
-                if ch == '"':
-                    in_string = not in_string
-                    rebuilt.append(ch)
-                    j += 1
-                    continue
-                if ch == "/" and j + 1 < len(stripped) and stripped[j + 1] == "/" and not in_string:
-                    break
-                rebuilt.append(ch)
-                j += 1
-            stripped = "".join(rebuilt)
-        lines.append(stripped)
-    clean = "\n".join(lines)
-    return json.loads(clean)
-
-
 def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None:
     """
     Probe executor vLLM /models from ~/.openclaw/openclaw.json before invoking `openclaw agent`.
@@ -273,13 +234,6 @@ def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None
         )
         print("HEARTBEAT_FAIL:executor (missing openclaw.json)")
         raise SystemExit(1)
-    raw_cfg = cfg_path.read_text(encoding="utf-8")
-    cfg: dict | None = None
-    try:
-        cfg = load_jsonc(raw_cfg)
-    except Exception:
-        cfg = None
-
     def extract_executor_regex(text: str) -> tuple[str, str]:
         m = re.search(
             r"executor\s*:\s*\{[^}]*baseUrl\s*:\s*\"([^\"]+)\"[^}]*apiKey\s*:\s*\"([^\"]*)\"",
@@ -290,18 +244,61 @@ def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None
             return "", ""
         return m.group(1).strip().rstrip("/"), (m.group(2) or "").strip()
 
+    max_attempts = 5
+    backoff_seconds = 0.25
     base_url = ""
     cfg_api_key = ""
-    if isinstance(cfg, dict):
+    attempt_diagnostics: list[dict[str, str]] = []
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            cfg, raw_cfg = read_openclaw_config_once_atomic(cfg_path)
+        except Exception as exc:
+            attempt_diagnostics.append(
+                {
+                    "attempt": str(attempt),
+                    "status": "parse_error",
+                    "detail": str(exc)[:220],
+                }
+            )
+            if attempt < max_attempts:
+                time.sleep(backoff_seconds)
+            continue
+
         models_block = cfg.get("models") if isinstance(cfg.get("models"), dict) else {}
         providers = models_block.get("providers") if isinstance(models_block.get("providers"), dict) else {}
         ex = providers.get("executor") if isinstance(providers.get("executor"), dict) else {}
-        base_url = str(ex.get("baseUrl") or "").strip().rstrip("/")
-        cfg_api_key = str(ex.get("apiKey") or "").strip()
-    if not base_url or not cfg_api_key:
-        br, kr = extract_executor_regex(raw_cfg)
-        base_url = base_url or br
-        cfg_api_key = cfg_api_key or kr
+        candidate_base = str(ex.get("baseUrl") or "").strip().rstrip("/")
+        candidate_key = str(ex.get("apiKey") or "").strip()
+        if not candidate_base or not candidate_key:
+            br, kr = extract_executor_regex(raw_cfg)
+            candidate_base = candidate_base or br
+            candidate_key = candidate_key or kr
+
+        if candidate_base:
+            base_url = candidate_base
+            cfg_api_key = candidate_key
+            attempt_diagnostics.append(
+                {
+                    "attempt": str(attempt),
+                    "status": "parsed_ok",
+                    "detail": "baseUrl found",
+                }
+            )
+            break
+
+        attempt_diagnostics.append(
+            {
+                "attempt": str(attempt),
+                "status": "parsed_missing_baseurl",
+                "detail": "executor block present but baseUrl unresolved",
+            }
+        )
+        if attempt < max_attempts:
+            time.sleep(backoff_seconds)
+
+    parse_errors = sum(1 for d in attempt_diagnostics if d["status"] == "parse_error")
+    missing_base = sum(1 for d in attempt_diagnostics if d["status"] == "parsed_missing_baseurl")
     env_key = (os.environ.get("RUNPOD_API_KEY") or "").strip()
     api_key = cfg_api_key or env_key
     expected_model = "Qwen/Qwen2.5-32B-Instruct"
@@ -311,7 +308,8 @@ def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None
             status="blocked",
             comment=(
                 f"{diag_prefix}\n\n"
-                "models.providers.executor.baseUrl is missing in ~/.openclaw/openclaw.json."
+                "models.providers.executor.baseUrl is missing in ~/.openclaw/openclaw.json.\n"
+                f"Attempts: {max_attempts}; parse_failures={parse_errors}; parsed_missing_baseUrl={missing_base}."
             ),
         )
         print("HEARTBEAT_FAIL:executor (no executor baseUrl)")
