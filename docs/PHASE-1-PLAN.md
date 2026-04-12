@@ -466,10 +466,10 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 ## Risks
 
 ### R7: Corrections-system implementation gate depends on reliability stabilization
-**Severity:** High
-**Description:** The corrections system is an authorized Phase 1 deliverable and was gated on pod/gateway reliability stabilization.
-**Mitigation:** Reliability prerequisite is now satisfied for foreman-v2 execution paths (fresh explicit sessions pass, integration checks pass on explicit session IDs, and infrastructure is healthy). Configure hardening is present in committed history (`aa1b4104ce0d9b02acdcddf6739cd2143ee2dacb`, `df33ffff2da6d3cd3f1197a798e0b594ae497886`), including baseline-state reset, JSON5 validation, and `${VAR}` indirection preservation. Keep monitoring for regressions while executing Cluster 8 stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
-**Trigger to revisit:** Any new reliability regression on explicit-session paths (integration check failures, executor route failures, or repeated context errors on fresh explicit sessions).
+**Severity:** High (closed)
+**Description:** The corrections system was an authorized Phase 1 deliverable gated on pod/gateway reliability stabilization.
+**Mitigation:** Reliability prerequisite is now satisfied for foreman-v2 execution paths and resilient to legitimate OpenClaw runtime writes. Configure hardening is present in committed history (`aa1b4104ce0d9b02acdcddf6739cd2143ee2dacb`, `df33ffff2da6d3cd3f1197a798e0b594ae497886`), and the A↔B livelock/preflight-race hardening landed in `bda98fa` (scoped drift hash on `models` + `agents`, 15-minute restore rate limit, shared atomic-retry config reads for direct readers).
+**Trigger to revisit:** Re-open only if explicit-session reliability regresses (integration check failures, executor route failures, or repeated context errors on fresh explicit sessions).
 
 ### R8: OpenClaw heartbeat main-session accumulation (`agent:main:main`)
 **Severity:** Medium
@@ -488,6 +488,14 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 **Description:** Workspace bootstrap files (`SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `BOOTSTRAP.md`) still add prompt overhead each fresh run.
 **Mitigation:** Keep as deferred optimization because current explicit-session cold-start succeeds after tool/skill pruning; only prune bootstrap content if future headroom pressure returns.
 **Trigger to revisit:** Fresh explicit sessions approach context limits again or model/output reservation changes reduce headroom.
+
+### R11: Phase 2/3 channel additions may require scoped-hash boundary revisit
+**Severity:** Medium
+**Description:** When channels (Slack, Discord, WhatsApp, etc.) are added to foreman-v2 config, OpenClaw will write runtime state under `channels.*` (pairing state, account snapshots, token rotation). The current scoped hash intentionally protects only `models` + `agents`, so channel mutations are excluded from drift detection.
+**Mitigation:** Keep channel runtime mutations excluded for now, but revisit scope at channel rollout to decide whether `channels.<provider>.<config-only-fields>` should be included in drift protection while explicitly excluding runtime-mutable subfields.
+**Trigger to revisit:** Any channel rollout or channel-related reliability incident where a configuration-only field should have been drift-protected.
+
+**R8/R9/R10 status:** Open and unchanged; no closure requested in this pass.
 
 ### R6: Executor / pool host instability (A5000-class observation)
 **Severity:** Medium
