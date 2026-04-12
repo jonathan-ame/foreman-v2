@@ -1,7 +1,7 @@
 # Foreman v2 — Phase 1 Plan
 
 **Status:** **Complete** — Phase 1 shipped (**2026-04-08**). All exit criteria **1–10** satisfied; **T7.7** / **T7.8** closeout done (**D19**: RunPod 1-month savings-plan conversion **deferred 1–2 weeks** with recorded revisit window).
-**Last updated:** 2026-04-08
+**Last updated:** 2026-04-12
 **Maintained by:** Jonathan + the PM subagent (`@pm`)
 
 ---
@@ -14,6 +14,8 @@
 - **Task database:** https://www.notion.so/e202cead847b4cb8b7aa032c7a373daa
 
 **Follow-up (this run):** **Notion** remains **canonical** for status, owners, dates, and dependencies (**D21**). **Notion MCP** was **not available** during reconciliation (**D25**), so this mirror was **not** pushed via automation. **Action:** on the next successful Notion MCP session (or manual pass), align **Notion** to repo evidence: **P2.2**, **P2.4**, **P2.5**, **P2.6**, **P2.7** = **done**; **P2.8** = **done (skipped)** with gate doc `docs/P2.8-JUSTIFICATION-GATE.md`; **P2.3** = **in progress** — **Batch 3 first slice** complete (**B3.1–B3.5**), **immediate next executable** = **Batch 3 wave 2** (hierarchy continuation); batch/reviewer metadata per sections below.
+
+**Reliability sweep outcome (2026-04-12):** Foreman v2 Phase 1 reliability blocker is resolved for real execution paths. Explicit-session runs (`agent:main:explicit:*`) pass after executor context bump (`16384`) + prompt prune (`main` tools/skills allowlists) + configure hardening (no secret clobber / JSON5 guardrail). Prior "cold-start overflow" investigations were measuring the long-lived `agent:main:main` heartbeat session, not fresh explicit sessions. Heartbeat accumulation is tracked as non-blocking follow-up risk (see **R8–R10**).
 
 ---
 
@@ -463,9 +465,27 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 
 ### R7: Corrections-system implementation gate depends on reliability stabilization
 **Severity:** High
-**Description:** The corrections system is now an authorized Phase 1 deliverable, but implementation is explicitly gated on pod/gateway reliability stabilization. If reliability remains unstable, the corrections stages cannot be executed safely or validated end-to-end.
-**Mitigation:** Treat reliability stabilization as a hard prerequisite for Cluster 8 execution. Keep corrections tasks in `blocked` until reliability criteria are met, then execute stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
-**Trigger to revisit:** Reliability workstream fails to stabilize within the planned window, or reliability assumptions regress during corrections rollout.
+**Description:** The corrections system is an authorized Phase 1 deliverable and was gated on pod/gateway reliability stabilization.
+**Mitigation:** Reliability prerequisite is now satisfied for foreman-v2 execution paths (fresh explicit sessions pass, integration checks pass on explicit session IDs, and infrastructure is healthy). Keep monitoring for regressions while executing Cluster 8 stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
+**Trigger to revisit:** Any new reliability regression on explicit-session paths (integration check failures, executor route failures, or repeated context errors on fresh explicit sessions).
+
+### R8: OpenClaw heartbeat main-session accumulation (`agent:main:main`)
+**Severity:** Medium
+**Description:** OpenClaw's internal heartbeat runner writes periodic turns to `agent:main:main`; that long-lived session accumulated 78 message events and now overflows when generating against the same key.
+**Mitigation:** Treat as non-blocking for foreman-v2 because production scripts use explicit session IDs. Follow-up options are to reset/archive the accumulated main session and/or disable heartbeat if no downstream consumer depends on it; otherwise rely on compaction safeguards to keep growth bounded.
+**Trigger to revisit:** Any foreman-v2 path starts resolving to `agent:main:main`, or heartbeat growth causes observable runtime/cost impact beyond background noise.
+
+### R9: Family B `/v1/models` 404 observability gap after reprovision
+**Severity:** Medium
+**Description:** Earlier `/v1/models` 404 flakes were observed before mid-sequence pod reprovision; those exact pod IDs no longer exist, so the prior failure mode is not directly reproducible on the current fleet.
+**Mitigation:** Treat prior Family B evidence as historical-only and re-investigate only on fresh incidents with current pod IDs and logs.
+**Trigger to revisit:** Any new `/v1/models` 404/502 flake on current pods.
+
+### R10: Bootstrap template overhead remains in cold-start prompt
+**Severity:** Low
+**Description:** Workspace bootstrap files (`SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `BOOTSTRAP.md`) still add prompt overhead each fresh run.
+**Mitigation:** Keep as deferred optimization because current explicit-session cold-start succeeds after tool/skill pruning; only prune bootstrap content if future headroom pressure returns.
+**Trigger to revisit:** Fresh explicit sessions approach context limits again or model/output reservation changes reduce headroom.
 
 ### R6: Executor / pool host instability (A5000-class observation)
 **Severity:** Medium

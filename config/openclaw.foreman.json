@@ -11,6 +11,15 @@
       },
       workspace: "~/.openclaw/workspace",
     },
+    list: [
+      {
+        id: "main",
+        tools: {
+          allow: ["read", "edit", "write", "exec", "process", "web_search", "web_fetch"],
+        },
+        skills: ["coding-agent", "github", "gh-issues", "summarize"],
+      },
+    ],
   },
 
   models: {
