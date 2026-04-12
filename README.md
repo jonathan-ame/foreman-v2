@@ -91,13 +91,15 @@ sibling distribution workspace and provisioning layer.
 
 ## Explicit Non-goals (Phase 1)
 
-- No Paperclip integration
+- Paperclip integration is in scope and active: live Foreman agents run via `scripts/paperclip-chief-executor.sh` and `scripts/paperclip-openclaw-executor.sh` using `adapterType: "process"`.
 - No frontend reskin
 - No multi-tenant architecture
 - No Docker, Railway, or app cloud deploy
 - No edits in the existing `foreman/` codebase
 - No custom agent hierarchy (CoS/Chiefs/Specialists), no scheduled tasks
-- No Supabase integration
+- Supabase is now in Phase 1 scope, specifically for the corrections system described in `docs/CORRECTIONS-SYSTEM-DESIGN.md`. The existing Supabase project (`bsgpogxfhcaxjlrsmsaj`) from v1 is being reused with `workspace_slug='foreman'` as the multi-tenancy key.
+
+Phase 1 includes the corrections system deliverable defined in `docs/CORRECTIONS-SYSTEM-DESIGN.md`, and execution of that work is gated on the pod/gateway reliability workstream completing first.
 
 See:
 - `docs/PHASE-1-SPIKE.md` for corrected success criteria and history

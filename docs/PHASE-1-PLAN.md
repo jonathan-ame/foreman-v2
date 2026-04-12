@@ -292,8 +292,9 @@ Phase 1 is complete when **all** of the following are true:
 8. All four review subagents (Script Auditor, Cost & Infra Reviewer, License & Attribution Reviewer, Phase Boundary Keeper) have been used at least once on Phase 1 work and their findings have been addressed.
 9. `foreman-v2/THIRD_PARTY_NOTICES.md` exists and correctly attributes OpenClaw under MIT.
 10. `foreman-v2/docs/PHASE-2-BACKLOG.md` exists and contains all deferred work from Phase 1.
+11. The corrections system described in `docs/CORRECTIONS-SYSTEM-DESIGN.md` is implemented and tested through all four implementation stages, with reliability gate prerequisites satisfied.
 
-When all ten are true, Phase 1 ships. Anything else can be deferred to Phase 2 or later.
+When all eleven are true, Phase 1 ships. Anything else can be deferred to Phase 2 or later.
 
 **Progress snapshot (2026-04-08 — final):** Items **1–10** of the exit criteria are satisfied: **1–6** as before (including **T6.4** / **T6.5**); **7** via audit (**T3.7**); **8** via Script Auditor + **T3.6** (Cost & Infra, PASS_WITH_NOTES) + **T7.2** (License, PASS_WITH_NOTES) + **T7.6** (Phase Boundary Keeper, PASS_WITH_NOTES); **9** via **T7.1** (`THIRD_PARTY_NOTICES.md` with OpenClaw MIT); **10** via **T7.3** (`docs/PHASE-2-BACKLOG.md`). **T7.4** / **T7.5** doc sync complete (live roster, ~**$0.96/hr**, planner model + vLLM / Mode D–E narrative corrections; **PHASE-1-SPIKE** aligned). **T7.8** **done** — savings-plan conversion **deferred 1–2 weeks** per **D19** (revisit ~**2026-04-15–2026-04-22**). **T7.7** **done** — plan header set to **Complete**; Phase 1 officially closed.
 
@@ -301,7 +302,7 @@ When all ten are true, Phase 1 ships. Anything else can be deferred to Phase 2 o
 
 ## Phase 1 task list
 
-Tasks are organized into seven clusters. Status values: `not started`, `in progress`, `blocked`, `done`. Blockers are listed inline.
+Tasks are organized into eight clusters. Status values: `not started`, `in progress`, `blocked`, `done`. Blockers are listed inline.
 
 ### Cluster 1: Foreman v2 directory scaffolding
 
@@ -399,6 +400,17 @@ Tasks are organized into seven clusters. Status values: `not started`, `in progr
 | T7.7 | Mark Phase 1 complete in this plan file and notify Jonathan | done | **Owner:** `@pm`. Plan header set to **Complete** (**2026-04-08**). **T7.8** satisfied via **D19** (deferral with revisit window). Jonathan notified via this closeout update. |
 | T7.8 | Decide whether to convert pods to a 1-month savings plan now or wait the planned 1-2 weeks | done | Final decision — **D19**: defer 1-month savings-plan conversion **1–2 weeks** (not converting now). **Revisit:** re-evaluate conversion **~2026-04-15–2026-04-22** (1–2 weeks from **2026-04-08**). Optional mirror in **PHASE-2-BACKLOG** / ops notes; canonical record is **D19** + this row. |
 
+### Cluster 8: Corrections System (Phase 1 authorized extension)
+
+**Goal:** Implement the corrections system defined in `docs/CORRECTIONS-SYSTEM-DESIGN.md` as an authorized Phase 1 deliverable once reliability gating prerequisites are complete.
+
+| ID | Task | Status | Notes |
+|---|---|---|---|
+| T8.1 | Stage 1 — Journal issue + metadata setup | blocked | Blocked until pod/gateway reliability workstream is stable; follow `docs/CORRECTIONS-SYSTEM-DESIGN.md` exactly. |
+| T8.2 | Stage 2 — Correction issuance path (CEO flow) | blocked | Includes journal-comment write path and validation checks from the canonical design. |
+| T8.3 | Stage 3 — Heartbeat sync into Supabase retrieval store | blocked | Supabase scope is authorized for this corrections system only (`bsgpogxfhcaxjlrsmsaj`, `workspace_slug='foreman'`). |
+| T8.4 | Stage 4 — Delegation-time curation + subordinate execution consumption | blocked | Must include end-to-end tests across all four stages before closeout of exit criterion 11. |
+
 ---
 
 ## Dependencies graph (high level)
@@ -449,6 +461,12 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 
 ## Risks
 
+### R7: Corrections-system implementation gate depends on reliability stabilization
+**Severity:** High
+**Description:** The corrections system is now an authorized Phase 1 deliverable, but implementation is explicitly gated on pod/gateway reliability stabilization. If reliability remains unstable, the corrections stages cannot be executed safely or validated end-to-end.
+**Mitigation:** Treat reliability stabilization as a hard prerequisite for Cluster 8 execution. Keep corrections tasks in `blocked` until reliability criteria are met, then execute stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
+**Trigger to revisit:** Reliability workstream fails to stabilize within the planned window, or reliability assumptions regress during corrections rollout.
+
 ### R6: Executor / pool host instability (A5000-class observation)
 **Severity:** Medium
 **Description:** During Phase 1 bring-up, **unstable pool behavior was observed on some A5000 hosts**. Executor provisioning was adjusted to **prefer more stable GPU classes first** in SKU ordering (see **D17**). The live roster still uses an **RTX A5000** for the **embedding** pod (CA-MTL-1); that role may remain more exposed if the underlying host quality regresses.
@@ -492,6 +510,24 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 ## Decision log
 
 Decisions are recorded with the most recent at the top. Each entry includes the decision, the rationale, and what would trigger a revisit.
+
+### D29: Reviewer pod label confirmation for corrections references
+**Decided:** 2026-04-11
+**Decision:** Reviewer pod label is confirmed as correct: `Qwen2.5-Coder-32B-Instruct` serves as the `reviewer` role per `config/role-routing.json` (not `coder`). Memory and references updated on 2026-04-11.
+**Rationale:** Corrections-system governance and implementation artifacts must use the current runtime role mapping to avoid drift and misrouting assumptions.
+**What would trigger a revisit:** A future routing-contract decision that rebinds the reviewer role to a different model/label.
+
+### D28: Corrections system design finalized for implementation
+**Decided:** 2026-04-11
+**Decision:** Corrections system design is finalized in `docs/CORRECTIONS-SYSTEM-DESIGN.md` and authorized as the canonical implementation contract for this deliverable.
+**Rationale:** Execution prompts need a single source of truth for staged implementation, constraints, and failure behavior without ad-hoc redesign during execution.
+**What would trigger a revisit:** A documented incompatibility with Paperclip/OpenClaw contracts, or explicit board-approved change request superseding the design.
+
+### D27: Supabase pulled into Phase 1 scope for corrections only
+**Decided:** 2026-04-11
+**Decision:** Supabase is pulled into Phase 1 scope specifically for the corrections system. Reuse v1 project `bsgpogxfhcaxjlrsmsaj` with `workspace_slug='foreman'` as the multi-tenancy key. Authorized by Jonathan on 2026-04-11.
+**Rationale:** The corrections architecture requires a fast retrieval store and this scope pull-in is explicitly bounded to that system, preserving phase control while enabling delivery.
+**What would trigger a revisit:** Corrections scope expansion beyond the approved design, project-level Supabase changes, or a new decision redefining Phase 1 boundaries.
 
 ### D25: Phase 2 mirror reconciliation — P2.3 wave 2 next; Notion sync follow-up (MCP unavailable)
 **Decided:** 2026-04-08
