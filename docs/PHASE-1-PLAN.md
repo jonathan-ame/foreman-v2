@@ -45,6 +45,8 @@
 
 **Critical path:** **P2.1 → P2.2** (**done**) → **P2.3** (**in progress**; **Batch 3 first slice** complete, **wave 2** next). **P2.4–P2.7** **done**. **P2.8** **done (skipped)** — justification gate only (`docs/P2.8-JUSTIFICATION-GATE.md`); no extra model roles without trigger.
 
+**Phase 2 prerequisite (integration gate coverage):** Set `PAPERCLIP_API_URL` or `PAPERCLIP_BASE_URL` in the operator environment before relying on `./scripts/integration-check.sh` for Paperclip control-plane validation; otherwise the `paperclip_api` check is intentionally skipped (WARN-only blind spot outside Phase 1 reliability scope).
+
 **Immediate next task:** **P2.3 — Batch 3 wave 2** (**hierarchy continuation**): expand CoS → Chiefs → Specialists beyond the first-slice skeleton per **Batch loop protocol** (evidence + four reviewer gates + **`@pm`** handoff). **Live status, owners, and dates:** **Notion** (**Source of truth**); **Notion MCP unavailable** this run — sync **Notion** to this mirror when MCP or manual pass is available (**Source of truth** follow-up, **D25**).
 
 ### Batch loop protocol (Phase 2)
@@ -466,7 +468,7 @@ Ordered steps for declaring Phase 1 complete. **Dependencies:** reviewer tasks (
 ### R7: Corrections-system implementation gate depends on reliability stabilization
 **Severity:** High
 **Description:** The corrections system is an authorized Phase 1 deliverable and was gated on pod/gateway reliability stabilization.
-**Mitigation:** Reliability prerequisite is now satisfied for foreman-v2 execution paths (fresh explicit sessions pass, integration checks pass on explicit session IDs, and infrastructure is healthy). Keep monitoring for regressions while executing Cluster 8 stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
+**Mitigation:** Reliability prerequisite is now satisfied for foreman-v2 execution paths (fresh explicit sessions pass, integration checks pass on explicit session IDs, and infrastructure is healthy). Configure hardening is present in committed history (`aa1b4104ce0d9b02acdcddf6739cd2143ee2dacb`, `df33ffff2da6d3cd3f1197a798e0b594ae497886`), including baseline-state reset, JSON5 validation, and `${VAR}` indirection preservation. Keep monitoring for regressions while executing Cluster 8 stages in order with domino-style failure handling from `docs/CORRECTIONS-SYSTEM-DESIGN.md`.
 **Trigger to revisit:** Any new reliability regression on explicit-session paths (integration check failures, executor route failures, or repeated context errors on fresh explicit sessions).
 
 ### R8: OpenClaw heartbeat main-session accumulation (`agent:main:main`)
