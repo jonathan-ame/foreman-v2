@@ -18,7 +18,6 @@ import sys
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from urllib.parse import urlparse
 import urllib.error
 import urllib.request
 
@@ -37,72 +36,21 @@ AGENT_ID = (os.environ.get("PAPERCLIP_AGENT_ID") or "").strip()
 TASK_ID = (os.environ.get("PAPERCLIP_TASK_ID") or "").strip()
 RUN_ID = (os.environ.get("PAPERCLIP_RUN_ID") or "").strip()
 WAKE_REASON = (os.environ.get("PAPERCLIP_WAKE_REASON") or "").strip()
+COS_AGENT_API_KEY = (os.environ.get("PAPERCLIP_COS_AGENT_API_KEY") or "").strip()
 CORRECTIONS_SUPABASE_URL = (os.environ.get("SUPABASE_PROJECT_URL") or "").strip().rstrip("/")
 CORRECTIONS_SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_ROLE") or "").strip()
 CORRECTIONS_WORKSPACE_SLUG = (os.environ.get("FOREMAN_CORRECTIONS_WORKSPACE_SLUG") or "foreman").strip() or "foreman"
 
 
-def _is_loopback_host(host: str | None) -> bool:
-    return (host or "").lower() in {"127.0.0.1", "localhost"}
-
-
-def _resolve_api_key_from_auth(api_base: str) -> str:
-    auth_file = os.path.expanduser("~/.paperclip/auth.json")
-    with open(auth_file, "r", encoding="utf-8") as fh:
-        auth = json.load(fh)
-    creds = auth.get("credentials") or {}
-    origin = api_base.removesuffix("/api")
-    direct = (creds.get(origin) or {}).get("token", "")
-    if direct:
-        return direct.strip()
-
-    target = urlparse(origin)
-    # Strict origin match first (scheme + hostname + port).
-    strict_tokens: list[str] = []
-    for key, value in creds.items():
-        if not isinstance(key, str):
-            continue
-        parsed = urlparse(key)
-        if (
-            parsed.scheme == target.scheme
-            and (parsed.hostname or "").lower() == (target.hostname or "").lower()
-            and parsed.port == target.port
-            and (parsed.path or "/") in {"", "/"}
-        ):
-            token = (value or {}).get("token", "")
-            if token:
-                strict_tokens.append(token.strip())
-    uniq_strict = sorted(set(strict_tokens))
-    if len(uniq_strict) == 1:
-        return uniq_strict[0]
-    if len(uniq_strict) > 1:
-        raise RuntimeError("Multiple host-matching tokens found; set PAPERCLIP_API_KEY explicitly.")
-
-    # Local-only fallback: accept loopback credentials only if exactly one token exists.
-    if _is_loopback_host(target.hostname):
-        loopback_tokens: list[str] = []
-        for key, value in creds.items():
-            if not isinstance(key, str):
-                continue
-            parsed = urlparse(key)
-            if parsed.scheme != target.scheme or not _is_loopback_host(parsed.hostname):
-                continue
-            token = ((value or {}).get("token") or "").strip()
-            if token:
-                loopback_tokens.append(token)
-        uniq = sorted(set(loopback_tokens))
-        if len(uniq) == 1:
-            return uniq[0]
-    return ""
-
-
+if not COS_AGENT_API_KEY:
+    raise SystemExit(
+        "ERROR: PAPERCLIP_COS_AGENT_API_KEY is required for ChiefOfStaff heartbeats. "
+        "User/board-token fallback is disabled on this path."
+    )
+API_KEY = COS_AGENT_API_KEY
+os.environ["PAPERCLIP_API_KEY"] = COS_AGENT_API_KEY
 if not API_KEY:
-    try:
-        API_KEY = _resolve_api_key_from_auth(API_BASE)
-    except Exception:
-        API_KEY = ""
-if not API_KEY:
-    raise SystemExit("ERROR: PAPERCLIP_API_KEY is required (or a host-matching ~/.paperclip/auth.json token).")
+    raise SystemExit("ERROR: PAPERCLIP_API_KEY is required. Local auth-token fallback is disabled.")
 if not COMPANY_ID or not AGENT_ID:
     raise SystemExit("ERROR: PAPERCLIP_COMPANY_ID and PAPERCLIP_AGENT_ID are required.")
 
