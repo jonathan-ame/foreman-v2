@@ -351,6 +351,7 @@ def _post_issue_comment(issue_id: str, body: str) -> dict:
 
 
 def _run_stage2_review_for_done_children(parent_issue: dict, done_children: list[dict]) -> list[dict]:
+    # TODO: Clarify product semantics for `reject` verdicts; current behavior still allows parent closure.
     grouped_by_subordinate: dict[str, list[dict]] = {}
     for child in done_children:
         child_id = (child.get("id") or "").strip()
