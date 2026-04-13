@@ -6,6 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 STATE_FILE="${ROOT_DIR}/state/pods.json"
 HISTORY_FILE="${ROOT_DIR}/state/integration-check-history.jsonl"
+CEO_AUTH_PROBE_LATEST_FILE="${ROOT_DIR}/state/ceo-agent-auth-probe-latest.json"
 OPENCLAW_CFG="${HOME}/.openclaw/openclaw.json"
 ENV_FILE="${ROOT_DIR}/.env"
 
@@ -33,10 +34,14 @@ record() {
 }
 
 if [[ -f "${ENV_FILE}" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "${ENV_FILE}"
-  set +a
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ -z "${line}" || "${line}" == \#* ]] && continue
+    if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      key="${line%%=*}"
+      value="${line#*=}"
+      export "${key}=${value}"
+    fi
+  done < "${ENV_FILE}"
 fi
 
 mkdir -p "${ROOT_DIR}/state"
@@ -274,7 +279,7 @@ clip_base="${PAPERCLIP_API_URL:-}"
 if [[ -z "${clip_base}" && -n "${PAPERCLIP_BASE_URL:-}" ]]; then
   clip_base="${PAPERCLIP_BASE_URL%/}/api"
 fi
-clip_key="${PAPERCLIP_API_KEY:-}"
+clip_key="${PAPERCLIP_CEO_AGENT_API_KEY:-${PAPERCLIP_API_KEY:-}}"
 if [[ -z "${clip_key}" && -f "${HOME}/.paperclip/auth.json" && -n "${clip_base}" ]]; then
   clip_key="$(
     python3 - "${clip_base}" <<'PY'
@@ -309,6 +314,50 @@ else
     record "paperclip_api" "PASS" "GET ${clip_base}/agents/me => ${pc_code}"
   else
     record "paperclip_api" "FAIL" "GET ${clip_base}/agents/me => ${pc_code}"
+  fi
+fi
+
+if [[ ! -f "${CEO_AUTH_PROBE_LATEST_FILE}" ]]; then
+  record "ceo_agent_auth_probe" "WARN" "Missing ${CEO_AUTH_PROBE_LATEST_FILE}; run ./scripts/ceo-agent-auth-probe.sh"
+else
+  ceo_probe_res="$(
+    python3 - "${CEO_AUTH_PROBE_LATEST_FILE}" <<'PY'
+import json
+import sys
+from datetime import datetime, timezone
+
+path = sys.argv[1]
+raw = open(path, "r", encoding="utf-8").read()
+payload = json.loads(raw)
+status = str(payload.get("status") or "").strip()
+ts = str(payload.get("timestamp") or "").strip()
+http_status = payload.get("http_status")
+detail = str(payload.get("detail") or "").strip()
+if not ts:
+    print("FAIL|probe artifact missing timestamp")
+    raise SystemExit(0)
+try:
+    if ts.endswith("Z"):
+        ts_dt = datetime.fromisoformat(ts.replace("Z", "+00:00"))
+    else:
+        ts_dt = datetime.fromisoformat(ts)
+except Exception:
+    print(f"FAIL|probe timestamp parse failed: {ts}")
+    raise SystemExit(0)
+age_sec = int((datetime.now(timezone.utc) - ts_dt).total_seconds())
+if age_sec > 36 * 3600:
+    print(f"FAIL|probe stale age={age_sec}s status={status} http_status={http_status}")
+elif status == "ok":
+    print(f"OK|status=ok age={age_sec}s http_status={http_status}")
+else:
+    print(f"FAIL|status={status} age={age_sec}s http_status={http_status} detail={detail[:240]}")
+PY
+  )"
+  IFS='|' read -r ceo_probe_code ceo_probe_msg <<< "${ceo_probe_res}"
+  if [[ "${ceo_probe_code}" == "OK" ]]; then
+    record "ceo_agent_auth_probe" "PASS" "${ceo_probe_msg}"
+  else
+    record "ceo_agent_auth_probe" "FAIL" "${ceo_probe_msg}"
   fi
 fi
 
