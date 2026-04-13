@@ -55,7 +55,7 @@ The migration recommendation is feature-flagged rollout with shadow mode before 
 5. Script has no branch for planner/reviewer model selection:
    - single run path in `scripts/paperclip-openclaw-executor.sh:656-739`
 
-### A2. Rebinding mechanism recommendation
+### A2. Rebinding mechanism (decision locked)
 
 Options evaluated:
 
@@ -74,14 +74,14 @@ Options evaluated:
   - Cons: bypasses existing OpenClaw behavior, toolchain context, and consistency guarantees; larger divergence from working loop.
   - Higher complexity and rollback risk than necessary for first migration.
 
-**Recommendation: (b)** (CEO-specific agent bindings in OpenClaw config and `--agent` selection per step).
+**Decision locked: use (b)** (CEO-specific agent bindings in OpenClaw config and `--agent` selection per step). Do not flip global defaults.
 
 Impact checks:
 
 - Corrections system: unaffected directly (lives in Chief path, not CEO worker), but avoid default-flip side effects that could alter Chief behavior.
 - Compaction safeguard: currently set to planner model (`config/openclaw.foreman.json:8-11`); retained unchanged.
 - Existing tests: reliability tests are end-to-end status/auth/ownership focused; they do not currently validate model identity, so model rebinding should add explicit checks in D5.
-- ChiefOfStaff path: **should not receive this global rebind** by default. Keep Chief behavior unchanged unless explicitly approved.
+- ChiefOfStaff path: **do not change in this phase**. Keep Chief behavior unchanged.
 
 ### A3. DeepSeek context and token settings suitability
 
@@ -91,7 +91,7 @@ Current planner settings:
 
 Assessment:
 - For CEO synthesis over multi-step outputs, `maxTokens: 2048` is likely tight when requiring structured evidence, risk notes, and comprehensive findings.
-- Proposed target for CEO planner-bound synthesis: **`maxTokens: 4096`** (initial), with telemetry-based tuning.
+- **Decision locked:** set CEO planner-bound synthesis to **`maxTokens: 4096`** as the initial value, with telemetry-based tuning.
 - `contextWindow: 16384` is acceptable for first rollout if step outputs are summarized/compacted before synthesis; if full raw artifacts are injected, consider `32768` in a second pass.
 
 ### A4. DeepSeek `<think>` trace handling
@@ -224,7 +224,7 @@ This enables:
 - post-hoc debugging,
 - reproducibility of verification outcomes.
 
-### B5. Fail-loud rules
+### B5. Fail-loud rules (decision locked)
 
 - Pod unreachable: fail current step -> mark task `blocked` with exact endpoint/error.
 - Empty/malformed step output: fail step immediately; no implicit alternate model routing.
@@ -236,19 +236,26 @@ No silent downgrade rules:
 - no hidden retries on other models.
 - retries only same step/model with explicit log marker (bounded count, default 0 or 1).
 
-### B6. How many OpenClaw agents?
+**Decision locked:** any unverified claim in a CEO deliverable causes hard failure. On failure, the system must:
+1) mark the step failed,
+2) post a verification report as failure evidence to the Paperclip issue,
+3) transition issue state to `blocked`,
+4) never transition to `done` for that run.
+
+### B6. How many OpenClaw agents? (decision locked)
 
 Options:
 - Single persistent session with model switching: lower process overhead, but cross-step context contamination and unclear model-switch semantics.
 - Fresh OpenClaw process/session per step with explicit binding: deterministic boundaries, cleaner provenance.
 - Direct HTTP calls bypass OpenClaw for worker steps: strongest control, highest implementation surface.
 
-**Recommendation: fresh OpenClaw invocation per step with explicit `--agent` binding**, keeping orchestration in one heartbeat run.
+**Decision locked:** fresh OpenClaw invocation per step with explicit `--agent` binding, keeping orchestration in one heartbeat run.
 
 Rationale:
 - clear provenance per step,
 - avoids hidden state bleed across heterogeneous models,
 - keeps compatibility with existing session-id plumbing (`scripts/paperclip-openclaw-executor.sh:647-648`).
+- enables deterministic, traceable step session identifiers (`<run_id>-step-<n>-<pod>`) for debugging.
 
 ### B7. Backward compatibility for short tasks
 
@@ -280,25 +287,31 @@ Fact-checkable claim classes:
 If a claim cannot be verified cheaply post-hoc, enforce production rule:
 - claim must reference recorded tool evidence ID; otherwise claim is rejected.
 
-### C2. Claim extraction/grounding mechanism
+### C2. Claim extraction/grounding mechanism (decision locked)
 
 Options:
 - (a) LLM claim extraction: expensive and itself can hallucinate.
 - (b) Force fully structured free-text claims: brittle authoring burden.
 - (c) Tool-evidence-first references (recommended): model must cite evidence IDs from recorded tool calls.
 
-**Recommendation: (c) primary**.
+**Decision locked: (c) primary (tool-evidence-first)**.
 
 Required changes:
 - Prompt contract: every factual claim must include `[evidence:<id>]`.
 - Tool-call recorder writes canonical evidence objects.
 - Verification pass rejects claims lacking valid evidence IDs.
 
+Locked synthesis exception:
+- Implementation/review steps use per-factual-sentence evidence tags (strict).
+- Synthesis step may use claim-block references only if it appends a machine-readable evidence manifest:
+  - `synthesis_evidence_manifest` JSON mapping each synthesis claim block to evidence IDs and resolved tool-call record IDs.
+- If synthesis manifest is missing or any manifest ID fails resolution, synthesis hard-fails.
+
 OpenClaw integration note:
 - current config allows tools (`read`, `edit`, `write`, `exec`, `process`, `web_search`, `web_fetch`) at `config/openclaw.foreman.json:17-20`.
 - current CEO script does not ingest structured tool-call trace from OpenClaw output path, so additive recorder/parsing is required.
 
-### C3. Verification pass design
+### C3. Verification pass design (decision locked)
 
 Per-step flow:
 1. Parse step output into claims + evidence references.
@@ -309,10 +322,12 @@ Per-step flow:
    - `partial`: subset verified (with list)
    - `fail`: one or more critical claims unverifiable/false
 5. Acceptance policy:
-   - default **fail-whole-step** if any critical claim fails.
-   - optional non-critical stripping only for explicitly-marked non-critical claims.
+   - **hard fail-whole-step** if any claim fails verification.
+   - no silent stripping for CEO deliverables.
 
-Recommendation: **fail-whole-step** for CEO final deliverables (stricter, consistent with anti-hallucination principle).
+6. Synthesis-manifest validation:
+   - required for synthesis output acceptance when claim-block citation mode is used.
+   - verifier validates manifest completeness and evidence-id resolvability before accepting synthesis.
 
 ### C4. FOR-78 regression walkthrough
 
@@ -327,7 +342,26 @@ Would this design catch the two regressions?
 
 Therefore both failures are blocked before final comment posting.
 
-### C5. Prompt-level anti-hallucination text (exact additions)
+### C5. FOR-78 fixed regression test (gating)
+
+FOR-78 becomes a fixed verifier fixture. The original problematic output pattern (hallucinated bash outputs and the `.git/hooks/sendemail-validate.sample` false finding) is replayed as test input against the verifier.
+
+Gate requirements:
+
+1. Input fixture contains the original FOR-78 regression text patterns.
+2. Verifier must fail the output with claim-level diagnostics for both:
+   - command-output claim without valid evidence,
+   - file-content/finding claim without valid evidence.
+3. The verifier is **not considered implemented** until this gate passes and evidence is documented.
+
+Required evidence artifacts to store and cite in this doc once implemented:
+
+- `state/run-logs/for78-regression/fixture-input.md`
+- `state/run-logs/for78-regression/tool-calls.jsonl`
+- `state/run-logs/for78-regression/verification-summary.json`
+- `state/run-logs/for78-regression/failure-report.md`
+
+### C6. Prompt-level anti-hallucination text (exact additions)
 
 Add to all three prompt classes (plan generation, step execution, synthesis):
 
@@ -336,7 +370,7 @@ Add to all three prompt classes (plan generation, step execution, synthesis):
 > If evidence is missing or a tool call failed, explicitly state `unknown` or `tool_call_failed` instead of guessing.  
 > Claims without valid evidence tags will be rejected by verification and the run will fail.
 
-### C6. Fact-checker module placement
+### C7. Fact-checker module placement
 
 Proposed module: `scripts/lib/fact_checker.py`
 
@@ -361,7 +395,7 @@ Output:
 Invocation point:
 - after each step execution and before output is accepted into step store.
 
-### C7. Performance budget
+### C8. Performance budget
 
 Proposed budgets:
 - verification target: <= 8s per step soft budget
@@ -410,6 +444,8 @@ Additive signals proposed:
 - `ceo_step_verification_pass_rate`: verified claims pass ratio.
 - `ceo_unverified_claim_blocks`: count of blocked runs due to verification.
 - `ceo_model_route_coverage`: planner/executor/reviewer usage distribution.
+- `ceo_synthesis_output_length_p95`: synthesis output length trend.
+- `ceo_synthesis_near_ceiling_rate`: percent of synthesis outputs at >=90% of configured `maxTokens` ceiling (watching for 4096 saturation).
 
 Failure modes caught:
 - accidental fallback to single-model path,
@@ -417,18 +453,62 @@ Failure modes caught:
 - reviewer pod never used,
 - drift between planned and executed routing.
 
-### D4. Migration plan
+### D4. Migration plan (decision locked)
 
-Recommendation: **feature flag + shadow mode**.
+**Decision locked:** feature flag + staged rollout `single -> shadow -> multi`.
 
 - Flag: `FOREMAN_CEO_PIPELINE_MODE=single|shadow|multi`
   - `single`: current stable path (default initially).
-  - `shadow`: run new planner/step/verifier pipeline but do not post/close from shadow output; log diffs only.
+  - `shadow`: run new planner/step/verifier pipeline in parallel for every CEO task, but do not post/close from shadow output.
   - `multi`: promote new path for posting/closure.
 
 Reason:
 - preserves known-good path while proving new behavior.
 - allows side-by-side quality and latency measurement before cutover.
+
+Shadow soak requirement (locked):
+
+- minimum 48 hours **and**
+- minimum 20 real CEO runs spanning at least 4 distinct task shapes,
+- whichever is later.
+
+Shadow behavior requirements (locked):
+
+- Write shadow artifacts to `state/run-logs/<run_id>/shadow-*.{json,md}`.
+- Always run verification in shadow mode.
+- Shadow verification failures must be logged with full claim-level report.
+- If 20+ shadow runs complete with zero verification failures, treat that as a verifier-looseness risk requiring manual review before cutover approval.
+
+#### D4.1 Cutover-readiness report contract
+
+Before flipping to `multi`, generate:
+
+- `state/run-logs/cutover-readiness/ceo-pipeline-cutover-report.json`
+- `state/run-logs/cutover-readiness/ceo-pipeline-cutover-report.md`
+
+Required report fields:
+
+1. `window_start`, `window_end`
+2. `total_shadow_runs`
+3. `task_shapes_covered` (distinct shape list + counts)
+4. `shadow_pass_rate_overall`
+5. `shadow_pass_rate_by_shape`
+6. `verification_failures` (count + per-run references)
+7. `verification_failure_examples` (at least one detailed case, if any)
+8. `single_vs_shadow_divergences` (counts and representative diffs)
+9. `synthesis_length_metrics` (p50/p95/max and near-ceiling rate)
+10. `go_no_go_recommendation` (agent recommendation with rationale)
+
+Go/no-go criteria (locked):
+
+- No automatic cutover by agent.
+- Operator (Jonathan) reviews report artifacts and approves cutover explicitly.
+- Block cutover if:
+  - shadow coverage requirement not met,
+  - unresolved high-severity verifier failures remain,
+  - divergence quality is unacceptable,
+  - no verification failures were caught across broad shadow runs (possible verifier looseness; requires manual explanation before approval),
+  - verifier appears too loose (e.g., zero failures across broad shadow runs with known noisy tasks).
 
 ### D5. Testing methodology
 
@@ -464,55 +544,20 @@ Expected implementation shape:
 Potentially impacted by config-only decisions:
 - if default model is globally flipped instead of scoped bindings, Chief path behavior may change (not recommended).
 
+Future-phase note (locked):
+- ChiefOfStaff remains unchanged in this phase.
+- Design new pipeline/fact-check components as shared libraries so Chief adoption can happen later without CEO-specific rewrites.
+
 ---
 
-## Section E — Open Questions for Jonathan
+## Decisions locked
 
-1. **Model-binding strategy: Option A vs B**
-   - A: global default flip to planner.
-   - B: scoped CEO agent bindings + per-step `--agent` selection.
-   - Tradeoff: A is simpler but high blast radius; B is explicit and safer.
-   - Recommendation: **B**.
-   - Need confirmation: proceed with scoped bindings only?
-
-2. **Planner token budget: keep 2048 vs increase to 4096**
-   - Tradeoff: 4096 increases latency/cost but reduces synthesis truncation risk.
-   - Recommendation: **4096 for CEO synthesis path**.
-   - Need confirmation: approve initial increase?
-
-3. **Step acceptance policy: strip unverifiable claims vs hard fail**
-   - Tradeoff: stripping can salvage runs but risks partial-truth outputs; hard fail is stricter and noisier.
-   - Recommendation: **hard fail for CEO deliverables**.
-   - Need confirmation: strict fail policy acceptable?
-
-4. **Pipeline mode rollout: `single -> shadow -> multi` vs direct cutover**
-   - Tradeoff: shadow adds operational time but lowers launch risk.
-   - Recommendation: **shadow first**.
-   - Need confirmation: required shadow soak duration (e.g., 24h, 3 days, N runs)?
-
-5. **OpenClaw session strategy: per-step fresh session vs shared session**
-   - Tradeoff: shared session lowers overhead but risks cross-step/model contamination.
-   - Recommendation: **fresh per-step session**.
-   - Need confirmation: acceptable to prioritize determinism over slight latency increase?
-
-6. **Evidence-tag format strictness**
-   - Option A: mandatory `[evidence:<id>]` tag on every factual sentence.
-   - Option B: mandatory tag per paragraph/claim block.
-   - Tradeoff: A strongest precision, B lower authoring friction.
-   - Recommendation: **A for implementation/review steps, B allowed only in synthesis if each summarized claim maps to listed evidence IDs**.
-   - Need confirmation.
-
-7. **ChiefOfStaff path alignment**
-   - Option A: leave Chief path unchanged in this phase.
-   - Option B: partially adopt planner binding/fact-check contracts for Chief now.
-   - Tradeoff: B improves consistency but broadens scope significantly.
-   - Recommendation: **A (leave Chief unchanged now)**.
-   - Need confirmation.
-
-8. **Verifier implementation depth in phase 1**
-   - Option A: tool-evidence-only verifier first (no secondary LLM claim extraction).
-   - Option B: hybrid with LLM extraction fallback.
-   - Tradeoff: A more deterministic and cheaper; B broader coverage but more complexity/hallucination risk.
-   - Recommendation: **A first**.
-   - Need confirmation.
+- Scoped model binding (no global default flip): use `ceo-planner` / `ceo-executor` / `ceo-reviewer` with per-step `--agent` routing (A2, B3).
+- CEO synthesis token budget starts at `maxTokens=4096` and is monitored for saturation drift (A3, D3).
+- Verification is hard-fail only for CEO deliverables; unverifiable claims block completion and force `blocked` with verification evidence (B5, C3).
+- Rollout is `single -> shadow -> multi` with locked shadow soak and explicit operator-approved cutover report (D4, D4.1).
+- Session strategy is fresh OpenClaw session per step with deterministic session IDs (`<run_id>-step-<n>-<pod>`) (B6).
+- Evidence tags are strict per factual sentence for implementation/review steps; synthesis allows claim-block tagging only with required machine-readable evidence manifest (C2, C3).
+- ChiefOfStaff remains unchanged in this phase; design remains shared-library-friendly for later Chief adoption (A2, D6).
+- Verifier depth is tool-evidence-only in phase 1 (no secondary LLM claim extraction) (C2, C3).
 
