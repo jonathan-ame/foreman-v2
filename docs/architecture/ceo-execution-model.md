@@ -87,12 +87,15 @@ Impact checks:
 
 Current planner settings:
 - `contextWindow: 16384` (`config/openclaw.foreman.json:55`)
-- `maxTokens: 2048` (`config/openclaw.foreman.json:56`)
+- default `maxTokens: 1024` with purpose override for synthesis (`config/openclaw.foreman.json`)
 
 Assessment:
-- For CEO synthesis over multi-step outputs, `maxTokens: 2048` is likely tight when requiring structured evidence, risk notes, and comprehensive findings.
-- **Decision locked:** set CEO planner-bound synthesis to **`maxTokens: 4096`** as the initial value, with telemetry-based tuning.
-- `contextWindow: 16384` is acceptable for first rollout if step outputs are summarized/compacted before synthesis; if full raw artifacts are injected, consider `32768` in a second pass.
+- A single planner `maxTokens` value is insufficient because planner serves multiple purposes (short JSON plan generation vs long-form synthesis).
+- **Decision locked:** use hybrid budgeting:
+  - provider default for planner remains small (`1024`) for routine/short calls,
+  - synthesis calls use a purpose override (`max_output_tokens=6144`),
+  - runtime preflight clamps against pod hard ceiling and fails loud on overflow risk.
+- With `contextWindow: 16384`, synthesis at `6144` leaves ~10k input-token budget for verified step outputs and evidence manifests.
 
 ### A4. DeepSeek `<think>` trace handling
 
@@ -130,6 +133,8 @@ Proposed JSON schema:
       "pod": "planner|executor|reviewer",
       "model": "provider/model-id",
       "agent_binding": "ceo-planner|ceo-executor|ceo-reviewer",
+      "budget_purpose": "plan_generation|step_execution|code_analysis|synthesis|probe",
+      "max_output_tokens": 1024,
       "input_refs": ["task_body", "repo_context"],
       "output_ref": "s1_output",
       "acceptance": {
@@ -146,6 +151,8 @@ Proposed JSON schema:
     "pod": "planner",
     "model": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
     "agent_binding": "ceo-planner",
+    "budget_purpose": "synthesis",
+    "max_output_tokens": 6144,
     "input_refs": ["task_body", "s1_output", "s2_output"]
   }
 }
@@ -155,6 +162,7 @@ Coverage:
 - step ordering: array order + step_id.
 - input/output passing: `input_refs`, `output_ref`.
 - pod/model selection: `pod`, `model`, `agent_binding`.
+- token budgeting: `budget_purpose`, `max_output_tokens` with hard-ceiling preflight clamp.
 - final synthesis: dedicated `synthesis` object.
 
 ### B2. CEO task-evaluation prompt (plan generation)
@@ -445,7 +453,7 @@ Additive signals proposed:
 - `ceo_unverified_claim_blocks`: count of blocked runs due to verification.
 - `ceo_model_route_coverage`: planner/executor/reviewer usage distribution.
 - `ceo_synthesis_output_length_p95`: synthesis output length trend.
-- `ceo_synthesis_near_ceiling_rate`: percent of synthesis outputs at >=90% of configured `maxTokens` ceiling (watching for 4096 saturation).
+- `ceo_synthesis_near_ceiling_rate`: percent of synthesis outputs at >=90% of configured synthesis budget (watching for 6144 saturation).
 
 Failure modes caught:
 - accidental fallback to single-model path,
@@ -553,7 +561,7 @@ Future-phase note (locked):
 ## Decisions locked
 
 - Scoped model binding (no global default flip): use `ceo-planner` / `ceo-executor` / `ceo-reviewer` with per-step `--agent` routing (A2, B3).
-- CEO synthesis token budget starts at `maxTokens=4096` and is monitored for saturation drift (A3, D3).
+- Token budgeting is hybrid: per-provider defaults plus per-purpose overrides with hard-ceiling fail-loud clamp; planner synthesis budget target is `max_output_tokens=6144` (A3, B1, D3).
 - Verification is hard-fail only for CEO deliverables; unverifiable claims block completion and force `blocked` with verification evidence (B5, C3).
 - Rollout is `single -> shadow -> multi` with locked shadow soak and explicit operator-approved cutover report (D4, D4.1).
 - Session strategy is fresh OpenClaw session per step with deterministic session IDs (`<run_id>-step-<n>-<pod>`) (B6).

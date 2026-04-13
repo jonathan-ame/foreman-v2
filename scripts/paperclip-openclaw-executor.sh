@@ -190,6 +190,57 @@ def is_substantive_deliverable(text: str) -> bool:
     return True
 
 
+def strip_reasoning_think_blocks(text: str) -> str:
+    """
+    Remove DeepSeek-style <think>...</think> traces from user-facing output.
+    Handles nested blocks and unterminated trailing <think> sections.
+    """
+    src = text or ""
+    out: list[str] = []
+    i = 0
+    depth = 0
+    open_tag = "<think>"
+    close_tag = "</think>"
+    olen = len(open_tag)
+    clen = len(close_tag)
+    n = len(src)
+    while i < n:
+        if src.startswith(open_tag, i):
+            depth += 1
+            i += olen
+            continue
+        if src.startswith(close_tag, i):
+            if depth > 0:
+                depth -= 1
+            i += clen
+            continue
+        if depth == 0:
+            out.append(src[i])
+        i += 1
+    return "".join(out).strip()
+
+
+def _test_strip_reasoning_think_blocks() -> None:
+    fixture_nested = (
+        "Alpha<think>internal A <think>nested B</think> still internal</think>Omega"
+    )
+    got_nested = strip_reasoning_think_blocks(fixture_nested)
+    assert got_nested == "AlphaOmega", f"nested strip failed: {got_nested!r}"
+
+    fixture_unterminated = "Visible<think>hidden forever"
+    got_unterminated = strip_reasoning_think_blocks(fixture_unterminated)
+    assert got_unterminated == "Visible", f"unterminated strip failed: {got_unterminated!r}"
+
+    fixture_none = "No reasoning trace here."
+    got_none = strip_reasoning_think_blocks(fixture_none)
+    assert got_none == fixture_none, f"no-think strip changed text: {got_none!r}"
+
+
+if (os.environ.get("FOREMAN_RUN_STRIP_THINK_TESTS") or "").strip() == "1":
+    _test_strip_reasoning_think_blocks()
+    print("[executor] strip_reasoning_think_blocks_tests=pass", flush=True)
+
+
 def make_valid_session_id(company_id: str, agent_id: str, task_id: str, run_id: str) -> str:
     """
     OpenClaw gateway rejects overly long/invalid session ids.
@@ -684,6 +735,7 @@ def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool 
         return False, f"OpenClaw agent exited with code {agent_proc.returncode}. stderr: {stderr[:400]}"
 
     output = (agent_proc.stdout or "").strip()
+    output = strip_reasoning_think_blocks(output)
     print(f"[executor] openclaw_attempt_completed stdout_chars={len(output)}", flush=True)
     if not output:
         return False, "OpenClaw returned empty output."

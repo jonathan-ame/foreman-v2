@@ -19,6 +19,36 @@
         },
         skills: ["coding-agent", "github", "gh-issues", "summarize"],
       },
+      {
+        id: "ceo-planner",
+        model: {
+          primary: "planner/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        },
+        // Keep probe/system prompt footprint small to preserve token headroom.
+        workspace: "~/.openclaw/workspace/foreman-v2-ceo-min",
+      },
+      {
+        id: "ceo-executor",
+        model: {
+          primary: "executor/Qwen/Qwen2.5-32B-Instruct",
+        },
+        tools: {
+          allow: [],
+        },
+        skills: [],
+        workspace: "~/.openclaw/workspace/foreman-v2-ceo-min",
+      },
+      {
+        id: "ceo-reviewer",
+        model: {
+          primary: "reviewer/Qwen/Qwen2.5-Coder-32B-Instruct",
+        },
+        tools: {
+          allow: [],
+        },
+        skills: [],
+        workspace: "~/.openclaw/workspace/foreman-v2-ceo-min",
+      },
     ],
   },
 
@@ -36,8 +66,12 @@
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 32768,
-            maxTokens: 1024,
+            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
+            contextWindow: 16384,
+            // Keep default small for startup/probe calls with large OpenClaw bootstrap prompts.
+            // Step-purpose overrides below request larger budgets where input size permits.
+            // Keep default tiny for heartbeat/probe calls against large system prompts.
+            maxTokens: 64,
           },
         ],
       },
@@ -52,8 +86,10 @@
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
             contextWindow: 16384,
-            maxTokens: 2048,
+            // Default for short planner calls (plan generation/probes). Synthesis uses purpose override.
+            maxTokens: 1024,
           },
         ],
       },
@@ -68,8 +104,11 @@
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 32768,
-            maxTokens: 2048,
+            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
+            contextWindow: 16384,
+            // Keep default small for startup/probe calls with large OpenClaw bootstrap prompts.
+            // Keep default tiny for heartbeat/probe calls against large system prompts.
+            maxTokens: 64,
           },
         ],
       },
@@ -91,6 +130,42 @@
       },
     },
   },
+
+  // Foreman CEO token budget contract (hybrid model, consumed by executor pipeline):
+  // {
+  //   "clampPolicy": "fail-loud",
+  //   "providers": {
+  //     "planner": {
+  //       "hard_ceiling": 16384,
+  //       "safety_margin_tokens": 256,
+  //       "default_max_output_tokens": 1024,
+  //       "purposes": {
+  //         "plan_generation": { "max_output_tokens": 1024 },
+  //         "synthesis": { "max_output_tokens": 6144 },
+  //         "probe": { "max_output_tokens": 256 }
+  //       }
+  //     },
+  //     "executor": {
+  //       "hard_ceiling": 16384,
+  //       "safety_margin_tokens": 256,
+  //       "default_max_output_tokens": 64,
+  //       "purposes": {
+  //         "step_execution": { "max_output_tokens": 4096 },
+  //         "probe": { "max_output_tokens": 64 }
+  //       }
+  //     },
+  //     "reviewer": {
+  //       "hard_ceiling": 16384,
+  //       "safety_margin_tokens": 256,
+  //       "default_max_output_tokens": 64,
+  //       "purposes": {
+  //         "code_analysis": { "max_output_tokens": 4096 },
+  //         "critique": { "max_output_tokens": 1024 },
+  //         "probe": { "max_output_tokens": 64 }
+  //       }
+  //     }
+  //   }
+  // }
 
   gateway: {
     mode: "local",

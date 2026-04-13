@@ -241,9 +241,13 @@ ROSTER = [
         "docker_start_cmd": [
             "--model", "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
             "--dtype", "half",
-            "--max-model-len", "8192",
+            # DeepSeek-R1-Distill-Qwen is Qwen-family; vLLM Qwen guidance uses hermes parser.
+            "--enable-auto-tool-choice",
+            "--tool-call-parser", "hermes",
+            "--max-model-len", "16384",
             "--gpu-memory-utilization", "0.90",
-            "--max-num-seqs", "8",
+            # Keep planner stable on fallback A100-SXM4 while preserving 16k context.
+            "--max-num-seqs", "4",
             "--trust-remote-code",
             "--host", "0.0.0.0",
             "--port", "8000",
@@ -257,9 +261,12 @@ ROSTER = [
         "docker_start_cmd": [
             "--model", "Qwen/Qwen2.5-Coder-32B-Instruct",
             "--dtype", "half",
-            "--max-model-len", "8192",
+            "--enable-auto-tool-choice",
+            "--tool-call-parser", "hermes",
+            "--max-model-len", "16384",
             "--gpu-memory-utilization", "0.90",
-            "--max-num-seqs", "8",
+            # Keep reviewer stable on fallback A100-SXM4 while preserving 16k context.
+            "--max-num-seqs", "4",
             "--trust-remote-code",
             "--host", "0.0.0.0",
             "--port", "8000",
@@ -611,6 +618,53 @@ def remove_state_role(role_name: str) -> None:
 
 def clear_state() -> None:
     write_state_atomic({"pods": []})
+
+
+def validate_running_state_roster(expected_roles: set[str]) -> tuple[bool, str]:
+    """Fail-loud guardrail: state must exactly match four live RUNNING roles."""
+    state = load_state()
+    pods = [p for p in state.get("pods", []) if isinstance(p, dict)]
+    by_role: dict[str, dict] = {}
+    for row in pods:
+        role = str(row.get("logical_name") or "").strip()
+        if not role:
+            continue
+        if role in by_role:
+            return False, f"duplicate role in state: {role}"
+        by_role[role] = row
+
+    if set(by_role.keys()) != expected_roles or len(by_role) != len(expected_roles):
+        return (
+            False,
+            f"state roles mismatch; expected={sorted(expected_roles)} found={sorted(by_role.keys())}",
+        )
+
+    for role in sorted(expected_roles):
+        row = by_role[role]
+        pod_id = str(row.get("pod_id") or "").strip()
+        status_local = str(row.get("status") or "").strip().lower()
+        if not pod_id:
+            return False, f"{role} missing pod_id in state"
+        if status_local not in {"healthy", "running"}:
+            return False, f"{role} not healthy in state (status={status_local or '<empty>'})"
+
+        status, payload = api_request("GET", f"{REST_BASE}/pods/{pod_id}?includeMachine=true")
+        if status == 404:
+            remove_state_role(role)
+            remove_created_role(role)
+            return False, f"{role} pod {pod_id} missing on RunPod (removed stale state entry)"
+        if status != 200 or not isinstance(payload, dict):
+            return False, f"{role} pod lookup failed (pod_id={pod_id}, status={status})"
+
+        desired = str(payload.get("desiredStatus") or payload.get("status") or "").upper()
+        if not is_alive_status(desired):
+            remove_state_role(role)
+            remove_created_role(role)
+            return (
+                False,
+                f"{role} pod {pod_id} not alive on RunPod (desiredStatus={desired or '<empty>'}); removed from state",
+            )
+    return True, "state roster validated"
 
 
 def parse_lifetime_seconds(raw: str) -> int:
@@ -1990,7 +2044,13 @@ def main() -> int:
             pending_gateway_refresh = True
 
         missing_roles = [
-            role for role in ROSTER if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
+            role
+            for role in ROSTER
+            if not any(
+                p.get("logical_name") == role["logical_name"]
+                and str(p.get("status") or "").lower() in {"healthy", "running"}
+                for p in created_pods
+            )
         ]
 
         for role in missing_roles:
@@ -2087,11 +2147,15 @@ def main() -> int:
                     print_status(f"Debug details: {exc.log_path}")
                 continue
             except RunPodModeBError as exc:
+                remove_created_role(role_name)
+                remove_state_role(role_name)
                 print_status(f"ERROR: {exc.safe_message}")
                 if exc.log_path:
                     print_status(f"Debug details: {exc.log_path}")
                 return 1
             except RunPodUnclassifiedError as exc:
+                remove_created_role(role_name)
+                remove_state_role(role_name)
                 print_status(f"ERROR: {exc.safe_message}")
                 if exc.log_path:
                     print_status(f"Debug details: {exc.log_path}")
@@ -2100,7 +2164,11 @@ def main() -> int:
         still_missing = [
             role["logical_name"]
             for role in ROSTER
-            if not any(p.get("logical_name") == role["logical_name"] for p in created_pods)
+            if not any(
+                p.get("logical_name") == role["logical_name"]
+                and str(p.get("status") or "").lower() in {"healthy", "running"}
+                for p in created_pods
+            )
         ]
         if not still_missing and pending_gateway_refresh:
             try:
@@ -2157,6 +2225,28 @@ def main() -> int:
                 + f". Polling for higher-preference GPUs again in {MISSING_ROLE_RETRY_SECONDS}s."
             )
         time.sleep(MISSING_ROLE_RETRY_SECONDS)
+
+    expected_roles = {role["logical_name"] for role in ROSTER}
+    healthy_rows = [
+        row for row in created_pods if str(row.get("status") or "").lower() in {"healthy", "running"}
+    ]
+    healthy_roles = {str(row.get("logical_name") or "") for row in healthy_rows}
+    if healthy_roles != expected_roles or len(healthy_rows) != len(expected_roles):
+        print_status(
+            "ERROR: Provision finished without a full healthy roster. "
+            f"expected={sorted(expected_roles)}, healthy={sorted(healthy_roles)}"
+        )
+        save_state({"pods": healthy_rows}, overwrite=True)
+        print_status(f"State written to: {STATE_FILE}")
+        return 1
+
+    state_ok, state_detail = validate_running_state_roster(expected_roles)
+    if not state_ok:
+        print_status(
+            "ERROR: Provision finished but state/pods.json is not a fully live roster. "
+            f"detail={state_detail}"
+        )
+        return 1
 
     total = current_hourly_cost()
     print()
