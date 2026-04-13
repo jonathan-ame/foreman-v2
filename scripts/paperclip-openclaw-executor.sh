@@ -29,6 +29,11 @@ if str(HELPER_DIR) not in sys.path:
     sys.path.insert(0, str(HELPER_DIR))
 
 from openclaw_config_helper import read_openclaw_config_once_atomic
+from tool_call_recorder import (
+    append_tool_call_records,
+    collect_tool_calls_from_transcript_window,
+    resolve_session_file_for_agent,
+)
 
 
 def _normalize_api_base(raw: str) -> str:
@@ -112,6 +117,8 @@ def _resolve_run_id_from_heartbeat_runs() -> str:
 
 RUN_ID = _resolve_run_id_from_heartbeat_runs()
 print(f"[executor] heartbeat bootstrap run_id={RUN_ID}", flush=True)
+RUN_LOGS_DIR = ROOT_DIR / "state" / "run-logs" / RUN_ID
+OPENCLAW_AGENT_ID = (os.environ.get("FOREMAN_CEO_OPENCLAW_AGENT_ID") or "main").strip() or "main"
 
 
 def fetch_agent_adapter_timeout_sec() -> int:
@@ -704,12 +711,19 @@ oc_timeout = resolve_openclaw_subprocess_timeout_sec()
 agent_notes = ""
 agent_ok = False
 
-def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool = False) -> tuple[bool, str]:
+def run_openclaw_attempt(
+    prompt: str,
+    current_session_id: str,
+    *,
+    step_id: str,
+    local_mode: bool = False,
+) -> tuple[bool, str]:
     print(
         f"[executor] openclaw_attempt_start mode={'local' if local_mode else 'default'} "
         f"session_id={current_session_id}",
         flush=True,
     )
+    started_ms = int(time.time() * 1000)
     try:
         cmd = ["openclaw", "agent", "--session-id", current_session_id, "-m", prompt]
         if local_mode:
@@ -724,6 +738,23 @@ def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool 
     except subprocess.TimeoutExpired:
         print("[executor] openclaw_attempt_timeout", flush=True)
         return False, f"OpenClaw agent timed out (>{oc_timeout}s; adapter budget aligns with Paperclip process timeout)."
+    finished_ms = int(time.time() * 1000)
+
+    session_file = resolve_session_file_for_agent(Path.home() / ".openclaw", OPENCLAW_AGENT_ID)
+    if session_file is not None:
+        records = collect_tool_calls_from_transcript_window(
+            session_file,
+            run_id=RUN_ID,
+            step_id=step_id,
+            started_ms=started_ms,
+            finished_ms=finished_ms,
+        )
+        if records:
+            out_path = append_tool_call_records(RUN_LOGS_DIR, records)
+            print(
+                f"[executor] tool_call_records_written count={len(records)} path={out_path}",
+                flush=True,
+            )
 
     if agent_proc.returncode != 0:
         stderr = (agent_proc.stderr or "").strip()
@@ -746,7 +777,11 @@ def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool 
     return True, output
 
 # Attempt 1: standard issue prompt.
-agent_ok, agent_notes = run_openclaw_attempt(exec_prompt, session_id)
+agent_ok, agent_notes = run_openclaw_attempt(
+    exec_prompt,
+    session_id,
+    step_id="single_path_primary",
+)
 
 # Attempt 2: stricter prompt on non-substantive outcome.
 if not agent_ok:
@@ -757,7 +792,12 @@ if not agent_ok:
           "Include concrete findings and actions specific to this issue."
     )
     retry_session_id = make_valid_session_id(COMPANY_ID, AGENT_ID, TASK_ID, f"{session_suffix}-retry")
-    retry_ok, retry_notes = run_openclaw_attempt(retry_prompt, retry_session_id, local_mode=True)
+    retry_ok, retry_notes = run_openclaw_attempt(
+        retry_prompt,
+        retry_session_id,
+        step_id="single_path_retry_local",
+        local_mode=True,
+    )
     if retry_ok:
         agent_ok = True
         agent_notes = retry_notes
