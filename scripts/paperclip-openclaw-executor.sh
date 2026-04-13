@@ -561,14 +561,20 @@ def patch_issue(issue_id: str, status: str | None = None, comment: str | None = 
         req("PATCH", f"/issues/{issue_id}", payload)
 
 
-def claim_issue(task_id: str):
+def checkout_issue(task_id: str):
     """
-    Transition issue to in_progress. Uses direct PATCH instead of the checkout endpoint
-    because checkout retains a stale executionRunId from prior runs, permanently blocking
-    re-checkout of any previously-worked issue (409 conflict even when the issue is todo).
+    Paperclip task workflow requires checkout before work.
+    This atomically claims ownership and binds checkoutRunId for this run.
     """
-    print(f"[executor] claim_issue task_id={task_id}", flush=True)
-    req("PATCH", f"/issues/{task_id}", {"status": "in_progress"})
+    print(f"[executor] checkout_issue task_id={task_id}", flush=True)
+    req(
+        "POST",
+        f"/issues/{task_id}/checkout",
+        {
+            "agentId": AGENT_ID,
+            "expectedStatuses": ["todo", "backlog", "blocked"],
+        },
+    )
 
 
 wake_task = TASK_ID
@@ -599,16 +605,16 @@ if issue.get("assigneeAgentId") != AGENT_ID:
 
 task_status = (issue.get("status") or "").strip()
 
-if task_status == "in_progress":
-    pass
-elif task_status in ("todo", "backlog", "blocked", "done", "cancelled", "in_review"):
+if task_status in ("todo", "backlog", "blocked", "in_progress"):
     try:
-        claim_issue(TASK_ID)
-    except Exception:
-        print(f"HEARTBEAT_OK:executor (could not claim task {TASK_ID} from '{task_status}')")
-        raise SystemExit(0)
+        checkout_issue(TASK_ID)
+    except Exception as exc:
+        if "HTTP 409" in str(exc):
+            print(f"HEARTBEAT_OK:executor (checkout conflict on {TASK_ID})")
+            raise SystemExit(0)
+        raise
 else:
-    print(f"HEARTBEAT_OK:executor (task {TASK_ID} in terminal state '{task_status}')")
+    print(f"HEARTBEAT_OK:executor (task {TASK_ID} in state '{task_status}', nothing to do)")
     raise SystemExit(0)
 
 identifier = (issue.get("identifier") or TASK_ID).strip()
