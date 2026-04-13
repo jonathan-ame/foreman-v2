@@ -501,7 +501,7 @@ if not TASK_ID:
     # Fallback for manual/invoke runs that do not pass explicit task context.
     assignments = req(
         "GET",
-        f"/companies/{COMPANY_ID}/issues?assigneeAgentId={AGENT_ID}&status=todo,in_progress,blocked&limit=20&offset=0",
+        f"/companies/{COMPANY_ID}/issues?assigneeAgentId={AGENT_ID}&status=todo,in_progress,blocked,in_review&limit=20&offset=0",
     )
     items = assignments.get("items", []) if isinstance(assignments, dict) else assignments
     if isinstance(items, list) and items:
