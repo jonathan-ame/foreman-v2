@@ -34,6 +34,9 @@ AGENT_ID = (os.environ.get("PAPERCLIP_AGENT_ID") or "").strip()
 TASK_ID = (os.environ.get("PAPERCLIP_TASK_ID") or "").strip()
 RUN_ID = (os.environ.get("PAPERCLIP_RUN_ID") or "").strip()
 WAKE_REASON = (os.environ.get("PAPERCLIP_WAKE_REASON") or "").strip()
+CORRECTIONS_SUPABASE_URL = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_URL") or "").strip().rstrip("/")
+CORRECTIONS_SUPABASE_KEY = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY") or "").strip()
+CORRECTIONS_WORKSPACE_SLUG = (os.environ.get("FOREMAN_CORRECTIONS_WORKSPACE_SLUG") or "foreman").strip() or "foreman"
 
 
 def _is_loopback_host(host: str | None) -> bool:
@@ -128,6 +131,75 @@ def patch_issue(issue_id: str, status: str | None = None, comment: str | None = 
         payload["comment"] = comment
     if payload:
         req("PATCH", f"/issues/{issue_id}", payload)
+
+
+def req_supabase(method: str, path: str, payload=None):
+    if not CORRECTIONS_SUPABASE_URL or not CORRECTIONS_SUPABASE_KEY:
+        raise RuntimeError(
+            "Corrections Stage 1 requires FOREMAN_CORRECTIONS_SUPABASE_URL and "
+            "FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY."
+        )
+    headers = {
+        "Authorization": f"Bearer {CORRECTIONS_SUPABASE_KEY}",
+        "apikey": CORRECTIONS_SUPABASE_KEY,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+    data = None if payload is None else json.dumps(payload).encode("utf-8")
+    request = urllib.request.Request(
+        f"{CORRECTIONS_SUPABASE_URL}{path}",
+        data=data,
+        headers=headers,
+        method=method,
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as resp:
+            body = resp.read().decode("utf-8")
+            return json.loads(body) if body else {}
+    except urllib.error.HTTPError as exc:
+        body = (exc.read() or b"").decode("utf-8", errors="replace")
+        raise RuntimeError(f"Supabase HTTP {exc.code} {method} {path}: {body[:500]}")
+
+
+def ensure_agent_corrections_journal(agent: dict):
+    agent_id = (agent.get("id") or "").strip()
+    if not agent_id:
+        raise RuntimeError("Cannot configure corrections journal: missing agent id.")
+    title = (agent.get("title") or agent.get("name") or agent_id).strip()
+    journal_title = f"[JOURNAL] {title} - Standing Corrections"
+    journal_description = (
+        "Corrections journal for this subordinate.\n\n"
+        "Source of truth for correction comments consumed by Foreman corrections sync."
+    )
+    journal_payload = {
+        "title": journal_title,
+        "description": journal_description,
+        "status": "backlog",
+        "priority": "low",
+    }
+    journal_issue = req("POST", f"/companies/{COMPANY_ID}/issues", journal_payload)
+    journal_issue_id = (journal_issue.get("id") or "").strip()
+    if not journal_issue_id:
+        raise RuntimeError("Failed to create corrections journal issue during hire-time setup.")
+
+    full_agent = req("GET", f"/agents/{agent_id}")
+    metadata = full_agent.get("metadata") if isinstance(full_agent.get("metadata"), dict) else {}
+    merged_metadata = dict(metadata)
+    merged_metadata["journal_issue_id"] = journal_issue_id
+    req("PATCH", f"/agents/{agent_id}", {"metadata": merged_metadata})
+
+    sync_cursor_payload = [
+        {
+            "workspace_slug": CORRECTIONS_WORKSPACE_SLUG,
+            "paperclip_agent_id": agent_id,
+            "last_synced_comment_id": None,
+        }
+    ]
+    req_supabase(
+        "POST",
+        "/rest/v1/sync_cursors?on_conflict=workspace_slug,paperclip_agent_id",
+        sync_cursor_payload,
+    )
 
 
 def fetch_agent_adapter_timeout_sec() -> int:
@@ -441,6 +513,7 @@ if not worker:
     created_worker = req("POST", f"/companies/{COMPANY_ID}/agents", hire_payload)
     if not isinstance(created_worker, dict) or not created_worker.get("id"):
         raise RuntimeError("Failed to hire OpenClawWorker during CEO delegation flow.")
+    ensure_agent_corrections_journal(created_worker)
     worker = created_worker
     hired_worker = True
 else:
