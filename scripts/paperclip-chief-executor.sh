@@ -37,8 +37,8 @@ AGENT_ID = (os.environ.get("PAPERCLIP_AGENT_ID") or "").strip()
 TASK_ID = (os.environ.get("PAPERCLIP_TASK_ID") or "").strip()
 RUN_ID = (os.environ.get("PAPERCLIP_RUN_ID") or "").strip()
 WAKE_REASON = (os.environ.get("PAPERCLIP_WAKE_REASON") or "").strip()
-CORRECTIONS_SUPABASE_URL = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_URL") or "").strip().rstrip("/")
-CORRECTIONS_SUPABASE_KEY = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY") or "").strip()
+CORRECTIONS_SUPABASE_URL = (os.environ.get("SUPABASE_PROJECT_URL") or "").strip().rstrip("/")
+CORRECTIONS_SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_ROLE") or "").strip()
 CORRECTIONS_WORKSPACE_SLUG = (os.environ.get("FOREMAN_CORRECTIONS_WORKSPACE_SLUG") or "foreman").strip() or "foreman"
 
 
@@ -139,8 +139,8 @@ def patch_issue(issue_id: str, status: str | None = None, comment: str | None = 
 def req_supabase(method: str, path: str, payload=None):
     if not CORRECTIONS_SUPABASE_URL or not CORRECTIONS_SUPABASE_KEY:
         raise RuntimeError(
-            "Corrections Stage 1 requires FOREMAN_CORRECTIONS_SUPABASE_URL and "
-            "FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY."
+            "Corrections Stage 1 requires SUPABASE_PROJECT_URL and "
+            "SUPABASE_SERVICE_ROLE."
         )
     headers = {
         "Authorization": f"Bearer {CORRECTIONS_SUPABASE_KEY}",
