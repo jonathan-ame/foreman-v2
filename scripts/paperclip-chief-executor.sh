@@ -6,6 +6,8 @@ set -euo pipefail
 # - drafts an execution/delegation plan via OpenClaw
 # - delegates to OpenClawWorker
 # - writes a visible Paperclip comment + status update
+# - implements corrections Stage 1 (hire-time journal plumbing) and Stage 2
+#   (CEO review verdict + correction issuance) per docs/CORRECTIONS-SYSTEM-DESIGN.md
 
 python3 - <<'PY'
 import json
@@ -14,6 +16,7 @@ import re
 import subprocess
 import sys
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
 import urllib.error
@@ -237,6 +240,198 @@ def checkout_issue(task_id: str, agent_id: str):
         raise
 
 
+def fetch_issue_comments(issue_id: str, page_size: int = 200) -> list[dict]:
+    comments: list[dict] = []
+    offset = 0
+    while True:
+        resp = req("GET", f"/issues/{issue_id}/comments?limit={page_size}&offset={offset}")
+        items = resp if isinstance(resp, list) else resp.get("items", [])
+        if not isinstance(items, list):
+            break
+        comments.extend([c for c in items if isinstance(c, dict)])
+        if len(items) < page_size:
+            break
+        offset += page_size
+    return comments
+
+
+def _extract_comment_text(comment_obj: dict) -> str:
+    return (
+        (comment_obj.get("body") or "")
+        or (comment_obj.get("comment") or "")
+        or (comment_obj.get("content") or "")
+    ).strip()
+
+
+def _strip_json_fences(raw: str) -> str:
+    text = (raw or "").strip()
+    if text.startswith("```"):
+        text = re.sub(r"^```(?:json)?\s*", "", text, flags=re.IGNORECASE)
+        text = re.sub(r"\s*```$", "", text)
+    return text.strip()
+
+
+def _generate_review_verdict(prompt_text: str, sid: str) -> tuple[dict, str]:
+    oc_timeout = openclaw_plan_timeout_sec()
+    try:
+        proc = subprocess.run(
+            ["openclaw", "agent", "--session-id", sid, "-m", prompt_text],
+            capture_output=True,
+            text=True,
+            timeout=oc_timeout,
+            check=False,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise RuntimeError(f"Review planner timeout >{oc_timeout}s") from exc
+    if proc.returncode != 0:
+        stderr = (proc.stderr or "").strip()
+        raise RuntimeError(f"Review planner call failed: {stderr[:300]}")
+    raw = (proc.stdout or "").strip()
+    if not raw:
+        raise RuntimeError("Review planner returned empty output.")
+    cleaned = _strip_json_fences(raw)
+    try:
+        payload = json.loads(cleaned)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(f"Review planner returned non-JSON output: {raw[:500]}") from exc
+    if not isinstance(payload, dict):
+        raise RuntimeError("Review planner JSON must be an object.")
+    expected_keys = {"verdict", "verdict_summary", "correction_text"}
+    if set(payload.keys()) != expected_keys:
+        raise RuntimeError(f"Review planner JSON keys invalid: got={sorted(payload.keys())}")
+    verdict = (payload.get("verdict") or "").strip()
+    verdict_summary = (payload.get("verdict_summary") or "").strip()
+    correction_text = (payload.get("correction_text") or "").strip()
+    if verdict not in {"accept", "accept_with_correction", "reject"}:
+        raise RuntimeError(f"Invalid review verdict: {verdict!r}")
+    if not verdict_summary:
+        raise RuntimeError("Review verdict_summary must be non-empty.")
+    if verdict != "accept_with_correction" and correction_text:
+        raise RuntimeError("correction_text must be empty unless verdict == 'accept_with_correction'.")
+    if verdict == "accept_with_correction" and not correction_text:
+        raise RuntimeError("correction_text must be populated for 'accept_with_correction' verdict.")
+    return payload, cleaned
+
+
+def _build_review_prompt(parent_issue: dict, subordinate_id: str, subordinate_title: str, children_group: list[dict]) -> str:
+    parent_title = (parent_issue.get("title") or "").strip()
+    parent_description = (parent_issue.get("description") or "").strip()
+    children_blob_parts: list[str] = []
+    for idx, child in enumerate(children_group, start=1):
+        comment_block = child.get("final_comments") or "(no comments)"
+        children_blob_parts.append(
+            (
+                f"----- CHILD {idx} -----\n"
+                f"Child ID: {child['id']}\n"
+                f"Child title: {child['title']}\n"
+                f"Child final description:\n{child['description']}\n\n"
+                f"Child final status comments:\n{comment_block}\n"
+            )
+        )
+    children_blob = "\n".join(children_blob_parts).strip()
+    return (
+        "HIGHEST PRIORITY: Do not invent corrections not grounded in the completed child output below.\n\n"
+        "You are reviewing completed work by a subordinate agent on behalf of the CEO.\n\n"
+        f"Parent task:\n- id: {TASK_ID}\n- title: {parent_title}\n- description:\n{parent_description}\n\n"
+        f"Subordinate under review:\n- id: {subordinate_id}\n- title: {subordinate_title}\n\n"
+        f"Completed child outputs for this subordinate:\n{children_blob}\n\n"
+        "Return a JSON object with exactly these fields:\n"
+        "{\n"
+        '  "verdict": "accept|accept_with_correction|reject",\n'
+        '  "verdict_summary": "1-3 sentences for the parent issue",\n'
+        '  "correction_text": "single forward-looking guidance text; MUST be empty unless verdict == accept_with_correction"\n'
+        "}\n\n"
+        "Return only the JSON object. No markdown fences. No extra prose."
+    )
+
+
+def _post_issue_comment(issue_id: str, body: str) -> dict:
+    payload = {"body": body}
+    return req("POST", f"/issues/{issue_id}/comments", payload)
+
+
+def _run_stage2_review_for_done_children(parent_issue: dict, done_children: list[dict]) -> list[dict]:
+    grouped_by_subordinate: dict[str, list[dict]] = {}
+    for child in done_children:
+        child_id = (child.get("id") or "").strip()
+        if not child_id:
+            continue
+        full_child = req("GET", f"/issues/{child_id}")
+        subordinate_id = (full_child.get("assigneeAgentId") or "").strip()
+        if not subordinate_id:
+            continue
+        comments = fetch_issue_comments(child_id)
+        comment_texts = [_extract_comment_text(c) for c in comments]
+        comment_texts = [t for t in comment_texts if t]
+        grouped_by_subordinate.setdefault(subordinate_id, []).append(
+            {
+                "id": child_id,
+                "title": (full_child.get("title") or "").strip(),
+                "description": (full_child.get("description") or "").strip(),
+                "final_comments": "\n---\n".join(comment_texts) if comment_texts else "",
+            }
+        )
+
+    review_results: list[dict] = []
+    for subordinate_id, children_group in grouped_by_subordinate.items():
+        subordinate = req("GET", f"/agents/{subordinate_id}")
+        subordinate_title = (subordinate.get("title") or subordinate.get("name") or subordinate_id).strip()
+        review_prompt = _build_review_prompt(parent_issue, subordinate_id, subordinate_title, children_group)
+        review_sid = f"{COMPANY_ID}-rvw-{subordinate_id[:8]}-{TASK_ID[:8]}-{(RUN_ID or uuid.uuid4().hex[:8])}"
+        verdict_obj, raw_json = _generate_review_verdict(review_prompt, review_sid)
+        verdict = verdict_obj["verdict"]
+        verdict_summary = verdict_obj["verdict_summary"].strip()
+        correction_text = verdict_obj["correction_text"].strip()
+        print(f"STAGE2_REVIEW_JSON subordinate={subordinate_id} payload={raw_json}")
+
+        parent_comment_text = (
+            "### Review Verdict\n"
+            f"- Verdict: `{verdict}`\n"
+            f"- Subordinate: `{subordinate_id}` ({subordinate_title})\n\n"
+            f"{verdict_summary}"
+        )
+        parent_comment = _post_issue_comment(TASK_ID, parent_comment_text)
+        parent_comment_id = (parent_comment.get("id") or "").strip() if isinstance(parent_comment, dict) else ""
+
+        journal_issue_id = ""
+        correction_comment_id = ""
+        if verdict == "accept_with_correction":
+            metadata = subordinate.get("metadata") if isinstance(subordinate.get("metadata"), dict) else {}
+            journal_issue_id = (metadata.get("journal_issue_id") or "").strip()
+            if not journal_issue_id:
+                raise RuntimeError(
+                    "Missing journal_issue_id for subordinate "
+                    f"{subordinate_id}. correction_text={correction_text}"
+                )
+            ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+            correction_body = (
+                "---\n"
+                "type: correction\n"
+                f"source_issue_id: {TASK_ID}\n"
+                f"source_agent_id: {subordinate_id}\n"
+                f"timestamp: {ts}\n"
+                "---\n\n"
+                f"{correction_text}"
+            )
+            correction_comment = _post_issue_comment(journal_issue_id, correction_body)
+            if isinstance(correction_comment, dict):
+                correction_comment_id = (correction_comment.get("id") or "").strip()
+
+        review_results.append(
+            {
+                "subordinate_id": subordinate_id,
+                "subordinate_title": subordinate_title,
+                "raw_json": raw_json,
+                "verdict": verdict,
+                "verdict_summary": verdict_summary,
+                "parent_comment_id": parent_comment_id,
+                "journal_issue_id": journal_issue_id,
+                "correction_comment_id": correction_comment_id,
+            }
+        )
+    return review_results
+
+
 def infer_repo_root() -> str:
     def validate_repo_root(raw_root: str) -> str:
         repo = Path(raw_root).expanduser().resolve()
@@ -341,6 +536,7 @@ if existing_children:
         print(f"HEARTBEAT_OK:executor (task {TASK_ID} already has {len(pending)} pending child issue(s); skipping re-delegation)")
         raise SystemExit(0)
     if done and not pending:
+        _ = _run_stage2_review_for_done_children(issue, done)
         patch_issue(TASK_ID, status="done", comment=(
             f"All {len(done)} delegated sub-task(s) completed. Marking parent done."
         ))
