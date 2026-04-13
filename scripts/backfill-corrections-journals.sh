@@ -5,10 +5,15 @@ set -euo pipefail
 # Creates a corrections journal issue + metadata.journal_issue_id + sync_cursors row
 # for agents that do not yet have journal metadata.
 
-if [[ -f ".env.local" ]]; then
-  set -a
-  source ".env.local"
-  set +a
+if [[ -f ".env" ]]; then
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    [[ -z "${line}" || "${line}" == \#* ]] && continue
+    if [[ "${line}" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
+      key="${line%%=*}"
+      value="${line#*=}"
+      export "${key}=${value}"
+    fi
+  done < ".env"
 fi
 
 python3 - <<'PY'
@@ -29,8 +34,8 @@ def _normalize_api_base(raw: str) -> str:
 API_BASE = _normalize_api_base(os.environ.get("PAPERCLIP_API_URL", ""))
 API_KEY = (os.environ.get("PAPERCLIP_API_KEY") or "").strip()
 COMPANY_ID = (os.environ.get("PAPERCLIP_COMPANY_ID") or "").strip()
-SUPABASE_URL = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_URL") or "").strip().rstrip("/")
-SUPABASE_KEY = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY") or "").strip()
+SUPABASE_URL = (os.environ.get("SUPABASE_PROJECT_URL") or "").strip().rstrip("/")
+SUPABASE_KEY = (os.environ.get("SUPABASE_SERVICE_ROLE") or "").strip()
 WORKSPACE_SLUG = (os.environ.get("FOREMAN_CORRECTIONS_WORKSPACE_SLUG") or "foreman").strip() or "foreman"
 DRY_RUN = (os.environ.get("FOREMAN_CORRECTIONS_DRY_RUN") or "").strip() == "1"
 
@@ -98,9 +103,7 @@ if not API_KEY:
 if not COMPANY_ID:
     raise SystemExit("ERROR: PAPERCLIP_COMPANY_ID is required.")
 if not SUPABASE_URL or not SUPABASE_KEY:
-    raise SystemExit(
-        "ERROR: FOREMAN_CORRECTIONS_SUPABASE_URL and FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY are required."
-    )
+    raise SystemExit("ERROR: SUPABASE_PROJECT_URL and SUPABASE_SERVICE_ROLE are required.")
 
 
 def req(method: str, path: str, payload=None):
@@ -171,6 +174,7 @@ def has_cursor_row(agent_id: str) -> bool:
             "&limit=1"
         ),
     )
+    # Assumes PostgREST SELECT responses are JSON arrays on HTTP 200.
     return isinstance(rows, list) and len(rows) > 0
 
 
