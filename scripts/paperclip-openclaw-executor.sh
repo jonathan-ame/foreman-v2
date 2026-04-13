@@ -45,23 +45,73 @@ TASK_ID = (os.environ.get("PAPERCLIP_TASK_ID") or "").strip()
 RUN_ID = (os.environ.get("PAPERCLIP_RUN_ID") or "").strip()
 WAKE_REASON = (os.environ.get("PAPERCLIP_WAKE_REASON") or "").strip()
 API_KEY = (os.environ.get("PAPERCLIP_API_KEY") or "").strip()
-CEO_AGENT_ID = "a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af"
-CEO_AGENT_API_KEY = (os.environ.get("PAPERCLIP_CEO_AGENT_API_KEY") or "").strip()
-
-
-if AGENT_ID == CEO_AGENT_ID:
-    if not CEO_AGENT_API_KEY:
-        raise SystemExit(
-            "ERROR: PAPERCLIP_CEO_AGENT_API_KEY is required for CEO heartbeats. "
-            "User/board-token fallback is disabled on this path."
-        )
-    API_KEY = CEO_AGENT_API_KEY
-    os.environ["PAPERCLIP_API_KEY"] = CEO_AGENT_API_KEY
 
 if not API_KEY:
-    raise SystemExit("ERROR: PAPERCLIP_API_KEY is required. Local auth-token fallback is disabled.")
+    raise SystemExit(
+        "ERROR: PAPERCLIP_API_KEY is required. Heartbeats must use Paperclip-injected run JWT; "
+        "static/user token fallback is disabled."
+    )
 if not COMPANY_ID or not AGENT_ID:
     raise SystemExit("ERROR: PAPERCLIP_COMPANY_ID and PAPERCLIP_AGENT_ID are required.")
+print(
+    f"[executor] env_probe agent_id={AGENT_ID} run_id={(RUN_ID or '<missing>')} "
+    f"wake_reason={(WAKE_REASON or 'unknown')} task_id={(TASK_ID or 'none')}",
+    flush=True,
+)
+
+
+def _resolve_run_id_from_heartbeat_runs() -> str:
+    if RUN_ID:
+        return RUN_ID
+    list_path = f"/companies/{COMPANY_ID}/heartbeat-runs?limit=40&offset=0"
+    request = urllib.request.Request(
+        f"{API_BASE}{list_path}",
+        headers={
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        },
+        method="GET",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=60) as resp:
+            body = resp.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        detail = (exc.read() or b"").decode("utf-8", errors="replace")
+        raise SystemExit(
+            "ERROR: PAPERCLIP_RUN_ID missing and fallback run-id lookup failed: "
+            f"HTTP {exc.code} GET {list_path}: {detail[:220]}"
+        )
+    except Exception as exc:
+        raise SystemExit(
+            "ERROR: PAPERCLIP_RUN_ID missing and fallback run-id lookup transport failed: "
+            f"{exc}"
+        )
+    rows = json.loads(body) if body else []
+    if not isinstance(rows, list):
+        raise SystemExit("ERROR: PAPERCLIP_RUN_ID missing and heartbeat-runs response was not a list.")
+    running = [r for r in rows if isinstance(r, dict) and r.get("status") == "running" and r.get("agentId") == AGENT_ID]
+    if TASK_ID:
+        task_scoped = []
+        for r in running:
+            snap = r.get("contextSnapshot") if isinstance(r.get("contextSnapshot"), dict) else {}
+            if (snap.get("taskId") or snap.get("issueId") or "").strip() == TASK_ID:
+                task_scoped.append(r)
+        running = task_scoped
+    if len(running) != 1:
+        raise SystemExit(
+            "ERROR: PAPERCLIP_RUN_ID missing and could not derive a unique running heartbeat run id "
+            f"(candidates={len(running)} task_scope={'yes' if TASK_ID else 'no'})."
+        )
+    derived = (running[0].get("id") or "").strip()
+    if not derived:
+        raise SystemExit("ERROR: Derived heartbeat run id was empty.")
+    print(f"[executor] derived_run_id_from_api run_id={derived}", flush=True)
+    return derived
+
+
+RUN_ID = _resolve_run_id_from_heartbeat_runs()
+print(f"[executor] heartbeat bootstrap run_id={RUN_ID}", flush=True)
 
 
 def fetch_agent_adapter_timeout_sec() -> int:
@@ -280,6 +330,10 @@ def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None
         raise SystemExit(1)
 
     models_url = f"{base_url}/models"
+    print(
+        f"[executor] preflight_models_probe url={models_url} expected_model={expected_model}",
+        flush=True,
+    )
     try:
         req_http = urllib.request.Request(
             models_url,
@@ -353,6 +407,10 @@ def preflight_executor_openclaw_endpoint(issue_id: str, identifier: str) -> None
 
     model_rows = payload.get("data") if isinstance(payload.get("data"), list) else []
     model_ids = [m.get("id") for m in model_rows if isinstance(m, dict)]
+    print(
+        f"[executor] preflight_models_probe_ok status={code} models_count={len(model_ids)}",
+        flush=True,
+    )
     if expected_model not in model_ids:
         patch_issue(
             issue_id,
@@ -467,12 +525,15 @@ def detect_local_repo_context() -> str:
 
 
 def req(method: str, path: str, payload=None):
+    mutating = method in {"POST", "PATCH", "PUT", "DELETE"}
+    if mutating and not RUN_ID:
+        raise RuntimeError(f"Mutating request {method} {path} requires PAPERCLIP_RUN_ID.")
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
-    if RUN_ID and method in {"POST", "PATCH", "PUT", "DELETE"}:
+    if mutating:
         headers["X-Paperclip-Run-Id"] = RUN_ID
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(f"{API_BASE}{path}", data=data, headers=headers, method=method)
@@ -482,6 +543,11 @@ def req(method: str, path: str, payload=None):
             return json.loads(body) if body else {}
     except urllib.error.HTTPError as exc:
         body = (exc.read() or b"").decode("utf-8", errors="replace")
+        print(
+            f"[executor] paperclip_http_error method={method} path={path} "
+            f"status={exc.code} body_excerpt={body[:180]}",
+            flush=True,
+        )
         raise RuntimeError(f"HTTP {exc.code} {method} {path}: {body[:300]}")
 
 
@@ -501,6 +567,7 @@ def claim_issue(task_id: str):
     because checkout retains a stale executionRunId from prior runs, permanently blocking
     re-checkout of any previously-worked issue (409 conflict even when the issue is todo).
     """
+    print(f"[executor] claim_issue task_id={task_id}", flush=True)
     req("PATCH", f"/issues/{task_id}", {"status": "in_progress"})
 
 
@@ -581,6 +648,11 @@ agent_notes = ""
 agent_ok = False
 
 def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool = False) -> tuple[bool, str]:
+    print(
+        f"[executor] openclaw_attempt_start mode={'local' if local_mode else 'default'} "
+        f"session_id={current_session_id}",
+        flush=True,
+    )
     try:
         cmd = ["openclaw", "agent", "--session-id", current_session_id, "-m", prompt]
         if local_mode:
@@ -593,13 +665,20 @@ def run_openclaw_attempt(prompt: str, current_session_id: str, local_mode: bool 
             check=False,
         )
     except subprocess.TimeoutExpired:
+        print("[executor] openclaw_attempt_timeout", flush=True)
         return False, f"OpenClaw agent timed out (>{oc_timeout}s; adapter budget aligns with Paperclip process timeout)."
 
     if agent_proc.returncode != 0:
         stderr = (agent_proc.stderr or "").strip()
+        print(
+            f"[executor] openclaw_attempt_nonzero_exit code={agent_proc.returncode} "
+            f"stderr_excerpt={stderr[:180]}",
+            flush=True,
+        )
         return False, f"OpenClaw agent exited with code {agent_proc.returncode}. stderr: {stderr[:400]}"
 
     output = (agent_proc.stdout or "").strip()
+    print(f"[executor] openclaw_attempt_completed stdout_chars={len(output)}", flush=True)
     if not output:
         return False, "OpenClaw returned empty output."
     if is_openclaw_llm_outcome_failure(output):
