@@ -144,6 +144,7 @@ def req_supabase(method: str, path: str, payload=None):
         "apikey": CORRECTIONS_SUPABASE_KEY,
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "Prefer": "resolution=merge-duplicates",
     }
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(

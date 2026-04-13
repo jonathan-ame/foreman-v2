@@ -5,6 +5,12 @@ set -euo pipefail
 # Creates a corrections journal issue + metadata.journal_issue_id + sync_cursors row
 # for agents that do not yet have journal metadata.
 
+if [[ -f ".env.local" ]]; then
+  set -a
+  source ".env.local"
+  set +a
+fi
+
 python3 - <<'PY'
 import json
 import os
@@ -26,6 +32,7 @@ COMPANY_ID = (os.environ.get("PAPERCLIP_COMPANY_ID") or "").strip()
 SUPABASE_URL = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_URL") or "").strip().rstrip("/")
 SUPABASE_KEY = (os.environ.get("FOREMAN_CORRECTIONS_SUPABASE_SERVICE_KEY") or "").strip()
 WORKSPACE_SLUG = (os.environ.get("FOREMAN_CORRECTIONS_WORKSPACE_SLUG") or "foreman").strip() or "foreman"
+DRY_RUN = (os.environ.get("FOREMAN_CORRECTIONS_DRY_RUN") or "").strip() == "1"
 
 
 def _is_loopback_host(host: str | None) -> bool:
@@ -119,6 +126,7 @@ def req_supabase(method: str, path: str, payload=None):
         "apikey": SUPABASE_KEY,
         "Content-Type": "application/json",
         "Accept": "application/json",
+        "Prefer": "resolution=merge-duplicates",
     }
     data = None if payload is None else json.dumps(payload).encode("utf-8")
     request = urllib.request.Request(f"{SUPABASE_URL}{path}", data=data, headers=headers, method=method)
@@ -131,33 +139,93 @@ def req_supabase(method: str, path: str, payload=None):
         raise RuntimeError(f"Supabase HTTP {exc.code} {method} {path}: {body[:500]}")
 
 
+def find_existing_journal_issue_id(journal_title: str) -> str:
+    limit = 200
+    offset = 0
+    while True:
+        issues = req("GET", f"/companies/{COMPANY_ID}/issues?limit={limit}&offset={offset}")
+        items = issues.get("items", []) if isinstance(issues, dict) else issues
+        if not isinstance(items, list):
+            break
+        for issue in items:
+            if not isinstance(issue, dict):
+                continue
+            if (issue.get("title") or "").strip() == journal_title:
+                issue_id = (issue.get("id") or "").strip()
+                if issue_id:
+                    return issue_id
+        if len(items) < limit:
+            break
+        offset += limit
+    return ""
+
+
+def has_cursor_row(agent_id: str) -> bool:
+    rows = req_supabase(
+        "GET",
+        (
+            "/rest/v1/sync_cursors"
+            f"?workspace_slug=eq.{WORKSPACE_SLUG}"
+            f"&paperclip_agent_id=eq.{agent_id}"
+            "&select=paperclip_agent_id"
+            "&limit=1"
+        ),
+    )
+    return isinstance(rows, list) and len(rows) > 0
+
+
 def ensure_journal(agent: dict) -> bool:
     agent_id = (agent.get("id") or "").strip()
     if not agent_id:
         return False
     full_agent = req("GET", f"/agents/{agent_id}")
     metadata = full_agent.get("metadata") if isinstance(full_agent.get("metadata"), dict) else {}
-    if (metadata.get("journal_issue_id") or "").strip():
+    title = (full_agent.get("title") or full_agent.get("name") or agent_id).strip()
+    journal_title = f"[JOURNAL] {title} - Standing Corrections"
+    metadata_journal_issue_id = (metadata.get("journal_issue_id") or "").strip()
+    discoverable_journal_issue_id = metadata_journal_issue_id or find_existing_journal_issue_id(journal_title)
+    cursor_exists = has_cursor_row(agent_id)
+
+    has_complete_metadata = bool(metadata_journal_issue_id)
+    if has_complete_metadata and cursor_exists:
+        state = "already complete"
+        action = "no-op"
+    elif discoverable_journal_issue_id:
+        state = "journal exists but cursor missing"
+        action = "adopt existing journal if needed, patch metadata if needed, upsert cursor"
+    else:
+        state = "nothing exists"
+        action = "create journal, patch metadata, upsert cursor"
+
+    if DRY_RUN:
+        print(f"DRY_RUN agent={agent_id} state={state} action={action}")
         return False
 
-    title = (full_agent.get("title") or full_agent.get("name") or agent_id).strip()
-    journal_payload = {
-        "title": f"[JOURNAL] {title} - Standing Corrections",
-        "description": (
-            "Corrections journal for this subordinate.\n\n"
-            "Source of truth for correction comments consumed by Foreman corrections sync."
-        ),
-        "status": "backlog",
-        "priority": "low",
-    }
-    journal_issue = req("POST", f"/companies/{COMPANY_ID}/issues", journal_payload)
-    journal_issue_id = (journal_issue.get("id") or "").strip()
+    journal_issue_id = discoverable_journal_issue_id
+    created_journal = False
+    patched_metadata = False
+
     if not journal_issue_id:
-        raise RuntimeError(f"Failed to create journal for agent {agent_id}")
+        journal_payload = {
+            "title": journal_title,
+            "description": (
+                "Corrections journal for this subordinate.\n\n"
+                "Source of truth for correction comments consumed by Foreman corrections sync."
+            ),
+            "status": "backlog",
+            "priority": "low",
+        }
+        journal_issue = req("POST", f"/companies/{COMPANY_ID}/issues", journal_payload)
+        journal_issue_id = (journal_issue.get("id") or "").strip()
+        if not journal_issue_id:
+            raise RuntimeError(f"Failed to create journal for agent {agent_id}")
+        created_journal = True
 
     merged_metadata = dict(metadata)
     merged_metadata["journal_issue_id"] = journal_issue_id
-    req("PATCH", f"/agents/{agent_id}", {"metadata": merged_metadata})
+    if merged_metadata != metadata:
+        req("PATCH", f"/agents/{agent_id}", {"metadata": merged_metadata})
+        patched_metadata = True
 
     req_supabase(
         "POST",
@@ -170,8 +238,11 @@ def ensure_journal(agent: dict) -> bool:
             }
         ],
     )
-    print(f"BACKFILLED {agent_id} journal={journal_issue_id}")
-    return True
+    print(
+        f"BACKFILLED {agent_id} journal={journal_issue_id} "
+        f"created_journal={created_journal} patched_metadata={patched_metadata} cursor_upserted=True"
+    )
+    return created_journal or patched_metadata
 
 
 agents = req("GET", f"/companies/{COMPANY_ID}/agents")
