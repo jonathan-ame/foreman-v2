@@ -1,3 +1,5 @@
+> Archived reference: This document describes the pre-migration RunPod pod architecture and is retained for historical context.
+
 # Phase 1 Spike: OpenClaw + RunPod Secure Cloud Roster
 
 ## Goal

@@ -3,11 +3,8 @@ node_modules/
 logs/
 *.log
 .openclaw-local/
-state/pods.json
-state/pods.json.bak-*
 state/integration-check-history.jsonl
 state/phase*-*.json
-state/*-pods.json
 state/ceo-agent-auth-probe-latest.json
 state/ceo-agent-auth-probe-history.jsonl
 state/ceo-agent-auth-probe-health.txt

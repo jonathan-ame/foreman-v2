@@ -1,13 +1,13 @@
 {
-  // Provider-per-role template. configure.sh fills __*_BASE_URL__ from state/pods.json.
+  // Provider-per-role template. configure.sh writes this file to ~/.openclaw/openclaw.json.
   agents: {
     defaults: {
       model: {
-        primary: "executor/Qwen/Qwen2.5-32B-Instruct",
+        primary: "executor/PLACEHOLDER_EXECUTOR_MODEL",
       },
       compaction: {
         mode: "safeguard",
-        model: "planner/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+        model: "planner/PLACEHOLDER_PLANNER_MODEL",
       },
       workspace: "~/.openclaw/workspace",
     },
@@ -22,7 +22,7 @@
       {
         id: "ceo-planner",
         model: {
-          primary: "planner/deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+          primary: "planner/PLACEHOLDER_PLANNER_MODEL",
         },
         // Keep probe/system prompt footprint small to preserve token headroom.
         workspace: "~/.openclaw/workspace/foreman-v2-ceo-min",
@@ -30,7 +30,7 @@
       {
         id: "ceo-executor",
         model: {
-          primary: "executor/Qwen/Qwen2.5-32B-Instruct",
+          primary: "executor/PLACEHOLDER_EXECUTOR_MODEL",
         },
         tools: {
           allow: [],
@@ -41,7 +41,7 @@
       {
         id: "ceo-reviewer",
         model: {
-          primary: "reviewer/Qwen/Qwen2.5-Coder-32B-Instruct",
+          primary: "reviewer/PLACEHOLDER_REVIEWER_MODEL",
         },
         tools: {
           allow: [],
@@ -56,69 +56,60 @@
     mode: "merge",
     providers: {
       executor: {
-        baseUrl: "__EXECUTOR_BASE_URL__",
-        apiKey: "${RUNPOD_API_KEY}",
+        baseUrl: "https://api.deepinfra.com/v1/openai",
+        apiKey: "${DEEPINFRA_API_KEY}",
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen2.5-32B-Instruct",
+            id: "PLACEHOLDER_EXECUTOR_MODEL",
             name: "Foreman v2 Executor",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
             contextWindow: 16384,
-            // Keep default small for startup/probe calls with large OpenClaw bootstrap prompts.
-            // Step-purpose overrides below request larger budgets where input size permits.
-            // Keep default tiny for heartbeat/probe calls against large system prompts.
             maxTokens: 64,
           },
         ],
       },
       planner: {
-        baseUrl: "__PLANNER_BASE_URL__",
-        apiKey: "${RUNPOD_API_KEY}",
+        baseUrl: "https://api.deepinfra.com/v1/openai",
+        apiKey: "${DEEPINFRA_API_KEY}",
         api: "openai-completions",
         models: [
           {
-            id: "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
+            id: "PLACEHOLDER_PLANNER_MODEL",
             name: "Foreman v2 Planner",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
             contextWindow: 16384,
-            // Default for short planner calls (plan generation/probes). Synthesis uses purpose override.
             maxTokens: 1024,
           },
         ],
       },
       reviewer: {
-        baseUrl: "__REVIEWER_BASE_URL__",
-        apiKey: "${RUNPOD_API_KEY}",
+        baseUrl: "https://api.deepinfra.com/v1/openai",
+        apiKey: "${DEEPINFRA_API_KEY}",
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen2.5-Coder-32B-Instruct",
+            id: "PLACEHOLDER_REVIEWER_MODEL",
             name: "Foreman v2 Reviewer",
             reasoning: true,
             input: ["text"],
             cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-            // Runtime served max_model_len from /v1/models (A100 80GB pod): 16384.
             contextWindow: 16384,
-            // Keep default small for startup/probe calls with large OpenClaw bootstrap prompts.
-            // Keep default tiny for heartbeat/probe calls against large system prompts.
             maxTokens: 64,
           },
         ],
       },
       embedding: {
-        baseUrl: "__EMBEDDING_BASE_URL__",
-        apiKey: "${RUNPOD_API_KEY}",
+        baseUrl: "https://api.deepinfra.com/v1/openai",
+        apiKey: "${DEEPINFRA_API_KEY}",
         api: "openai-completions",
         models: [
           {
-            id: "Qwen/Qwen3-Embedding-8B",
+            id: "PLACEHOLDER_EMBEDDING_MODEL",
             name: "Foreman v2 Embedding",
             reasoning: false,
             input: ["text"],

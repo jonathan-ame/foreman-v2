@@ -1,3 +1,5 @@
+> Archived reference: This document describes the pre-migration RunPod pod architecture and is retained for historical context.
+
 # Inference Endpoints (Phase 1 Corrected)
 
 ## Architecture

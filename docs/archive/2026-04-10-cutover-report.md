@@ -1,3 +1,5 @@
+> Archived reference: This document describes the pre-migration RunPod pod architecture and is retained for historical context.
+
 # 2026-04-10 H100 -> A100 Cutover Report
 
 ## Summary

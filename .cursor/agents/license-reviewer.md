@@ -28,7 +28,7 @@ Foreman v2 packages two open-source projects with self-hosted inference and a gu
 - **OpenClaw** (https://github.com/openclaw/openclaw) — MIT licensed, created by Peter Steinberger. Note: OpenClaw was forced to rename from "Clawdbot" to "Moltbot" to "OpenClaw" over trademark complaints from Anthropic in early 2026. The maintainers are demonstrably sensitive to trademark issues, and the user should be extra careful here.
 - **Paperclip** (https://paperclip.ing) — MIT licensed, created by the pseudonymous developer @dotta. Will be integrated in Phase 2.
 
-The user's product is named "Foreman" — that's their own name and trademark. Foreman is a multi-tenant SaaS that hosts OpenClaw + Paperclip with self-hosted RunPod inference and a non-technical onboarding experience. The business model is "we provide the models and the GPU, you get the agents."
+The user's product is named "Foreman" — that's their own name and trademark. Foreman is a multi-tenant SaaS that hosts OpenClaw + Paperclip with hosted inference and a non-technical onboarding experience. The business model is "we provide the models and the GPU, you get the agents."
 
 # What you specifically look for
 1. **Missing attribution.** Is `THIRD_PARTY_NOTICES.md` present? Does it list every open-source dependency the project ships? Does it include the full license text for each? Does it preserve copyright notices?

@@ -1,3 +1,5 @@
+> Archived reference: This document describes the pre-migration RunPod pod architecture and is retained for historical context.
+
 # Foreman v2 — Phase 1 Plan
 
 **Status:** **Complete** — Phase 1 shipped (**2026-04-08**). All exit criteria **1–10** satisfied; **T7.7** / **T7.8** closeout done (**D19**: RunPod 1-month savings-plan conversion **deferred 1–2 weeks** with recorded revisit window).

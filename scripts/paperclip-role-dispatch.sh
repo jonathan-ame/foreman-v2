@@ -4,25 +4,11 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ROUTING_FILE="${ROOT_DIR}/config/role-routing.json"
-STATE_FILE="${ROOT_DIR}/state/pods.json"
 OPENCLAW_CONFIG="${HOME}/.openclaw/openclaw.json"
 ROLE="${PAPERCLIP_ROLE:-executor}"
 
-temp_files=()
-cleanup() {
-  if [[ ${#temp_files[@]} -gt 0 ]]; then
-    rm -f "${temp_files[@]}"
-  fi
-}
-trap cleanup EXIT
-
 if [[ ! -f "${ROUTING_FILE}" ]]; then
   echo "ERROR: Missing routing config ${ROUTING_FILE}" >&2
-  exit 1
-fi
-
-if [[ ! -f "${STATE_FILE}" ]]; then
-  echo "ERROR: Missing pod state ${STATE_FILE}" >&2
   exit 1
 fi
 
@@ -32,48 +18,46 @@ if [[ ! -f "${OPENCLAW_CONFIG}" ]]; then
 fi
 
 resolved="$(
-python3 - "${ROUTING_FILE}" "${STATE_FILE}" "${OPENCLAW_CONFIG}" "${ROLE}" "${ROOT_DIR}" <<'PY'
+python3 - "${ROUTING_FILE}" "${OPENCLAW_CONFIG}" "${ROLE}" "${ROOT_DIR}" <<'PY'
 import json
 import sys
-
-routing_path, state_path, oc_path, role, root_dir = sys.argv[1:6]
-
 from pathlib import Path
 
+routing_path, oc_path, role, root_dir = sys.argv[1:5]
 sys.path.insert(0, str(Path(root_dir) / "scripts" / "lib"))
 from openclaw_config_helper import read_openclaw_config_atomic
 
 with open(routing_path, "r", encoding="utf-8") as f:
     routing = json.load(f)
-with open(state_path, "r", encoding="utf-8") as f:
-    state = json.load(f)
-oc, _ = read_openclaw_config_atomic(oc_path, attempts=5, delay_seconds=0.25)
+oc, _ = read_openclaw_config_atomic(Path(oc_path), attempts=5, delay_seconds=0.25)
 
 roles = routing.get("roles") or {}
 if role not in roles:
     raise SystemExit(f"ERROR: Unknown PAPERCLIP_ROLE '{role}'.")
 role_cfg = roles[role]
 
-pod_role = role_cfg.get("pod_role")
-provider = role_cfg.get("provider")
+provider_name = role_cfg.get("provider")
 model_id = role_cfg.get("model_id")
 transport = role_cfg.get("transport")
-if not all(isinstance(x, str) and x for x in [pod_role, provider, model_id, transport]):
+if not all(isinstance(x, str) and x for x in [provider_name, model_id, transport]):
     raise SystemExit(f"ERROR: Invalid routing config for role '{role}'.")
 
-pods = state.get("pods") or []
-pod = next((p for p in pods if isinstance(p, dict) and p.get("logical_name") == pod_role), None)
-if not pod:
-    raise SystemExit(f"ERROR: No pod found for role '{pod_role}' in state/pods.json.")
-base_url = pod.get("base_url")
-if not isinstance(base_url, str) or not base_url:
-    raise SystemExit(f"ERROR: Missing base_url for role '{pod_role}'.")
-
 providers = (((oc.get("models") or {}).get("providers") or {}))
-provider_cfg = providers.get(provider) or {}
-api_key = provider_cfg.get("apiKey")
-if not isinstance(api_key, str) or not api_key:
-    raise SystemExit(f"ERROR: Missing apiKey for provider '{provider}' in OpenClaw config.")
+provider_cfg = providers.get(provider_name) or {}
+base_url = str(provider_cfg.get("baseUrl") or "").strip().rstrip("/")
+api_key = str(provider_cfg.get("apiKey") or "").strip()
+
+if not base_url:
+    raise SystemExit(f"ERROR: Missing baseUrl for provider '{provider_name}' in OpenClaw config.")
+if not api_key:
+    raise SystemExit(f"ERROR: Missing apiKey for provider '{provider_name}' in OpenClaw config.")
+
+provider_models = provider_cfg.get("models") or []
+provider_model_ids = [m.get("id") for m in provider_models if isinstance(m, dict)]
+if model_id not in provider_model_ids:
+    raise SystemExit(
+        f"ERROR: Model {model_id} not listed under provider '{provider_name}' in OpenClaw config."
+    )
 
 if any(("\t" in v) or ("\n" in v) or ("\r" in v) for v in [transport, model_id, base_url, api_key]):
     raise SystemExit("ERROR: Invalid routing metadata: control/tab characters not allowed.")

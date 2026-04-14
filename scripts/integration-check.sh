@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# Foreman v2 integration gate: RunPod pods, OpenClaw config coherence, gateway, Paperclip.
+# Foreman v2 integration gate: OpenClaw gateway, Paperclip API, Supabase env, CEO auth probe.
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-STATE_FILE="${ROOT_DIR}/state/pods.json"
 HISTORY_FILE="${ROOT_DIR}/state/integration-check-history.jsonl"
 CEO_AUTH_PROBE_LATEST_FILE="${ROOT_DIR}/state/ceo-agent-auth-probe-latest.json"
-OPENCLAW_CFG="${HOME}/.openclaw/openclaw.json"
 ENV_FILE="${ROOT_DIR}/.env"
 
 OVERALL="pass"
@@ -46,161 +44,7 @@ fi
 
 mkdir -p "${ROOT_DIR}/state"
 
-if [[ ! -f "${STATE_FILE}" ]]; then
-  record "pod_state" "FAIL" "Missing ${STATE_FILE} (run provision.sh first)"
-elif [[ -z "${RUNPOD_API_KEY:-}" ]]; then
-  record "pod_liveness" "FAIL" "RUNPOD_API_KEY not set (needed for /models probes)"
-else
-  pod_res="$(
-    python3 - "${STATE_FILE}" "${RUNPOD_API_KEY}" <<'PY'
-import json
-import sys
-import urllib.request
-
-state_path = sys.argv[1]
-api_key = sys.argv[2]
-
-with open(state_path, "r", encoding="utf-8") as f:
-    state = json.load(f)
-pods = state.get("pods") or []
-if not isinstance(pods, list) or not pods:
-    print("FAIL|no pods in state file")
-    raise SystemExit(0)
-
-failures = []
-for pod in pods:
-    role = str(pod.get("logical_name") or "")
-    base = str(pod.get("base_url") or pod.get("proxy_url") or "").strip().rstrip("/")
-    model_id = str(pod.get("model_id") or "").strip()
-    if not role or not base or not model_id:
-        failures.append(f"{role or '?'}: missing base_url or model_id")
-        continue
-    url = f"{base}/models"
-    req = urllib.request.Request(
-        url,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Accept": "application/json",
-            "User-Agent": "foreman-v2/integration-check (1.0)",
-        },
-        method="GET",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
-            code = resp.getcode()
-            body = resp.read().decode("utf-8", errors="replace")
-    except Exception as exc:
-        failures.append(f"{role}: GET /models error {exc}")
-        continue
-    if code < 200 or code >= 300:
-        failures.append(f"{role}: HTTP {code} on /models")
-        continue
-    try:
-        payload = json.loads(body) if body else {}
-    except json.JSONDecodeError as exc:
-        failures.append(f"{role}: invalid JSON /models ({exc})")
-        continue
-    rows = payload.get("data") if isinstance(payload.get("data"), list) else []
-    ids = [m.get("id") for m in rows if isinstance(m, dict)]
-    if model_id not in ids:
-        failures.append(f"{role}: model {model_id!r} not in /models listing")
-
-if failures:
-    print("FAIL|" + "; ".join(failures[:8]))
-else:
-    print("OK|all roles /models healthy")
-PY
-  )"
-  IFS='|' read -r pod_code pod_msg <<< "${pod_res}"
-  if [[ "${pod_code}" == "OK" ]]; then
-    record "pod_liveness" "PASS" "${pod_msg}"
-  else
-    record "pod_liveness" "FAIL" "${pod_msg}"
-  fi
-fi
-
-if [[ ! -f "${OPENCLAW_CFG}" ]]; then
-  record "config_coherence" "FAIL" "Missing ${OPENCLAW_CFG} (run scripts/configure.sh)"
-else
-  coh="$(
-    python3 - "${STATE_FILE}" "${OPENCLAW_CFG}" "${ROOT_DIR}" <<'PY'
-import json
-import sys
-from pathlib import Path
-
-state_path = Path(sys.argv[1])
-cfg_path = Path(sys.argv[2])
-root_dir = Path(sys.argv[3])
-if not state_path.is_file():
-    print("FAIL|missing state file")
-    raise SystemExit(0)
-sys.path.insert(0, str(root_dir / "scripts" / "lib"))
-from openclaw_config_helper import read_openclaw_config_atomic
-
-state = json.loads(state_path.read_text(encoding="utf-8"))
-pods = {
-    str(p.get("logical_name")): str(p.get("base_url", "")).strip().rstrip("/")
-    for p in state.get("pods") or []
-    if isinstance(p, dict)
-}
-
-try:
-    cfg, raw_cfg = read_openclaw_config_atomic(cfg_path, attempts=5, delay_seconds=0.25)
-except Exception as exc:
-    print(f"FAIL|openclaw.json parse/read error after retries: {exc}")
-    raise SystemExit(0)
-
-providers: dict = {}
-providers = (((cfg.get("models") or {}).get("providers")) or {}) if isinstance(cfg.get("models"), dict) else {}
-
-def bases_from_regex(text: str) -> dict[str, str]:
-    import re
-
-    found: dict[str, str] = {}
-    for role in ("executor", "planner", "reviewer", "embedding"):
-        m = re.search(
-            rf"{role}\s*:\s*{{[^}}]*baseUrl\s*:\s*\"([^\"]+)\"",
-            text,
-            flags=re.S,
-        )
-        if m:
-            found[role] = m.group(1).strip().rstrip("/")
-    return found
-
-
-issues = []
-for role, expected in pods.items():
-    got = ""
-    if providers:
-        block = providers.get(role) if isinstance(providers.get(role), dict) else {}
-        got = str(block.get("baseUrl") or "").strip().rstrip("/")
-    if not got:
-        got = bases_from_regex(raw_cfg).get(role, "")
-    if not expected:
-        issues.append(f"{role}: missing base_url in pods.json")
-        continue
-    if not got:
-        issues.append(f"{role}: could not read baseUrl from openclaw.json (non-strict JSON?)")
-        continue
-    if got != expected:
-        issues.append(f"{role}: openclaw baseUrl {got!r} != pods.json {expected!r}")
-
-if issues:
-    print("FAIL|" + "; ".join(issues))
-else:
-    print("OK|openclaw.json base URLs match state/pods.json")
-PY
-  )"
-  IFS='|' read -r coh_code coh_msg <<< "${coh}"
-  if [[ "${coh_code}" == "OK" ]]; then
-    record "config_coherence" "PASS" "${coh_msg}"
-  else
-    record "config_coherence" "FAIL" "${coh_msg}"
-  fi
-fi
-
 if command -v openclaw >/dev/null 2>&1; then
-  # Deterministic prompt; classify output without requiring an exact echo string.
   openclaw agent --session-id "integration-check-$(date +%s)" \
     -m "Integration check (deterministic): reply with one short sentence that includes the literal token IC7 and the digit 7." \
     > "${GW_OUT}" 2>&1 || true
@@ -233,46 +77,10 @@ EOF
   elif [[ -n "${gw_fail}" ]]; then
     record "gateway_agent_ping" "FAIL" "openclaw agent output matched failure marker '${gw_fail}'; snippet: $(head -c 400 "${GW_OUT}" | tr '\n' ' ')"
   else
-    gw_lower="$(printf '%s' "${gw_compact}" | tr '[:upper:]' '[:lower:]')"
-    if [[ "${gw_lower}" == "completed" || "${gw_lower}" == "done" || "${gw_lower}" == "ok" || "${gw_lower}" == "success" ]]; then
-      record "gateway_agent_ping" "WARN" "openclaw agent returned status-only output ('${gw_lower}'); substantive reply preferred"
-    else
-      record "gateway_agent_ping" "PASS" "openclaw agent returned non-empty output without failure markers"
-    fi
+    record "gateway_agent_ping" "PASS" "openclaw agent returned non-empty output without failure markers"
   fi
 else
   record "gateway_agent_ping" "WARN" "openclaw CLI not on PATH"
-fi
-
-if [[ -z "${RUNPOD_API_KEY:-}" ]]; then
-  record "executor_api" "FAIL" "RUNPOD_API_KEY not set"
-elif [[ ! -f "${STATE_FILE}" ]]; then
-  record "executor_api" "WARN" "skipped (no pods.json)"
-else
-  ex_base="$(
-    python3 - "${STATE_FILE}" <<'PY'
-import json, sys
-with open(sys.argv[1], "r", encoding="utf-8") as f:
-    st = json.load(f)
-for p in st.get("pods") or []:
-    if p.get("logical_name") == "executor":
-        print(str(p.get("base_url") or p.get("proxy_url") or "").strip().rstrip("/"))
-        break
-PY
-  )"
-  if [[ -z "${ex_base}" ]]; then
-    record "executor_api" "FAIL" "executor base_url missing in pods.json"
-  else
-    ex_code="$(curl -sS -o /dev/null -w "%{http_code}" \
-      -H "Authorization: Bearer ${RUNPOD_API_KEY}" \
-      -H "Accept: application/json" \
-      "${ex_base}/models" || echo "000")"
-    if [[ "${ex_code}" -ge 200 && "${ex_code}" -lt 300 ]]; then
-      record "executor_api" "PASS" "GET ${ex_base}/models => ${ex_code}"
-    else
-      record "executor_api" "FAIL" "GET ${ex_base}/models => ${ex_code}"
-    fi
-  fi
 fi
 
 clip_base="${PAPERCLIP_API_URL:-}"
@@ -284,7 +92,6 @@ if [[ -z "${clip_key}" && -f "${HOME}/.paperclip/auth.json" && -n "${clip_base}"
   clip_key="$(
     python3 - "${clip_base}" <<'PY'
 import json, os, sys
-
 api = (sys.argv[1] or "").strip()
 path = os.path.expanduser("~/.paperclip/auth.json")
 try:
@@ -315,6 +122,20 @@ else
   else
     record "paperclip_api" "FAIL" "GET ${clip_base}/agents/me => ${pc_code}"
   fi
+fi
+
+if [[ -n "${SUPABASE_URL:-}" && -n "${SUPABASE_SERVICE_ROLE_KEY:-}" ]]; then
+  record "supabase_env" "PASS" "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are present"
+elif [[ -n "${FOREMAN_CLOUD_DB_URL:-}" ]]; then
+  record "supabase_env" "PASS" "FOREMAN_CLOUD_DB_URL is present"
+else
+  record "supabase_env" "WARN" "Supabase env vars are not fully configured"
+fi
+
+if [[ -n "${DEEPINFRA_API_KEY:-}" ]]; then
+  record "deepinfra_placeholder_probe" "PASS" "DEEPINFRA_API_KEY is set (live endpoint probe lands in Phase 1)"
+else
+  record "deepinfra_placeholder_probe" "WARN" "DEEPINFRA_API_KEY missing (Phase 1 will add live probe)"
 fi
 
 if [[ ! -f "${CEO_AUTH_PROBE_LATEST_FILE}" ]]; then

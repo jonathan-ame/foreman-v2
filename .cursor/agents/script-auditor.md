@@ -50,7 +50,7 @@ Then a bulleted list grouped by severity:
 End with a "What I checked but didn't find issues with" section listing the categories from the checklist above where you looked and found nothing concerning. This helps the user know you actually reviewed for those things rather than just missed them.
 
 # Project context
-The user is building Foreman v2, a packaging layer around OpenClaw and Paperclip with self-hosted RunPod inference. The scripts you'll review are mostly in `foreman-v2/scripts/` and include things like `provision.sh` (creates RunPod pods), `teardown.sh` (terminates them), `configure.sh` (writes OpenClaw config), `smoke-test.sh` (verifies the stack works). Many of these scripts call the RunPod API and create cloud resources that cost money. The user is very cost-sensitive and very allergic to scripts that fail halfway and leave billing infrastructure orphaned.
+The user is building Foreman v2, a packaging layer around OpenClaw and Paperclip with hosted inference routing. The scripts you'll review are mostly in `foreman-v2/scripts/` and include runtime/configuration/integration paths. The user is very cost-sensitive and very allergic to scripts that fail halfway and leave billing infrastructure orphaned.
 
 The user is not a programmer and relies on review agents to catch what they can't catch themselves. Be thorough, be specific, and err on the side of flagging things that might be issues rather than staying silent.
 

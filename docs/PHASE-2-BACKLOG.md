@@ -13,7 +13,7 @@ Phase 2 is now queued as an actionable execution plan.
 ## Phase 2 Queue (Paperclip integration)
 
 **Status:** in progress (closeout stage)  
-**Scope cap:** stay on OpenClaw + three RunPod pods; do not pull in Phase 3/4 work unless explicitly re-decided.
+**Scope cap:** stay on OpenClaw + the current hosted inference substrate; do not pull in Phase 3/4 work unless explicitly re-decided.
 
 | ID | Task | Status | Depends on | Notes |
 |---|---|---|---|---|
@@ -51,7 +51,7 @@ Phase 2 is now queued as an actionable execution plan.
 ## P2.1 completion evidence (2026-04-08)
 
 - Local trusted Paperclip baseline running on `http://127.0.0.1:3110` after `npx paperclipai@2026.403.0 onboard --yes`.
-- Paperclip agents moved off `cursor`/`opencode` path to OpenClaw process wrapper (`scripts/paperclip-openclaw-worker.sh`) so runtime goes through OpenClaw -> RunPod pods.
+- Paperclip agents moved off `cursor`/`opencode` path to OpenClaw process wrapper (`scripts/paperclip-openclaw-worker.sh`) so runtime goes through OpenClaw provider routing.
 - Success runs captured: `ee97b599-475d-41d0-895b-478bee5b3d84` (OpenClawWorker), `14582c91-7c68-42e0-9c2f-9f3cf6f9668d` (CEO).
 - Failure-loud run captured: `11c1d128-82d3-4d27-a98c-3d2b9cf24c71` (intentional broken gateway override, exits non-zero with explicit error).
 
@@ -74,7 +74,7 @@ Phase 2 is now queued as an actionable execution plan.
 
 Required:
 
-- `RUNPOD_API_KEY` (existing OpenClaw provider auth)
+- `DEEPINFRA_API_KEY` (OpenClaw provider auth for hosted inference)
 - `PAPERCLIP_BASE_URL` (default `http://127.0.0.1:3100`)
 - `OPENCLAW_GATEWAY_URL` (default `http://127.0.0.1:18789`)
 
@@ -103,5 +103,5 @@ Optional (recommended local defaults in `.env.example`):
 
 ## Notes
 
-- Phase 1 remains complete as OpenClaw + RunPod inference + verified WebChat.
+- Phase 1 remains complete as OpenClaw runtime + hosted inference routing + verified WebChat.
 - Any Phase 3/4 item pulled into Phase 2 requires an explicit plan decision update.

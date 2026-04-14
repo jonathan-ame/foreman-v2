@@ -1,41 +1,41 @@
 {
   "version": 1,
   "owner": "foreman-v2",
-  "source_of_truth": "Phase 2 P2.2 role routing contract",
+  "source_of_truth": "OpenClaw provider routing contract",
   "roles": {
     "executor": {
       "provider": "executor",
-      "pod_role": "executor",
+      "route_role": "executor",
       "transport": "openclaw_agent",
-      "model_id": "Qwen/Qwen2.5-32B-Instruct",
-      "base_url_source": "state/pods.json",
+      "model_id": "PLACEHOLDER_EXECUTOR_MODEL",
+      "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Default interactive and chat path."
     },
     "planner": {
       "provider": "planner",
-      "pod_role": "planner",
+      "route_role": "planner",
       "transport": "openai_chat",
-      "model_id": "deepseek-ai/DeepSeek-R1-Distill-Qwen-32B",
-      "base_url_source": "state/pods.json",
+      "model_id": "PLACEHOLDER_PLANNER_MODEL",
+      "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Reasoning and planning path."
     },
     "embedding": {
       "provider": "embedding",
-      "pod_role": "embedding",
+      "route_role": "embedding",
       "transport": "openai_embeddings",
-      "model_id": "Qwen/Qwen3-Embedding-8B",
-      "base_url_source": "state/pods.json",
+      "model_id": "PLACEHOLDER_EMBEDDING_MODEL",
+      "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/embeddings",
       "notes": "Embedding and vector path."
     },
     "reviewer": {
       "provider": "reviewer",
-      "pod_role": "reviewer",
+      "route_role": "reviewer",
       "transport": "openai_chat",
-      "model_id": "Qwen/Qwen2.5-Coder-32B-Instruct",
-      "base_url_source": "state/pods.json",
+      "model_id": "PLACEHOLDER_REVIEWER_MODEL",
+      "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Code review and codebase QA path."
     }

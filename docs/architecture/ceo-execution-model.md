@@ -1,8 +1,24 @@
 # CEO Execution Model Rework (Design-Only)
 
+## Substrate change: DeepInfra replaces RunPod pods (April 2026)
+
+The decomposition architecture in this document remains active and unchanged in
+intent. The implementation substrate changed from self-hosted vLLM pods to
+DeepInfra-hosted endpoints.
+
+OpenClaw remains the agent runtime. Scoped CEO bindings (`ceo-planner`,
+`ceo-executor`, `ceo-reviewer`) still exist in
+`config/openclaw.foreman.json` and now resolve to DeepInfra model selections
+per role rather than pod URLs.
+
+The tool-call recording work (Phase 2 prior work) and fact-checker work (Phase
+3 prior work) are substrate-independent and remain in scope.
+`config/openclaw.foreman.json` remains the source of truth for per-role model
+selection and now targets DeepInfra model IDs.
+
 Status: proposed (no implementation in this document)
 Scope: CEO execution path in `scripts/paperclip-openclaw-executor.sh` plus additive pipeline modules and config wiring
-Out of scope: changing auth/checkout semantics validated in `b3fab4b`, changing RunPod provisioning scripts, replacing Paperclip heartbeat protocol
+Out of scope: changing auth/checkout semantics validated in `b3fab4b`, changing legacy pod provisioning scripts, replacing Paperclip heartbeat protocol
 
 ---
 
@@ -171,20 +187,20 @@ Proposed planner prompt (first call every task):
 
 > You are the CEO planner. Return only strict JSON (no markdown, no prose).  
 > Build an execution plan for task `{task_id}`.  
-> You may choose only from this pod/model menu:
+> You may choose only from this role/model menu:
 > - planner: deepseek-ai/DeepSeek-R1-Distill-Qwen-32B (`agent_binding=ceo-planner`)
 > - executor: Qwen/Qwen2.5-32B-Instruct (`agent_binding=ceo-executor`)
 > - reviewer: Qwen/Qwen2.5-Coder-32B-Instruct (`agent_binding=ceo-reviewer`)
 >  
 > Rules:
 > - Include 1..N ordered steps and one synthesis section.
-> - Each step must define `step_id`, `intent`, `pod`, `model`, `agent_binding`, `input_refs`, `output_ref`, and `verification`.
-> - Do not invent unavailable pods/models.
+> - Each step must define `step_id`, `intent`, `role`, `model`, `agent_binding`, `input_refs`, `output_ref`, and `verification`.
+> - Do not invent unavailable roles/models.
 > - Use one step only if the task is trivially answerable without tool-backed claims.
 
 Plan validation behavior:
 - Parse JSON with strict schema validation.
-- Validate pod/model against an allowed static menu derived from `state/pods.json` + config.
+- Validate role/model against an allowed static menu derived from `config/openclaw.foreman.json`.
 - On malformed/invalid plan: **fail loud** and mark issue `blocked` with validation error (no fallback single-step auto-plan).
 
 ### B3. Execution loop design
@@ -219,9 +235,9 @@ Why this over config reload or direct HTTP calls:
 Proposed per-run layout:
 
 - `state/run-logs/<run_id>/plan.json`
-- `state/run-logs/<run_id>/step-<n>-<step_id>-<pod>.raw.txt`
-- `state/run-logs/<run_id>/step-<n>-<step_id>-<pod>.verified.json`
-- `state/run-logs/<run_id>/step-<n>-<step_id>-<pod>.accepted.md`
+- `state/run-logs/<run_id>/step-<n>-<step_id>-<role>.raw.txt`
+- `state/run-logs/<run_id>/step-<n>-<step_id>-<role>.verified.json`
+- `state/run-logs/<run_id>/step-<n>-<step_id>-<role>.accepted.md`
 - `state/run-logs/<run_id>/synthesis.raw.txt`
 - `state/run-logs/<run_id>/synthesis.verified.md`
 - `state/run-logs/<run_id>/tool-calls.jsonl`
@@ -234,9 +250,9 @@ This enables:
 
 ### B5. Fail-loud rules (decision locked)
 
-- Pod unreachable: fail current step -> mark task `blocked` with exact endpoint/error.
+- Provider endpoint unreachable: fail current step -> mark task `blocked` with exact endpoint/error.
 - Empty/malformed step output: fail step immediately; no implicit alternate model routing.
-- Plan references unknown pod/model or missing `state/pods.json` mapping: hard fail before step execution.
+- Plan references unknown role/model or missing OpenClaw provider mapping: hard fail before step execution.
 - Verification timeout/failure: reject step output; do not synthesize from unverified text.
 
 No silent downgrade rules:
@@ -542,12 +558,12 @@ Proposed change is additive and does not require modifying:
 - auth/run-jwt/run-id mechanics (`b3fab4b` path),
 - checkout ownership handling,
 - heartbeat picker logic,
-- RunPod provisioning scripts.
+- legacy pod provisioning scripts.
 
 Expected implementation shape:
 - new pipeline module(s),
 - one branch point in `scripts/paperclip-openclaw-executor.sh` gated by `FOREMAN_CEO_PIPELINE_MODE`,
-- keep existing single-pod path intact during migration.
+- keep existing single-model path intact during migration.
 
 Potentially impacted by config-only decisions:
 - if default model is globally flipped instead of scoped bindings, Chief path behavior may change (not recommended).

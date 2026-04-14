@@ -14,6 +14,14 @@ Additional third-party notices may apply to other distributed components.
 OpenClaw is an independent open-source project and is not affiliated with or
 endorsed by Foreman.
 
+## DeepInfra (Placeholder)
+
+- **Service:** DeepInfra
+- **Source:** https://deepinfra.com
+- **Notice status:** Placeholder entry for Phase 1 migration follow-up
+- **Action:** Add final legal/attribution language once the DeepInfra integration
+  contract is finalized.
+
 ### MIT License (OpenClaw)
 
 MIT License
