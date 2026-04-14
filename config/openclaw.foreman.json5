@@ -68,9 +68,6 @@
   models: {
     mode: "merge",
     providers: {
-      // Legacy shell-path compatibility shim:
-      // scripts/paperclip-openclaw-executor.sh preflight requires models.providers.executor
-      // with baseUrl/apiKey/models[].id, even though runtime model routing is now provider-native.
       executor: {
         baseUrl: "https://api.together.xyz/v1",
         apiKey: "${TOGETHER_API_KEY}",
@@ -159,16 +156,4 @@
       },
     },
   },
-
-  gateway: {
-    mode: "local",
-    bind: "loopback",
-    http: {
-      endpoints: {
-        chatCompletions: { enabled: true },
-      },
-    },
-  },
-
-  channels: {},
 }

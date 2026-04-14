@@ -4,50 +4,43 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 ENV_FILE="${ROOT_DIR}/.env"
-TEMPLATE_FILE="${ROOT_DIR}/config/openclaw.foreman.json"
-OPENCLAW_HOME="${HOME}/.openclaw"
-TARGET_CONFIG="${OPENCLAW_HOME}/openclaw.json"
+TEMPLATE_FILE="${ROOT_DIR}/config/openclaw.foreman.json5"
+TARGET_INCLUDE="${HOME}/.openclaw/foreman.json5"
 
-if [[ ! -f "${ENV_FILE}" ]]; then
-  echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2
-  exit 1
-fi
+[[ -f "${ENV_FILE}" ]] || { echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2; exit 1; }
+[[ -f "${TEMPLATE_FILE}" ]] || { echo "ERROR: Missing template ${TEMPLATE_FILE}." >&2; exit 1; }
 
 set -a
 # shellcheck disable=SC1090
 source "${ENV_FILE}"
 set +a
 
-if [[ ! -f "${TEMPLATE_FILE}" ]]; then
-  echo "ERROR: Missing template ${TEMPLATE_FILE}." >&2
-  exit 1
+for key in TOGETHER_API_KEY DASHSCOPE_US_KEY DASHSCOPE_SG_KEY; do
+  [[ -n "${!key:-}" ]] || { echo "ERROR: Missing ${key} in .env" >&2; exit 1; }
+done
+
+mkdir -p "$(dirname "${TARGET_INCLUDE}")"
+
+if [[ -f "${TARGET_INCLUDE}" ]]; then
+  cp "${TARGET_INCLUDE}" "${TARGET_INCLUDE}.bak-$(date +%Y%m%d-%H%M%S)"
 fi
 
-mkdir -p "${OPENCLAW_HOME}"
+python3 - "${TEMPLATE_FILE}" "${TARGET_INCLUDE}" <<'PY'
+import os, re, sys
+src, dst = sys.argv[1], sys.argv[2]
+with open(src) as f:
+    content = f.read()
+def sub(match):
+    var = match.group(1)
+    val = os.environ.get(var, '')
+    if not val:
+        raise SystemExit(f"ERROR: template references ${{{var}}} but not set in env")
+    return val
+content = re.sub(r'\$\{([A-Z_][A-Z0-9_]*)\}', sub, content)
+with open(dst, 'w') as f:
+    f.write(content)
+os.chmod(dst, 0o600)
+PY
 
-if [[ -f "${TARGET_CONFIG}" ]]; then
-  backup_path="${TARGET_CONFIG}.bak-$(date +%Y%m%d-%H%M%S)"
-  cp "${TARGET_CONFIG}" "${backup_path}"
-  echo "Backed up existing config to ${backup_path}"
-fi
-
-cp "${TEMPLATE_FILE}" "${TARGET_CONFIG}"
-
-node - "${TARGET_CONFIG}" <<'JS'
-const fs = require("node:fs");
-const path = process.argv[2];
-const { createRequire } = require("node:module");
-const text = fs.readFileSync(path, "utf-8");
-const req = createRequire(process.cwd() + "/");
-let json5;
-try {
-  json5 = req("json5");
-} catch (_) {
-  const fallback = createRequire("/opt/homebrew/lib/node_modules/openclaw/package.json");
-  json5 = fallback("json5");
-}
-json5.parse(text);
-JS
-
-echo "Wrote ${TARGET_CONFIG}"
-echo "Configuration uses Together AI planner + DashScope two-region workers."
+echo "Wrote ${TARGET_INCLUDE} (mode 600)"
+echo "OpenClaw will pick up the new include on next gateway start or 'openclaw secrets reload'."
