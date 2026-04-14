@@ -18,11 +18,6 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-if [[ -z "${DEEPINFRA_API_KEY:-}" ]]; then
-  echo "ERROR: DEEPINFRA_API_KEY is required in ${ENV_FILE}." >&2
-  exit 1
-fi
-
 if [[ ! -f "${TEMPLATE_FILE}" ]]; then
   echo "ERROR: Missing template ${TEMPLATE_FILE}." >&2
   exit 1
@@ -55,4 +50,4 @@ json5.parse(text);
 JS
 
 echo "Wrote ${TARGET_CONFIG}"
-echo "Configuration uses DeepInfra OpenAI-compatible placeholders and OpenClaw role bindings."
+echo "Configuration uses Together AI planner + DashScope two-region workers."
