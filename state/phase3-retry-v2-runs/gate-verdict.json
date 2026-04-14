@@ -1,0 +1,29 @@
+{
+  "phase": "Phase 3 retry v2",
+  "verdict": "RED",
+  "generated_at_utc": "2026-04-14T05:10:00Z",
+  "evidence": {
+    "manifest": "state/phase3-retry-v2-runs/manifest.json",
+    "per_run_logs": "state/phase3-retry-v2-runs/*.log (tracked via git add -f; *.log is normally gitignored)"
+  },
+  "substrate_checks": {
+    "foreman_template": "config/openclaw.foreman.json updated: together planner, DashScope US/SG env var names, executor shim -> Together deepseek-ai/DeepSeek-V3.1, no deepseek provider block",
+    "runtime_openclaw_json": "~/.openclaw/openclaw.json copied from this template (scripts/configure.sh blocked by invalid bash token in .env line containing ${{shared.CLOUD_MODE}})",
+    "runtime_ceo_models_json": "~/.openclaw/agents/ceo/agent/models.json patched: removed deepseek provider + hardcoded secret from executor shim; added together + qwen_embedding; qwen apiKey -> DASHSCOPE_US_KEY",
+    "runtime_workspace_ceo_agents_md": "~/.openclaw/workspace-ceo/AGENTS.md updated (not committed; canonical operator path outside git)",
+    "openclaw_models_list": "PASS: together/deepseek-ai/DeepSeek-V3.1 + qwen/* workers + qwen_embedding/text-embedding-v4; no deepseek/* or groq/* rows in configured catalog (vLLM discovery WARN unrelated)",
+    "openclaw_agents_list_bindings": "PASS: ceo primary together/deepseek-ai/DeepSeek-V3.1",
+    "integration_check": "PASS after targeted substrate edits (./scripts/integration-check.sh)"
+  },
+  "curl_probes": {
+    "dashscope_us_qwen3_coder_plus": "200 (from python urllib using DASHSCOPE_US_KEY)",
+    "dashscope_sg_text_embedding_v4": "200 dim=1024 (DASHSCOPE_SG_KEY)",
+    "together_chat_completions": "403 Cloudflare error 1010 from this automation environment (not treated as key invalidity); openclaw agent ping still PASS in integration-check"
+  },
+  "gate_failures": [
+    "Adapter path (ceo-test-adapter / openclaw_gateway): all three issues remained todo with zero Paperclip comments. Gateway streams show missing ~/.openclaw/workspace/paperclip-claimed-api-key.json for curl-based Paperclip calls, and (on code shape) lifecycle errors referencing deepseek/deepseek-chat billing + rate limits before falling back to non-task output.",
+    "Critical regression check NOT met: no captured evidence of sessions_spawn with qwen/qwen3-coder-plus in repo log artifacts for adapter or shell paths (grep over state/phase3-retry-v2-runs/*.log had no matches). Shell code task still produced grounded file excerpt in Paperclip comment.",
+    "Shell short path: npx heartbeat CLI exit=1 / Paperclip run timed_out at 300s while issue FOR-116 still transitioned to done with CEO-authored comment containing 42 (19+23). This is an inconsistency to investigate (CLI timeout vs successful executor completion)."
+  ],
+  "fact_checker": "Not wired for this gate capture (no fact-checker verdict produced)."
+}

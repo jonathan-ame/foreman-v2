@@ -1,0 +1,30 @@
+Invoked heartbeat run bb3c3c54-4d92-4049-b4c7-cdd3dd248a1b for agent CEO (a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af)
+Status: queued
+[event] lifecycle: run started
+Status: running
+[paperclip] No project or prior session workspace was available. Using fallback workspace "/Users/jonathanborgia/tmp-paperclip-ceo-reset/data/instances/ceo-baseline/workspaces/a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af" for this run.
+Adapter: process
+Working dir: /Users/jonathanborgia/foreman-git/foreman-v2
+Command: /Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh
+Env:
+{
+  "HOME": "/Users/jonathanborgia",
+  "PAPERCLIP_ROLE": "executor",
+  "PAPERCLIP_RUN_ID": "bb3c3c54-4d92-4049-b4c7-cdd3dd248a1b",
+  "PAPERCLIP_API_KEY": "***REDACTED***",
+  "PAPERCLIP_API_URL": "http://127.0.0.1:3125",
+  "PAPERCLIP_AGENT_ID": "a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af",
+  "PAPERCLIP_COMPANY_ID": "5d1780c4-7574-4632-a97d-a9917b1f2fc0",
+  "PAPERCLIP_WAKE_REASON": "on_demand",
+  "PAPERCLIP_RESOLVED_COMMAND": "/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh",
+  "PAPERCLIP_CEO_AGENT_API_KEY": "***REDACTED***"
+}
+[executor] env_probe agent_id=a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af run_id=bb3c3c54-4d92-4049-b4c7-cdd3dd248a1b wake_reason=on_demand task_id=none
+[executor] heartbeat bootstrap run_id=bb3c3c54-4d92-4049-b4c7-cdd3dd248a1b
+[executor] checkout_issue task_id=24d23780-e4f5-40d1-860c-9c8adb04a24e
+[executor] openclaw_attempt_start mode=default session_id=pc-5d1780c4-a81ff4a7-24d23780-bb3c3c-1776142957
+[event] lifecycle: run succeeded
+Status: succeeded
+Run bb3c3c54-4d92-4049-b4c7-cdd3dd248a1b completed with status succeeded
+
+--- STDERR ---
