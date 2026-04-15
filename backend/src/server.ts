@@ -6,6 +6,7 @@ import { env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
 import { startJobs } from "./jobs/runner.js";
 import { registerAgentRoutes } from "./routes/agents.js";
+import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
 
 const logger = createLogger("server");
 
@@ -19,6 +20,7 @@ app.get("/health", (c) => {
   });
 });
 registerAgentRoutes(app, deps);
+registerStripeWebhookRoutes(app, deps);
 
 const isTestRun = process.env.VITEST === "true";
 const jobsOnly = process.argv.includes("--jobs-only");

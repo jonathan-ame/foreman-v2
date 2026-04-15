@@ -1,7 +1,8 @@
 import type { Logger } from "pino";
+import type Stripe from "stripe";
 import type { ApprovalAction, HireAgentRequest, HireAgentResponse, PaperclipAgent, PendingApproval } from "../../clients/paperclip/types.js";
 import type { OpenClawAgentRecord, OpenClawAgentSpec } from "../../clients/openclaw/types.js";
-import type { PaymentStatus } from "../../clients/stripe/types.js";
+import type { PaymentIntentResult, PaymentStatus } from "../../clients/stripe/types.js";
 import type { SupabaseClient } from "../../db/supabase.js";
 import type { ProvisionInput } from "../types.js";
 
@@ -31,6 +32,10 @@ export interface StripeClientLike {
   getSubscriptionStatus(stripeCustomerId: string): Promise<PaymentStatus>;
   hasFailedPaymentSince(stripeCustomerId: string, since: Date): Promise<boolean>;
   getPrepaidBalanceCents(stripeCustomerId: string): Promise<number>;
+  createSubscription(stripeCustomerId: string, productId: string): Promise<string>;
+  cancelSubscription(subscriptionId: string): Promise<void>;
+  createPaymentIntent(stripeCustomerId: string, amountCents: number): Promise<PaymentIntentResult>;
+  constructWebhookEvent(payload: string, signature: string, webhookSecret: string): Stripe.Event;
 }
 
 export interface StepContext {

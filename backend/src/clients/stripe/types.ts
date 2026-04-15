@@ -13,3 +13,9 @@ export interface Customer {
   email: string;
   balance: number;
 }
+
+export interface PaymentIntentResult {
+  id: string;
+  status: string;
+  clientSecret: string | null;
+}

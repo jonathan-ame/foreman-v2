@@ -1,0 +1,18 @@
+{
+  "tier_1": {
+    "product_id": "prod_UHY7w3iGJPkylV",
+    "price_id": "price_1TIz16LIeTmtbHlGztPskQJJ"
+  },
+  "tier_2": {
+    "product_id": "prod_ULIADDARZ78XQ6",
+    "price_id": "price_1TMbalLIeTmtbHlGXoY5ceFx"
+  },
+  "tier_3": {
+    "product_id": "prod_ULIAV807qOe8WE",
+    "price_id": "price_1TMbakLIeTmtbHlGQ9QpVgcv"
+  },
+  "byok_platform": {
+    "product_id": "prod_ULIA2SfSFYLBGI",
+    "price_id": "price_1TMbakLIeTmtbHlGu8Oz8tUc"
+  }
+}

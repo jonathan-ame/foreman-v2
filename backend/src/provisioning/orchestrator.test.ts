@@ -59,7 +59,13 @@ const buildDeps = () => {
       stripe: {
         getSubscriptionStatus: vi.fn().mockResolvedValue("active"),
         hasFailedPaymentSince: vi.fn().mockResolvedValue(false),
-        getPrepaidBalanceCents: vi.fn().mockResolvedValue(100)
+        getPrepaidBalanceCents: vi.fn().mockResolvedValue(100),
+        createSubscription: vi.fn().mockResolvedValue("sub_1"),
+        cancelSubscription: vi.fn().mockResolvedValue(undefined),
+        createPaymentIntent: vi
+          .fn()
+          .mockResolvedValue({ id: "pi_1", status: "requires_payment_method", clientSecret: "secret_1" }),
+        constructWebhookEvent: vi.fn()
       },
       openclaw: {
         addAgent: vi.fn().mockResolvedValue({ id: "ws-ceo", workspace: "/tmp/ws", defaultAgent: false }),

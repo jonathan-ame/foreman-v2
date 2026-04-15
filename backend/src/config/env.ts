@@ -20,8 +20,12 @@ const envSchema = z.object({
   OPENCLAW_INCLUDE_PATH: z.string().min(1).default("~/.openclaw/foreman.json5"),
   OPENROUTER_API_KEY: z.string().min(1),
   DASHSCOPE_SG_KEY: z.string().min(1),
-  STRIPE_SECRET_KEY: z.string().optional(),
-  STRIPE_WEBHOOK_SECRET: z.string().optional(),
+  STRIPE_SECRET_KEY: z.string().min(1),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1),
+  STRIPE_PRICE_TIER_1: z.string().min(1).default("price_test_tier_1"),
+  STRIPE_PRICE_TIER_2: z.string().min(1).default("price_test_tier_2"),
+  STRIPE_PRICE_TIER_3: z.string().min(1).default("price_test_tier_3"),
+  STRIPE_PRICE_BYOK_PLATFORM: z.string().min(1).default("price_test_byok_platform"),
   FOREMAN_LOG_DIR: z.string().min(1).default("~/.foreman/logs")
 });
 
