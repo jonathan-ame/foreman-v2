@@ -256,4 +256,44 @@ describe("OpenClawClient", () => {
     await expect(client.readGatewayToken()).resolves.toBe("gateway-token");
     expect(readFileMock).toHaveBeenCalledWith("/tmp/openclaw.json", "utf8");
   });
+
+  it("reloads secrets without unsupported non-interactive flag", async () => {
+    spawnMock.mockImplementation(() =>
+      createChild({ code: 0, stdout: "ok" })
+    );
+    const client = new OpenClawClient({
+      binPath: "openclaw",
+      configPath: "/tmp/openclaw.json",
+      includePath: "/tmp/foreman.json5",
+      logger
+    });
+
+    await client.reloadSecrets();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      "openclaw",
+      ["secrets", "reload"],
+      expect.any(Object)
+    );
+  });
+
+  it("restarts gateway without unsupported non-interactive flag", async () => {
+    spawnMock.mockImplementation(() =>
+      createChild({ code: 0, stdout: "ok" })
+    );
+    const client = new OpenClawClient({
+      binPath: "openclaw",
+      configPath: "/tmp/openclaw.json",
+      includePath: "/tmp/foreman.json5",
+      logger
+    });
+
+    await client.restartGateway();
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      "openclaw",
+      ["gateway", "restart"],
+      expect.any(Object)
+    );
+  });
 });

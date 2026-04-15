@@ -92,11 +92,11 @@ export class OpenClawClient {
   }
 
   async reloadSecrets(): Promise<void> {
-    await this.runCommand(["secrets", "reload", "--non-interactive"], false);
+    await this.runCommand(["secrets", "reload"], false);
   }
 
   async restartGateway(): Promise<void> {
-    await this.runCommand(["gateway", "restart", "--non-interactive"], false);
+    await this.runCommand(["gateway", "restart"], false);
   }
 
   async readGatewayToken(): Promise<string> {

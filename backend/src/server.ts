@@ -4,6 +4,7 @@ import process from "node:process";
 import { createAppDeps } from "./app-deps.js";
 import { env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
+import { startJobs } from "./jobs/runner.js";
 import { registerAgentRoutes } from "./routes/agents.js";
 
 const logger = createLogger("server");
@@ -20,20 +21,38 @@ app.get("/health", (c) => {
 registerAgentRoutes(app, deps);
 
 const isTestRun = process.env.VITEST === "true";
+const jobsOnly = process.argv.includes("--jobs-only");
+const shouldRunProcess = env.NODE_ENV !== "test" && !isTestRun;
 
-if (!isTestRun) {
-  const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
-    logger.info({ port: env.PORT }, `server started on port ${env.PORT}`);
-  });
-
-  const shutdown = (signal: NodeJS.Signals) => {
-    logger.info({ signal }, "shutdown requested");
-    server.close(() => {
+if (shouldRunProcess) {
+  if (jobsOnly) {
+    const jobsHandle = startJobs(deps);
+    logger.info("jobs-only mode enabled; HTTP server not started");
+    const shutdownJobsOnly = (signal: NodeJS.Signals) => {
+      logger.info({ signal }, "jobs-only shutdown requested");
+      jobsHandle.stop();
       logger.info("shutdown complete");
       process.exit(0);
+    };
+    process.on("SIGTERM", () => shutdownJobsOnly("SIGTERM"));
+    process.on("SIGINT", () => shutdownJobsOnly("SIGINT"));
+  } else {
+    let jobsHandle: ReturnType<typeof startJobs> | null = null;
+    const server = serve({ fetch: app.fetch, port: env.PORT }, () => {
+      logger.info({ port: env.PORT }, `server started on port ${env.PORT}`);
+      jobsHandle = startJobs(deps);
     });
-  };
 
-  process.on("SIGTERM", () => shutdown("SIGTERM"));
-  process.on("SIGINT", () => shutdown("SIGINT"));
+    const shutdownServer = (signal: NodeJS.Signals) => {
+      logger.info({ signal }, "shutdown requested");
+      jobsHandle?.stop();
+      server.close(() => {
+        logger.info("shutdown complete");
+        process.exit(0);
+      });
+    };
+
+    process.on("SIGTERM", () => shutdownServer("SIGTERM"));
+    process.on("SIGINT", () => shutdownServer("SIGINT"));
+  }
 }

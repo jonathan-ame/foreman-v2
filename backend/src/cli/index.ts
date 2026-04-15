@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import process from "node:process";
 import { Command } from "commander";
 import { createAppDeps } from "../app-deps.js";
+import { JOB_NAMES, runJobByName } from "../jobs/runner.js";
 import { provisionForemanAgent } from "../provisioning/orchestrator.js";
 
 const program = new Command();
@@ -46,6 +47,19 @@ agent
 
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (result.outcome === "failed" || result.outcome === "blocked") {
+      process.exitCode = 1;
+    }
+  });
+
+const jobs = program.command("jobs");
+jobs
+  .command("run")
+  .argument("<name>", `job name (${JOB_NAMES.join(", ")})`)
+  .action(async (name: string) => {
+    const deps = createAppDeps();
+    const result = await runJobByName(name, deps);
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (result.status === "error") {
       process.exitCode = 1;
     }
   });
