@@ -1,0 +1,32 @@
+{
+  "checks": [
+    {
+      "role": "embedding",
+      "provider": "qwen_embedding",
+      "model_id": "text-embedding-v4",
+      "base_url": "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+      "status": "ok"
+    },
+    {
+      "role": "executor",
+      "provider": "executor",
+      "model_id": "deepseek-ai/DeepSeek-V3.1",
+      "base_url": "https://api.together.xyz/v1",
+      "status": "ok"
+    },
+    {
+      "role": "planner",
+      "provider": "qwen",
+      "model_id": "qwen3-coder-plus",
+      "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+      "status": "ok"
+    },
+    {
+      "role": "reviewer",
+      "provider": "qwen",
+      "model_id": "qwen3-32b",
+      "base_url": "https://dashscope-us.aliyuncs.com/compatible-mode/v1",
+      "status": "ok"
+    }
+  ]
+}

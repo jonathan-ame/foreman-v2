@@ -1,0 +1,33 @@
+{
+  "timestamp": "2026-04-14T11:16:15Z",
+  "probe": "runid_injection",
+  "status": "incomplete",
+  "detail": "Missing one or more required Paperclip environment variables",
+  "variables": {
+    "PAPERCLIP_RUN_ID": {
+      "status": "missing",
+      "detail": "PAPERCLIP_RUN_ID environment variable is not set",
+      "value": null
+    },
+    "PAPERCLIP_COMPANY_ID": {
+      "status": "missing",
+      "detail": "PAPERCLIP_COMPANY_ID environment variable is not set",
+      "value": null
+    },
+    "PAPERCLIP_AGENT_ID": {
+      "status": "missing",
+      "detail": "PAPERCLIP_AGENT_ID environment variable is not set",
+      "value": null
+    },
+    "PAPERCLIP_API_KEY": {
+      "status": "missing",
+      "detail": "PAPERCLIP_API_KEY environment variable is not set",
+      "value": "missing"
+    },
+    "PAPERCLIP_API_URL": {
+      "status": "missing",
+      "detail": "PAPERCLIP_API_URL environment variable is not set",
+      "value": null
+    }
+  }
+}
