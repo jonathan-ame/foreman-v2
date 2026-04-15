@@ -22,6 +22,7 @@
   "dependencies": {
     "@hono/node-server": "^1.19.14",
     "@supabase/supabase-js": "^2.103.2",
+    "commander": "^14.0.3",
     "dotenv": "^17.4.2",
     "hono": "^4.12.14",
     "pino": "^10.3.1",

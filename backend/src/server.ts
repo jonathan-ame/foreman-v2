@@ -1,12 +1,15 @@
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import process from "node:process";
+import { createAppDeps } from "./app-deps.js";
 import { env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
+import { registerAgentRoutes } from "./routes/agents.js";
 
 const logger = createLogger("server");
 
 export const app = new Hono();
+const deps = createAppDeps(logger.child({ name: "app-deps" }));
 
 app.get("/health", (c) => {
   return c.json({
@@ -14,6 +17,7 @@ app.get("/health", (c) => {
     uptime: process.uptime()
   });
 });
+registerAgentRoutes(app, deps);
 
 const isTestRun = process.env.VITEST === "true";
 
