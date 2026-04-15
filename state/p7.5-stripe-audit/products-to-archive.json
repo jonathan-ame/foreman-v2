@@ -1,0 +1,475 @@
+{
+  "audited_at": "2026-04-15T21:29:51.855739Z",
+  "stripe_mode": "live",
+  "products_not_mapped_to_v2": [
+    {
+      "product_id": "prod_UCmEWuy8Y2dLlT",
+      "name": "Foreman Pro",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmE0TZfqV48Dk",
+      "name": "Foreman Starter",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmE1lBgVAxnAN",
+      "name": "Foreman Cloud",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmEWQ7qU5hzb3",
+      "name": "Foreman Business",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMg6pVz9ERo4",
+      "name": "Provider",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMzLrkuZZ6Xo",
+      "name": "Intelligence Bundle",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMnuEZ1B6PBY",
+      "name": "Growth Bundle",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmM0FRjSrH2sr",
+      "name": "Operations Bundle",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMclvjEWCtAJ",
+      "name": "Foreman Complete",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMNnaMssqvpL",
+      "name": "Product Bundle",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmMAtDK03N1DQ",
+      "name": "Legal",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmSIGNqrmPGzx",
+      "name": "Done For You",
+      "active": true,
+      "recommended_action": "keep_separate",
+      "reason": "Appears to be a separate service/support offering outside v2 SaaS tier products."
+    },
+    {
+      "product_id": "prod_UCmS23l5uIuEyQ",
+      "name": "Builder Support",
+      "active": true,
+      "recommended_action": "keep_separate",
+      "reason": "Appears to be a separate service/support offering outside v2 SaaS tier products."
+    },
+    {
+      "product_id": "prod_UCmSy3zz3JTan0",
+      "name": "Starter Support",
+      "active": true,
+      "recommended_action": "keep_separate",
+      "reason": "Appears to be a separate service/support offering outside v2 SaaS tier products."
+    },
+    {
+      "product_id": "prod_UCmSpByfailr1r",
+      "name": "Pro Support",
+      "active": true,
+      "recommended_action": "keep_separate",
+      "reason": "Appears to be a separate service/support offering outside v2 SaaS tier products."
+    },
+    {
+      "product_id": "prod_UCmTTk3B224Yai",
+      "name": "Customer Success Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTTXGyN5wzfc",
+      "name": "Security Monitor Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTS6Yb6Y8Q3E",
+      "name": "Analytics Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTCTViJjtVT6",
+      "name": "Legal Review Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTCN0E8ICYCU",
+      "name": "User Growth Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTiUShxKUn91",
+      "name": "DevOps Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTNUWciTqNRU",
+      "name": "Product Lead Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTBTPOJbUrls",
+      "name": "Compliance Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT0A9DqmZYuV",
+      "name": "Personal Assistant Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTFyIIhnwKrz",
+      "name": "Engineering Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTEIYAfJbhX0",
+      "name": "Finance Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTme1iJN9QHk",
+      "name": "Inbox Manager Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTxjdD2mJVPi",
+      "name": "SEO Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTbKINgkeWrK",
+      "name": "Chief of Staff Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTDvlRQ9ecpg",
+      "name": "Content Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTTT1rnGfIh6",
+      "name": "Follow-Up Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTbk0cNW0Mek",
+      "name": "Outreach Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTCgeYmuErUF",
+      "name": "Lead Generation Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTJHEAcPx3dq",
+      "name": "Terms and Policy Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTePBKlCIbxE",
+      "name": "Scheduler Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTAQg1QyLgj1",
+      "name": "Research Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTOlUoEwfpRv",
+      "name": "Provider Ops Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTg3temYaCWz",
+      "name": "QA and Testing Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTbqXG7kHZVU",
+      "name": "Provider Acquisition Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTwJRmwV6LPV",
+      "name": "Privacy Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTyRKRioxUDo",
+      "name": "SEO Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTUPwHTzgNaB",
+      "name": "Lead Generation Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTkNllRbM2YK",
+      "name": "Content Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTvI0JPV4gxn",
+      "name": "Outreach Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTbRH6UP8Iq4",
+      "name": "Chief of Staff Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTkCDCOFCcfm",
+      "name": "Scheduler Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTduDAs0ZVR0",
+      "name": "Security Monitor Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT6znbZhunVF",
+      "name": "Finance Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT7jcYEuV7aV",
+      "name": "Terms and Policy Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT6TX0F4D4Bc",
+      "name": "Compliance Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT0gaNiyCZ5w",
+      "name": "Analytics Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT44JqIM4kWc",
+      "name": "Provider Ops Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmT2rk9OhkAw4",
+      "name": "Legal Review Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTDPZueMiczN",
+      "name": "Research Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTlxt2hXljBK",
+      "name": "Provider Acquisition Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTtI42c1dTCH",
+      "name": "Product Lead Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTrH5pU72lTn",
+      "name": "Customer Success Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTdmVkGTtzIf",
+      "name": "QA and Testing Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTUXEqXw39I2",
+      "name": "Personal Assistant Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTzUcs5VxVwN",
+      "name": "User Growth Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTTiSSk1Ud1s",
+      "name": "Privacy Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTbOK8w6gPgW",
+      "name": "Engineering Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTaMExOpFlaA",
+      "name": "DevOps Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmThpDUBLwxv4",
+      "name": "Follow-Up Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UCmTnR6eegFp05",
+      "name": "Inbox Manager Agent",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UHY7L83BRYz6md",
+      "name": "Foreman Growth",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    },
+    {
+      "product_id": "prod_UHY79JUYmOQUVB",
+      "name": "Foreman Scale",
+      "active": true,
+      "recommended_action": "archive",
+      "reason": "Not mapped to any v2 required tier product."
+    }
+  ]
+}

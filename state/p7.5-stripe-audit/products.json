@@ -1,0 +1,1691 @@
+{
+  "audited_at": "2026-04-15T21:28:45.931018Z",
+  "stripe_mode": "live",
+  "products": [
+    {
+      "id": "prod_UCmEWuy8Y2dLlT",
+      "name": "Foreman Pro",
+      "active": true,
+      "created": "2026-03-24T04:35:15Z",
+      "description": "Platform access \u00b7 5 GB storage \u00b7 Unlimited tables \u00b7 500,000 API calls/mo \u00b7 Bring your own LLM keys",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMggLIeTmtbHlGkNdyyhye",
+          "amount": 7900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:35:30Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMtcLIeTmtbHlGqc7RDtbr",
+          "amount": 79000,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "year",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:48:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmE0TZfqV48Dk",
+      "name": "Foreman Starter",
+      "active": true,
+      "created": "2026-03-24T04:35:15Z",
+      "description": "Platform access \u00b7 500 MB storage \u00b7 20 tables \u00b7 50,000 API calls/mo \u00b7 Bring your own LLM keys",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMgfLIeTmtbHlG8owvkeR8",
+          "amount": 2900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:35:29Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMtcLIeTmtbHlGCvA3FcG7",
+          "amount": 29000,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "year",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:48:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmE1lBgVAxnAN",
+      "name": "Foreman Cloud",
+      "active": true,
+      "created": "2026-03-24T04:35:16Z",
+      "description": "Managed inference \u00b7 DeepSeek R1 70B   32B, Qwen 14B   Coder \u00b7 Unlimited usage (fair use) \u00b7 Multi-tier routing \u00b7 Daily model updates \u00b7 5 workspaces max per GH200",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMghLIeTmtbHlGA6SxDd0Z",
+          "amount": 34900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:35:31Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmEWQ7qU5hzb3",
+      "name": "Foreman Business",
+      "active": true,
+      "created": "2026-03-24T04:35:16Z",
+      "description": "Platform access \u00b7 25 GB storage \u00b7 Unlimited tables \u00b7 Unlimited API calls \u00b7 Priority support \u00b7 Bring your own LLM keys",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMggLIeTmtbHlG9Qfug71V",
+          "amount": 14900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:35:30Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMtcLIeTmtbHlGIRR4V79B",
+          "amount": 149000,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "year",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-03-24T04:48:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMg6pVz9ERo4",
+      "name": "Provider",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Provider acquisition, ops, customer success, and user growth agents",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMtvLIeTmtbHlG2Twj7WYM",
+          "amount": 11700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:11Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMnwLIeTmtbHlGngl0yChx",
+          "amount": 12700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMzLrkuZZ6Xo",
+      "name": "Intelligence Bundle",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Analytics, research, and security monitor agents \u2014 know what is happening in your business",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMtvLIeTmtbHlGvKMqDSWx",
+          "amount": 8700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:11Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMnwLIeTmtbHlG8rrZA8CD",
+          "amount": 9700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMnuEZ1B6PBY",
+      "name": "Growth Bundle",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Lead gen, outreach, follow-up, content, and SEO agents \u2014 everything to get more customers",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMnwLIeTmtbHlG5e8C0QUh",
+          "amount": 12700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmM0FRjSrH2sr",
+      "name": "Operations Bundle",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Chief of Staff, inbox, scheduler, finance, and PA agents \u2014 run your business on autopilot",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMnwLIeTmtbHlGhbKxClXp",
+          "amount": 12700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMclvjEWCtAJ",
+      "name": "Foreman Complete",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Every agent in the marketplace \u2014 all 6 department bundles bundled at flagship pricing",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMnwLIeTmtbHlG6At9UcV0",
+          "amount": 29700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMNnaMssqvpL",
+      "name": "Product Bundle",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Engineering, QA, DevOps, and Product Lead agents \u2014 ship faster with automated oversight",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMnwLIeTmtbHlGN6Fu7dLf",
+          "amount": 9700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMtvLIeTmtbHlGbGUfMypc",
+          "amount": 11700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:11Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmMAtDK03N1DQ",
+      "name": "Legal",
+      "active": true,
+      "created": "2026-03-24T04:42:51Z",
+      "description": "Legal review, compliance, privacy, and policy agents \u2014 for regulated industries",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMtvLIeTmtbHlGkIPGv323",
+          "amount": 11700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:11Z",
+          "metadata": {}
+        },
+        {
+          "id": "price_1TEMnwLIeTmtbHlGT1pQXF3u",
+          "amount": 14700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:43:00Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmSIGNqrmPGzx",
+      "name": "Done For You",
+      "active": true,
+      "created": "2026-03-24T04:49:11Z",
+      "description": "Full onboarding   up to 8 agents built and configured   6 months async support",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMu2LIeTmtbHlGoishYo8U",
+          "amount": 99700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:18Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmS23l5uIuEyQ",
+      "name": "Builder Support",
+      "active": true,
+      "created": "2026-03-24T04:49:11Z",
+      "description": "90-min setup session   60 days async support   1 custom agent built to your spec",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMu2LIeTmtbHlGnxDO4BU5",
+          "amount": 24700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:18Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmSy3zz3JTan0",
+      "name": "Starter Support",
+      "active": true,
+      "created": "2026-03-24T04:49:11Z",
+      "description": "45-min onboarding call   30 days async chat support",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMu2LIeTmtbHlGC84EFGbC",
+          "amount": 9700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:18Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmSpByfailr1r",
+      "name": "Pro Support",
+      "active": true,
+      "created": "2026-03-24T04:49:11Z",
+      "description": "Two sessions   90 days async support   3 custom agents   priority response",
+      "metadata": {},
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMu2LIeTmtbHlGtHlAx7RM",
+          "amount": 49700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:18Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTTk3B224Yai",
+      "name": "Customer Success Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "cust_success"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGMZE5Q4R4",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTTXGyN5wzfc",
+      "name": "Security Monitor Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "security"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGhHZh5xHC",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTS6Yb6Y8Q3E",
+      "name": "Analytics Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "analytics"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGEMCXoHur",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTCTViJjtVT6",
+      "name": "Legal Review Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "legal"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG4vMIRc2f",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTCN0E8ICYCU",
+      "name": "User Growth Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "user_growth"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG6MTaSHgN",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTiUShxKUn91",
+      "name": "DevOps Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "devops"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGhfdDg1qN",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTNUWciTqNRU",
+      "name": "Product Lead Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "product_lead"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGEdAnBj4d",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTBTPOJbUrls",
+      "name": "Compliance Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "compliance"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG14lsDFn8",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT0A9DqmZYuV",
+      "name": "Personal Assistant Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "pa"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG9Lwqd2aE",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTFyIIhnwKrz",
+      "name": "Engineering Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "engineering"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGdeG95ip0",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTEIYAfJbhX0",
+      "name": "Finance Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "finance"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGFmNEId1H",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTme1iJN9QHk",
+      "name": "Inbox Manager Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "inbox"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGnkVmiZxm",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTxjdD2mJVPi",
+      "name": "SEO Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "seo"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG0mcuvlIw",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTbKINgkeWrK",
+      "name": "Chief of Staff Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "chiefofstaff"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGDCtjWsWB",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTDvlRQ9ecpg",
+      "name": "Content Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "content"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGR7iAac3R",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTTT1rnGfIh6",
+      "name": "Follow-Up Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "followup"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGyC8p28ZF",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTbk0cNW0Mek",
+      "name": "Outreach Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "outreach"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGBqTdW0dA",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTCgeYmuErUF",
+      "name": "Lead Generation Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:32Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "lead_gen"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGPEbyqpul",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTJHEAcPx3dq",
+      "name": "Terms and Policy Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "terms"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuILIeTmtbHlGPKlyKSsa",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:34Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTePBKlCIbxE",
+      "name": "Scheduler Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "scheduler"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuILIeTmtbHlGL0ow3U9D",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:34Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTAQg1QyLgj1",
+      "name": "Research Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "research"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGXgoRAGCM",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTOlUoEwfpRv",
+      "name": "Provider Ops Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "provider_ops"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGejUS1V2o",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTg3temYaCWz",
+      "name": "QA and Testing Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "qa"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGDLE7t3T2",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTbqXG7kHZVU",
+      "name": "Provider Acquisition Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "provider_acq"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlGM0dvUlJ7",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTwJRmwV6LPV",
+      "name": "Privacy Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:33Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "privacy"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuHLIeTmtbHlG2QwUx7Az",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:33Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTyRKRioxUDo",
+      "name": "SEO Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "seo"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGvY1Yh6FH",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTUPwHTzgNaB",
+      "name": "Lead Generation Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "lead_gen"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGvcvQWRCp",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTkNllRbM2YK",
+      "name": "Content Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "content"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGKHpjOzu5",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTvI0JPV4gxn",
+      "name": "Outreach Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "outreach"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGEtO7tGWZ",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTbRH6UP8Iq4",
+      "name": "Chief of Staff Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "chiefofstaff"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGfVXIpaHu",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTkCDCOFCcfm",
+      "name": "Scheduler Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:51Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "scheduler"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGJhjudsUq",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTduDAs0ZVR0",
+      "name": "Security Monitor Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "security"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGST6oUdGT",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT6znbZhunVF",
+      "name": "Finance Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "finance"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlG9xDBXmM1",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT7jcYEuV7aV",
+      "name": "Terms and Policy Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "terms"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGu9JmmPMI",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT6TX0F4D4Bc",
+      "name": "Compliance Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "compliance"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGGdXXa1t5",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT0gaNiyCZ5w",
+      "name": "Analytics Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "analytics"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlG6eKoZTHQ",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT44JqIM4kWc",
+      "name": "Provider Ops Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "provider_ops"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGrq3PjQ6j",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmT2rk9OhkAw4",
+      "name": "Legal Review Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "legal"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGqmLK6pj2",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTDPZueMiczN",
+      "name": "Research Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Intelligence department",
+      "metadata": {
+        "bundle_slug": "research"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGL7SPJKoU",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTlxt2hXljBK",
+      "name": "Provider Acquisition Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "provider_acq"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlG9YddkmuP",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTtI42c1dTCH",
+      "name": "Product Lead Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "product_lead"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGqfZrrAL2",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTrH5pU72lTn",
+      "name": "Customer Success Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "cust_success"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGlbh6AkZQ",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTdmVkGTtzIf",
+      "name": "QA and Testing Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "qa"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGpxtDemxr",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTUXEqXw39I2",
+      "name": "Personal Assistant Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "pa"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMubLIeTmtbHlGOnZoBVkO",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:53Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTzUcs5VxVwN",
+      "name": "User Growth Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Provider department",
+      "metadata": {
+        "bundle_slug": "user_growth"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlG4re5AlYk",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTTiSSk1Ud1s",
+      "name": "Privacy Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Legal department",
+      "metadata": {
+        "bundle_slug": "privacy"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGZo8O2HGB",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTbOK8w6gPgW",
+      "name": "Engineering Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "engineering"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGTa5wxpsf",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTaMExOpFlaA",
+      "name": "DevOps Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Product department",
+      "metadata": {
+        "bundle_slug": "devops"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGCvi89AI2",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmThpDUBLwxv4",
+      "name": "Follow-Up Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Growth department",
+      "metadata": {
+        "bundle_slug": "followup"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGgkBLPaRh",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UCmTnR6eegFp05",
+      "name": "Inbox Manager Agent",
+      "active": true,
+      "created": "2026-03-24T04:49:52Z",
+      "description": "Individual agent \u2014 Operations department",
+      "metadata": {
+        "bundle_slug": "inbox"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TEMuaLIeTmtbHlGqhKoA6sS",
+          "amount": 3700,
+          "currency": "usd",
+          "type": "one_time",
+          "recurring_interval": null,
+          "recurring_interval_count": null,
+          "active": true,
+          "created": "2026-03-24T04:49:52Z",
+          "metadata": {}
+        }
+      ]
+    },
+    {
+      "id": "prod_UHY7L83BRYz6md",
+      "name": "Foreman Growth",
+      "active": true,
+      "created": "2026-04-05T22:19:40Z",
+      "description": null,
+      "metadata": {
+        "foreman_plan": "growth"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TIz16LIeTmtbHlGIjobwazr",
+          "amount": 14900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-04-05T22:19:40Z",
+          "metadata": {
+            "foreman_plan": "growth"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_UHY7w3iGJPkylV",
+      "name": "Foreman Starter",
+      "active": true,
+      "created": "2026-04-05T22:19:40Z",
+      "description": null,
+      "metadata": {
+        "foreman_plan": "starter"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TIz16LIeTmtbHlGztPskQJJ",
+          "amount": 4900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-04-05T22:19:40Z",
+          "metadata": {
+            "foreman_plan": "starter"
+          }
+        }
+      ]
+    },
+    {
+      "id": "prod_UHY79JUYmOQUVB",
+      "name": "Foreman Scale",
+      "active": true,
+      "created": "2026-04-05T22:19:41Z",
+      "description": null,
+      "metadata": {
+        "foreman_plan": "scale"
+      },
+      "default_price": null,
+      "prices": [
+        {
+          "id": "price_1TIz17LIeTmtbHlGx5ZzbOwA",
+          "amount": 39900,
+          "currency": "usd",
+          "type": "recurring",
+          "recurring_interval": "month",
+          "recurring_interval_count": 1,
+          "active": true,
+          "created": "2026-04-05T22:19:41Z",
+          "metadata": {
+            "foreman_plan": "scale"
+          }
+        }
+      ]
+    }
+  ]
+}
