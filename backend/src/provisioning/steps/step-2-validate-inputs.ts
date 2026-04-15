@@ -40,3 +40,7 @@ export async function step2ValidateInputs(ctx: StepContext): Promise<StepResult>
     }
   };
 }
+
+export async function rollbackStep2ValidateInputs(ctx: StepContext): Promise<void> {
+  ctx.logger.info("rolling back step_2_validate_inputs: no external state to rollback");
+}

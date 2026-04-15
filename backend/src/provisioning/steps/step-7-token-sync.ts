@@ -33,3 +33,9 @@ export async function step7TokenSync(ctx: StepContext): Promise<StepResult> {
     }
   };
 }
+
+export async function rollbackStep7TokenSync(ctx: StepContext): Promise<void> {
+  ctx.logger.info(
+    "rolling back step_7_token_sync: leave in place per spec (manual token sync may be required)"
+  );
+}

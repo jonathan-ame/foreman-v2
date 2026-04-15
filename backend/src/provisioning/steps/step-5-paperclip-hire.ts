@@ -54,3 +54,16 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     }
   };
 }
+
+export async function rollbackStep5PaperclipHire(ctx: StepContext): Promise<void> {
+  const paperclipAgent = ctx.state.paperclipAgent as { id: string } | undefined;
+  if (!paperclipAgent?.id) {
+    ctx.logger.info("rolling back step_5_paperclip_hire: no paperclip agent id recorded");
+    return;
+  }
+  ctx.logger.info(
+    { paperclipAgentId: paperclipAgent.id },
+    "rolling back step_5_paperclip_hire: deleting paperclip agent"
+  );
+  await ctx.clients.paperclip.deleteAgent(paperclipAgent.id);
+}

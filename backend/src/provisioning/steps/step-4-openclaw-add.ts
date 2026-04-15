@@ -27,3 +27,13 @@ export async function step4OpenClawAdd(ctx: StepContext): Promise<StepResult> {
     }
   };
 }
+
+export async function rollbackStep4OpenClawAdd(ctx: StepContext): Promise<void> {
+  const openclawAgentId = ctx.state.openclawAgentId as string | undefined;
+  if (!openclawAgentId) {
+    ctx.logger.info("rolling back step_4_openclaw_add: no agent id recorded");
+    return;
+  }
+  ctx.logger.info({ openclawAgentId }, "rolling back step_4_openclaw_add: deleting openclaw agent");
+  await ctx.clients.openclaw.deleteAgent(openclawAgentId);
+}

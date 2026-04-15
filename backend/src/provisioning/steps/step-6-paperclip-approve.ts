@@ -1,8 +1,17 @@
 import type { Customer } from "../../db/customers.js";
 import type { PendingApproval } from "../../clients/paperclip/types.js";
 import type { StepContext, StepResult } from "./types.js";
+import process from "node:process";
 
 export async function step6PaperclipApprove(ctx: StepContext): Promise<StepResult> {
+  if (process.env.FOREMAN_FORCE_STEP6_FAILURE === "1") {
+    return {
+      ok: false,
+      errorCode: "STEP6_FORCED_FAILURE",
+      errorMessage: "step 6 forced failure for rollback smoke test"
+    };
+  }
+
   const customer = ctx.state.customer as Customer | undefined;
   if (!customer?.paperclip_company_id) {
     return {
@@ -36,4 +45,8 @@ export async function step6PaperclipApprove(ctx: StepContext): Promise<StepResul
       approvedId: approval.id
     }
   };
+}
+
+export async function rollbackStep6PaperclipApprove(ctx: StepContext): Promise<void> {
+  ctx.logger.info("rolling back step_6_paperclip_approve: approval action is not undoable");
 }

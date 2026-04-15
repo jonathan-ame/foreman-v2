@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { step4OpenClawAdd } from "./step-4-openclaw-add.js";
+import { rollbackStep4OpenClawAdd, step4OpenClawAdd } from "./step-4-openclaw-add.js";
 import { createLogger } from "../../config/logger.js";
 import type { StepContext } from "./types.js";
 
@@ -37,5 +37,35 @@ describe("step4OpenClawAdd", () => {
         workspace: "/tmp/ws"
       })
     );
+  });
+
+  it("rollback deletes the exact openclaw agent id from step state", async () => {
+    const deleteAgent = vi.fn().mockResolvedValue(undefined);
+    const ctx = {
+      input: {
+        customerId: "c1",
+        agentName: "CEO",
+        role: "ceo",
+        modelTier: "open",
+        idempotencyKey: "i1"
+      },
+      clients: {
+        openclaw: {
+          deleteAgent
+        },
+        paperclip: {} as never,
+        stripe: {} as never
+      },
+      db: {} as never,
+      logger: createLogger("step4-test"),
+      state: {
+        openclawAgentId: "workspace-ceo"
+      }
+    } as unknown as StepContext;
+
+    await rollbackStep4OpenClawAdd(ctx);
+
+    expect(deleteAgent).toHaveBeenCalledTimes(1);
+    expect(deleteAgent).toHaveBeenCalledWith("workspace-ceo");
   });
 });

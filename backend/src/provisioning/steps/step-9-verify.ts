@@ -42,3 +42,9 @@ export async function step9Verify(ctx: StepContext): Promise<StepResult> {
     }
   };
 }
+
+export async function rollbackStep9Verify(ctx: StepContext): Promise<void> {
+  ctx.logger.info(
+    "rolling back step_9_verify: non-destructive mismatch state retained per spec"
+  );
+}

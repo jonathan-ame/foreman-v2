@@ -162,6 +162,49 @@ describe("OpenClawClient", () => {
     await expect(client.deleteAgent("missing")).resolves.toBeUndefined();
   });
 
+  it("uses --force for delete", async () => {
+    spawnMock.mockImplementation(() =>
+      createChild({ code: 0, stdout: "{}" })
+    );
+    const client = new OpenClawClient({
+      binPath: "openclaw",
+      configPath: "/tmp/openclaw.json",
+      includePath: "/tmp/foreman.json5",
+      logger
+    });
+
+    await client.deleteAgent("agent-123");
+
+    expect(spawnMock).toHaveBeenCalledWith(
+      "openclaw",
+      expect.arrayContaining([
+        "agents",
+        "delete",
+        "agent-123",
+        "--force"
+      ]),
+      expect.any(Object)
+    );
+  });
+
+  it("does not treat plugin-not-found warnings as agent-not-found", async () => {
+    spawnMock.mockImplementation(() =>
+      createChild({
+        code: 1,
+        stderr:
+          "Config warnings:\n- plugins.entries.qwen_embedding: plugin not found: qwen_embedding\nNon-interactive session. Re-run with --force."
+      })
+    );
+    const client = new OpenClawClient({
+      binPath: "openclaw",
+      configPath: "/tmp/openclaw.json",
+      includePath: "/tmp/foreman.json5",
+      logger
+    });
+
+    await expect(client.deleteAgent("agent-123")).rejects.toThrow("OpenClaw command failed");
+  });
+
   it("maps non-idempotent not found to typed error for other operations", async () => {
     spawnMock.mockImplementation(() =>
       createChild({ code: 1, stderr: "agent not found" })

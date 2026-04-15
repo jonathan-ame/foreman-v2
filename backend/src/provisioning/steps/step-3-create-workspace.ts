@@ -38,3 +38,11 @@ export async function step3CreateWorkspace(ctx: StepContext): Promise<StepResult
     }
   };
 }
+
+export async function rollbackStep3CreateWorkspace(ctx: StepContext): Promise<void> {
+  const workspacePath = ctx.state.workspacePath as string | undefined;
+  ctx.logger.info(
+    { workspacePath: workspacePath ?? null },
+    "rolling back step_3_create_workspace: cleanup deferred to maintenance task"
+  );
+}

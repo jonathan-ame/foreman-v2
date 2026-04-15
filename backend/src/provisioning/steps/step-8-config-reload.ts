@@ -9,3 +9,9 @@ export async function step8ConfigReload(ctx: StepContext): Promise<StepResult> {
     }
   };
 }
+
+export async function rollbackStep8ConfigReload(ctx: StepContext): Promise<void> {
+  ctx.logger.info(
+    "rolling back step_8_config_reload: leave config and agent in place per spec"
+  );
+}

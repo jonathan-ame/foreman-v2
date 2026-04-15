@@ -68,3 +68,7 @@ export async function step0PaymentGate(ctx: StepContext): Promise<StepResult> {
     }
   };
 }
+
+export async function rollbackStep0PaymentGate(ctx: StepContext): Promise<void> {
+  ctx.logger.info("rolling back step_0_payment_gate: no state to rollback");
+}

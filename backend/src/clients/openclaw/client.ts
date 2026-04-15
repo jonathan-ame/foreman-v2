@@ -10,6 +10,10 @@ import {
 import type { OpenClawAgentRecord, OpenClawAgentSpec } from "./types.js";
 
 const COMMAND_TIMEOUT_MS = 60_000;
+const AGENT_NOT_FOUND_PATTERNS = [
+  /(?:^|\n)\s*agent(?:\s+id)?[^\n]*not found(?:\s|$)/i,
+  /(?:^|\n)\s*no such agent(?:\s|$)/i
+];
 
 interface CommandResult {
   stdout: string;
@@ -38,15 +42,6 @@ export class OpenClawClient {
 
   async addAgent(spec: OpenClawAgentSpec): Promise<OpenClawAgentRecord> {
     const args = ["agents", "add", spec.id, "--workspace", spec.workspace, "--non-interactive", "--json"];
-    if (spec.identity?.name) {
-      args.push("--name", spec.identity.name);
-    }
-    if (spec.identity?.emoji) {
-      args.push("--emoji", spec.identity.emoji);
-    }
-    if (spec.identity?.avatar) {
-      args.push("--avatar", spec.identity.avatar);
-    }
 
     try {
       const output = await this.runCommand(args, true);
@@ -67,11 +62,11 @@ export class OpenClawClient {
   }
 
   async deleteAgent(agentId: string): Promise<void> {
-    const args = ["agents", "delete", agentId, "--non-interactive", "--json"];
+    const args = ["agents", "delete", agentId, "--force"];
     try {
-      await this.runCommand(args, true);
+      await this.runCommand(args, false);
     } catch (error) {
-      if (error instanceof OpenClawCliError && /not found/i.test(error.stderr)) {
+      if (error instanceof OpenClawCliError && this.isAgentNotFoundError(error.stderr)) {
         this.logger.info({ agentId }, "openclaw delete idempotent: agent not found");
         return;
       }
@@ -237,7 +232,7 @@ export class OpenClawClient {
     if (stderrLower.includes("already exists")) {
       return new OpenClawAgentExistsError(params);
     }
-    if (stderrLower.includes("not found")) {
+    if (this.isAgentNotFoundError(params.stderr)) {
       return new OpenClawAgentNotFoundError(params);
     }
     if (
@@ -251,5 +246,9 @@ export class OpenClawClient {
       ...params,
       message: "OpenClaw command failed"
     });
+  }
+
+  private isAgentNotFoundError(stderr: string): boolean {
+    return AGENT_NOT_FOUND_PATTERNS.some((pattern) => pattern.test(stderr));
   }
 }

@@ -13,3 +13,7 @@ export async function step1Idempotency(ctx: StepContext): Promise<StepResult> {
   }
   return { ok: true };
 }
+
+export async function rollbackStep1Idempotency(ctx: StepContext): Promise<void> {
+  ctx.logger.info("rolling back step_1_idempotency: no state to rollback");
+}
