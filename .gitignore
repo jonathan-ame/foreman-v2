@@ -8,3 +8,13 @@ state/phase*-*.json
 state/ceo-agent-auth-probe-latest.json
 state/ceo-agent-auth-probe-history.jsonl
 state/ceo-agent-auth-probe-health.txt
+
+# Backend
+backend/node_modules/
+backend/dist/
+backend/.vitest/
+backend/coverage/
+backend/.env.local
+backend/.env.development.local
+backend/.env.production.local
+backend/.env.test.local
