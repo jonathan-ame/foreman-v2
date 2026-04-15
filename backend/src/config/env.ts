@@ -55,3 +55,5 @@ export const env = {
   OPENCLAW_INCLUDE_PATH: expandHome(data.OPENCLAW_INCLUDE_PATH),
   FOREMAN_LOG_DIR: expandHome(data.FOREMAN_LOG_DIR)
 };
+
+export type Env = typeof env;
