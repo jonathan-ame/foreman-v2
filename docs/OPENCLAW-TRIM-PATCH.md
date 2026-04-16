@@ -18,6 +18,10 @@ Backups were created before every edit with the suffix `.bak-pre-trim-fix`.
    - added null guards for session/scope `.trim()` paths
 4. `dist/tool-policy-CD0rHa6E.js`  
    - `name.trim().toLowerCase()` -> `String(name ?? "").trim().toLowerCase()`
+5. `dist/content-blocks-BH1EFqze.js` (P15)  
+   - `normalizeReservedToolNames`: `name.trim().toLowerCase()` -> `String(name ?? "").trim().toLowerCase()`
+6. `dist/pi-embedded-DWASRjxE.js` (P15, additional patch)  
+   - `buildAgentSystemPrompt`: `tool.trim()` -> `String(tool ?? "").trim()`
 
 ## Lifecycle
 
@@ -39,3 +43,7 @@ check) before `.trim()`.
 After patching and restarting the gateway, heartbeat run
 `f2a28dae-3003-44af-b1db-d72cb60d6abd` for `ceo-test-adapter` succeeded, and
 issue `FOR-136` completed without trim-related errors.
+
+P15 re-verification: heartbeat run `d57ae749-b428-4ad5-9217-9ffa22e98e57` for
+`foreman-ceo` succeeded after patches 5-6 were applied. CEO processed issues
+FOR-113 and FOR-142 with workspace file content reflected in responses.
