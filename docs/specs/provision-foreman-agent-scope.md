@@ -1,15 +1,15 @@
 # `provisionForemanAgent` — Scope Document
 
-**Version:** 1.1  
+**Version:** 1.2  
 **Date:** 2026-04-15  
 **Status:** Draft — pending review before Cursor implementation  
 **Owner:** Jonathan Borgia  
 **Repo target:** `foreman-v2/docs/specs/provision-foreman-agent.md`
 
-**Changelog from v1.0:**
-- Prerequisites updated to use native Paperclip and OpenClaw integration paths only
-- Step 4-7 implementation notes added based on confirmed native APIs
-- Absorption maintenance task added to operational runbook section
+**Changelog from v1.1:**
+- v1 launch scope expanded to include `marketing_analyst` sub-agent role
+  (added during P11 implementation to exercise the real role-separation
+  path for P13 e2e testing). Additional sub-agent roles remain deferred.
 
 ---
 
@@ -53,7 +53,7 @@ All three call paths invoke the same Python function. The HTTP wrapper, CLI wrap
 | Absorption-maintenance scheduled task | ✅ | Runs daily; restores `$include` directive |
 | Manual-approve mode for sub-agent hiring | ❌ | v1.1 — add when first customer asks |
 | Behavior monitoring + thresholds | ❌ | Defer until 3 months of customer data |
-| Sub-agent roles (CFO, CMO, etc.) | ❌ | CEO can spawn via OpenClaw subagent mechanism in meantime |
+| Sub-agent roles | ✅ (limited) | v1 ships with `ceo` and `marketing_analyst` roles. Additional roles (CFO, CMO, engineer, etc.) deferred post-v1. |
 | Per-customer container migration | ❌ | Revisit at 50 customers or first compliance request |
 
 ---
@@ -65,7 +65,7 @@ def provisionForemanAgent(
     *,
     customer_id: str,
     agent_name: str,
-    role: AgentRole,                  # enum: CEO (v1)
+    role: AgentRole,                  # enum: ceo | marketing_analyst (v1)
     model_tier: ModelTier,            # enum: OPEN | FRONTIER | HYBRID
     idempotency_key: str,             # UUID, required
     workspace_path: Optional[str] = None,  # defaults per role
@@ -284,7 +284,7 @@ CREATE TABLE provisioning_log (
   workspace_slug TEXT NOT NULL,
   customer_id TEXT NOT NULL,
   agent_name TEXT NOT NULL,
-  role TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('ceo', 'marketing_analyst')),
   model_tier TEXT NOT NULL,
   billing_mode_at_time TEXT NOT NULL,
   started_at TIMESTAMPTZ NOT NULL,
