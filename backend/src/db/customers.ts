@@ -15,6 +15,8 @@ export interface Customer {
   paperclip_company_id: string | null;
   stripe_subscription_id?: string | null;
   stripe_product_id?: string | null;
+  tokens_consumed_current_period_cents?: number | null;
+  tier_allowance_cents?: number | null;
 }
 
 export interface CustomerStripeBillingUpdate {
