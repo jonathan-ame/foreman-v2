@@ -11,6 +11,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 const execFileAsync = promisify(execFile);
+const logger = {
+  debug: (meta: Record<string, unknown>, message: string) => {
+    console.debug(`[e2e] ${message}`, meta);
+  }
+};
 
 interface RuntimeConfig {
   baseUrl: string;
@@ -329,22 +334,41 @@ describe("full customer journey e2e", () => {
       expect(run.id).toBeTruthy();
 
       const startedAt = Date.now();
+      const maxPollMs = 180_000;
+      const maxBackoffMs = 15_000;
       let finalRun: { status?: string; error?: string } | null = null;
-      while (Date.now() - startedAt < 240_000) {
+      let attempt = 1;
+      let backoffMs = 2_000;
+      while (Date.now() - startedAt < maxPollMs) {
         const current = await paperclipRequest<{ status?: string; error?: string }>(
           runtime,
           "GET",
           `/heartbeat-runs/${run.id}`
         );
+        logger.debug(
+          {
+            attempt,
+            elapsedMs: Date.now() - startedAt,
+            status: current.status ?? "pending"
+          },
+          "polling for run completion"
+        );
         if (current.status === "succeeded" || current.status === "failed" || current.status === "cancelled") {
           finalRun = current;
           break;
         }
-        await new Promise((resolve) => setTimeout(resolve, 2_000));
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+        backoffMs = Math.min(backoffMs * 2, maxBackoffMs);
+        attempt += 1;
       }
 
       expect(finalRun).not.toBeNull();
-      expect(["succeeded", "failed", "cancelled"]).toContain(finalRun?.status);
+      if (!finalRun) {
+        throw new Error(`Heartbeat run ${run.id} did not reach terminal state within ${maxPollMs}ms`);
+      }
+      if (finalRun.status !== "succeeded") {
+        throw new Error(`Heartbeat run ${run.id} ended with unexpected status=${finalRun.status ?? "unknown"}`);
+      }
 
       const commentsResponse = await paperclipRequest<unknown>(
         runtime,
