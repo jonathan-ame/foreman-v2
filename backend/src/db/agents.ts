@@ -46,6 +46,14 @@ export async function getAgentByWorkspaceAndName(
   return data as Agent | null;
 }
 
+export async function getAgentByOpenclawAgentId(db: SupabaseClient, openclawAgentId: string): Promise<Agent | null> {
+  const { data, error } = await db.from("agents").select("*").eq("openclaw_agent_id", openclawAgentId).maybeSingle();
+  if (error) {
+    throw new Error(`Failed to query openclaw agent ${openclawAgentId}: ${error.message}`);
+  }
+  return data as Agent | null;
+}
+
 export async function insertAgent(db: SupabaseClient, agentRecord: AgentInsert): Promise<Agent> {
   const { data, error } = await db.from("agents").insert(agentRecord).select("*").single();
   if (error) {

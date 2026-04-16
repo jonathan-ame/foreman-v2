@@ -1,0 +1,13 @@
+{
+  "id": "foreman-hire-agent",
+  "name": "Foreman Hire Agent",
+  "description": "Expose hire_agent tool that provisions sub-agents through Foreman backend.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "apiBaseUrl": { "type": "string" },
+      "requestTimeoutMs": { "type": "number" }
+    }
+  }
+}

@@ -51,7 +51,7 @@ describe("PaperclipClient", () => {
       name: "CEO",
       role: "ceo",
       reportsTo: "board",
-      capabilities: ["execute"],
+      capabilities: "execute",
       budgetMonthlyCents: 100000,
       adapterType: "openclaw_gateway",
       adapterConfig: {

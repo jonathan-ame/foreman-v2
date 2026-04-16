@@ -136,8 +136,16 @@ export class OpenClawClient {
     const command = `${this.binPath} ${args.join(" ")}`;
 
     return await new Promise<CommandResult>((resolve, reject) => {
+      const commandEnv = { ...process.env };
+      // Avoid inherited gateway override env vars that can force auth flags and break non-interactive CLI calls.
+      for (const key of Object.keys(commandEnv)) {
+        if (key.startsWith("OPENCLAW_GATEWAY_")) {
+          delete commandEnv[key];
+        }
+      }
+
       const child = spawn(this.binPath, args, {
-        env: process.env,
+        env: commandEnv,
         stdio: ["ignore", "pipe", "pipe"]
       });
 

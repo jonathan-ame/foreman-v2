@@ -59,6 +59,7 @@
             "sessions_spawn",
             "sessions_list",
             "sessions_history",
+            "hire_agent",
           ],
           deny: ["browser", "canvas", "nodes", "cron"],
         },
@@ -139,9 +140,18 @@
     },
   },
   plugins: {
+    load: {
+      paths: ["~/.openclaw/plugins/foreman-hire-agent"],
+    },
     entries: {
       openrouter: { enabled: true },
-      qwen_embedding: { enabled: true },
+      "foreman-hire-agent": {
+        enabled: true,
+        config: {
+          apiBaseUrl: "http://127.0.0.1:8080",
+          requestTimeoutMs: 30000,
+        },
+      },
     },
   },
 }

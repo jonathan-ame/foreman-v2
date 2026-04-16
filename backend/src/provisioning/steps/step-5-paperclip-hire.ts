@@ -34,8 +34,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
   const hireResponse = await ctx.clients.paperclip.hireAgent(customer.paperclip_company_id, {
     name: ctx.input.agentName,
     role: roleConfig.paperclipRole,
-    reportsTo: "board",
-    capabilities: [roleConfig.capabilities],
+    capabilities: roleConfig.capabilities,
     budgetMonthlyCents: roleConfig.budgetMonthlyCents,
     adapterType: "openclaw_gateway",
     adapterConfig: {

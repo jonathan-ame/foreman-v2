@@ -27,6 +27,14 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     budgetMonthlyCents: 50_000,
     capabilities: "Strategic planning, delegation, hiring, board reporting",
     systemPromptTemplate: "CEO_TEMPLATE_V1"
+  },
+  marketing_analyst: {
+    toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
+    toolsDeny: ["browser", "canvas", "nodes", "cron", "hire_agent"],
+    paperclipRole: "cmo",
+    budgetMonthlyCents: 20_000,
+    capabilities: "Market research, campaign analysis, funnel diagnostics, and growth recommendations",
+    systemPromptTemplate: "MARKETING_ANALYST_TEMPLATE_V1"
   }
 };
 

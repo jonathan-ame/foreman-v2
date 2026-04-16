@@ -13,6 +13,7 @@ export interface PaperclipAgent {
   adapterType: string;
   adapterConfig: AdapterConfig;
   companyId: string;
+  capabilities?: string;
 }
 
 export interface PendingApproval {
@@ -24,8 +25,8 @@ export interface PendingApproval {
 export interface HireAgentRequest {
   name: string;
   role: string;
-  reportsTo: string;
-  capabilities: string[];
+  reportsTo?: string;
+  capabilities: string;
   budgetMonthlyCents: number;
   adapterType: string;
   adapterConfig: AdapterConfig;
