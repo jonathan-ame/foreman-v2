@@ -1,0 +1,32 @@
+62a63,93
+>   },
+>   {
+>     "agent_id": "eb22b140-cb04-465f-ad49-ce1b52886d69",
+>     "customer_id": "31c326fa-2f13-4f57-a448-127a3d3d19ec",
+>     "workspace_slug": "foreman",
+>     "paperclip_agent_id": "f4d652b8-75b4-4bac-bdfd-a5b75d499ec1",
+>     "openclaw_agent_id": "foreman-ceo",
+>     "display_name": "CEO",
+>     "role": "ceo",
+>     "model_tier": "hybrid",
+>     "model_primary": "openrouter/deepseek/deepseek-chat-v3.1",
+>     "model_fallbacks": [
+>       "openrouter/qwen/qwen-2.5-72b-instruct",
+>       "openrouter/meta-llama/llama-3.3-70b-instruct"
+>     ],
+>     "billing_mode_at_provision": "byok",
+>     "provisioned_at": "2026-04-16T18:47:18.054456+00:00",
+>     "last_modified_at": "2026-04-16T18:47:18.054456+00:00",
+>     "current_status": "active",
+>     "total_tokens_input": 0,
+>     "total_tokens_output": 0,
+>     "tokens_input_current_period": 0,
+>     "tokens_output_current_period": 0,
+>     "surcharge_accrued_current_period_cents": null,
+>     "billing_period_start": "2026-04-16",
+>     "billing_period_end": "2026-05-16",
+>     "last_billed_at": null,
+>     "last_billing_amount_cents": null,
+>     "last_health_check_at": null,
+>     "last_health_check_result": null,
+>     "last_task_completed_at": null

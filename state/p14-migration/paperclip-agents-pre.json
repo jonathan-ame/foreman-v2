@@ -1,0 +1,66 @@
+[
+  {
+    "id": "22a7d215-c913-42d6-b24b-818ff916c913",
+    "name": "CEO E2E bedf0226",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "3615b290-cbb6-4400-b3cb-fcde88e128f2",
+    "name": "Test Agent",
+    "adapterType": "openclaw_gateway",
+    "status": "pending_approval",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af",
+    "name": "CEO",
+    "adapterType": "process",
+    "status": "error",
+    "gatewayDisabled": true,
+    "hasHeaders": false
+  },
+  {
+    "id": "2538da6e-2feb-4cf9-81cb-876d541fd2e7",
+    "name": "Marketing Analyst",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "d5b004ca-a41f-4464-b6c5-f8cbf512a1f2",
+    "name": "CEO E2E 782c89da",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "4953793e-e54f-455e-ae82-45203272e379",
+    "name": "CEO 2",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "e105a6be-50a3-48a7-9c4f-b8e8f2795101",
+    "name": "CEO 3",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  },
+  {
+    "id": "080d7809-f561-4158-bcf3-12526961a1d5",
+    "name": "ceo-test-adapter",
+    "adapterType": "openclaw_gateway",
+    "status": "idle",
+    "gatewayDisabled": false,
+    "hasHeaders": true
+  }
+]

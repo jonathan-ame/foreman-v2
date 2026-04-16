@@ -1,0 +1,38 @@
+
+> @foreman/backend@0.1.0 cli /Users/jonathanborgia/foreman-git/foreman-v2/backend
+> tsx src/cli/index.ts agent provision --customer-id 31c326fa-2f13-4f57-a448-127a3d3d19ec --agent-name CEO --role ceo --model-tier hybrid --idempotency-key 841B8607-0B9D-4DF2-BCCF-F90012FC7585
+
+◇ injected env (9) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+[2026-04-16 12:46:58.024 -0600] [33mWARN[39m (app): [36mopenclaw secrets reload failed; attempting gateway restart fallback[39m
+    [35mservice[39m: "foreman-backend"
+    [35mversion[39m: "0.1.0"
+    [35mprovisioningId[39m: "b2136446-d76c-4e4c-b489-a00b41709d8c"
+    err: {
+      "type": "OpenClawGatewayDownError",
+      "message": "OpenClaw gateway is unavailable",
+      "stack":
+          OpenClawGatewayDownError: OpenClaw gateway is unavailable
+              at OpenClawClient.mapCliError (/Users/jonathanborgia/foreman-git/foreman-v2/backend/src/clients/openclaw/client.ts:271:14)
+              at ChildProcess.<anonymous> (/Users/jonathanborgia/foreman-git/foreman-v2/backend/src/clients/openclaw/client.ts:223:31)
+              at ChildProcess.emit (node:events:508:28)
+              at maybeClose (node:internal/child_process:1100:16)
+              at ChildProcess._handle.onexit (node:internal/child_process:305:5)
+      "command": "openclaw secrets reload",
+      "exitCode": 1,
+      "stderr": "Config warnings:\\n- plugins.entries.qwen_embedding: plugin not found: qwen_embedding (stale config entry ignored; remove it from plugins config)\nError: gateway url override requires explicit credentials\nFix: pass --token or --password (or gatewayToken in tools).\nConfig: /Users/jonathanborgia/.openclaw/openclaw.json\n",
+      "stdout": "",
+      "name": "OpenClawGatewayDownError"
+    }
+{
+  "outcome": "success",
+  "agentId": "eb22b140-cb04-465f-ad49-ce1b52886d69",
+  "paperclipAgentId": "f4d652b8-75b4-4bac-bdfd-a5b75d499ec1",
+  "openclawAgentId": "foreman-ceo",
+  "provisioningId": "b2136446-d76c-4e4c-b489-a00b41709d8c",
+  "modelPrimary": "openrouter/deepseek/deepseek-chat-v3.1",
+  "modelFallbacks": [
+    "openrouter/qwen/qwen-2.5-72b-instruct",
+    "openrouter/meta-llama/llama-3.3-70b-instruct"
+  ],
+  "readyAt": "2026-04-16T18:47:18.192Z"
+}

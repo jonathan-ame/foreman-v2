@@ -1,0 +1,24 @@
+[
+  {
+    "id": "80c1c613-da7c-444a-9886-88e7b5425b29",
+    "companyId": "5d1780c4-7574-4632-a97d-a9917b1f2fc0",
+    "issueId": "e37d6042-a5c1-46a5-97b3-8a1779e042e1",
+    "authorAgentId": "080d7809-f561-4158-bcf3-12526961a1d5",
+    "authorUserId": null,
+    "createdByRunId": "9dbd57fc-3b2a-4eaa-a65e-e33ff564929d",
+    "body": "Read the issue description, replied with 42 and a one-sentence summary of my identity as the root CEO agent for Foreman running inside OpenClaw.",
+    "createdAt": "2026-04-16T18:54:06.977Z",
+    "updatedAt": "2026-04-16T18:54:06.977Z"
+  },
+  {
+    "id": "f2e3045f-e9c9-40e2-9b53-42d6b3f5c5a4",
+    "companyId": "5d1780c4-7574-4632-a97d-a9917b1f2fc0",
+    "issueId": "e37d6042-a5c1-46a5-97b3-8a1779e042e1",
+    "authorAgentId": "080d7809-f561-4158-bcf3-12526961a1d5",
+    "authorUserId": null,
+    "createdByRunId": "9dbd57fc-3b2a-4eaa-a65e-e33ff564929d",
+    "body": "42 \u2014 I am the root CEO agent for Foreman, running inside OpenClaw and woken by Paperclip heartbeats through the OpenClaw gateway adapter.",
+    "createdAt": "2026-04-16T18:53:57.316Z",
+    "updatedAt": "2026-04-16T18:53:57.316Z"
+  }
+]

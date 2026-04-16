@@ -1,0 +1,27 @@
+2a3,10
+>     "id": "a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af",
+>     "name": "CEO",
+>     "adapterType": "process",
+>     "status": "error",
+>     "gatewayDisabled": true,
+>     "hasHeaders": false
+>   },
+>   {
+19,26d26
+<     "id": "a81ff4a7-5d8b-4a0f-a610-5fcf4cc8a5af",
+<     "name": "CEO",
+<     "adapterType": "process",
+<     "status": "error",
+<     "gatewayDisabled": true,
+<     "hasHeaders": false
+<   },
+<   {
+62a63,70
+>     "gatewayDisabled": true,
+>     "hasHeaders": false
+>   },
+>   {
+>     "id": "f4d652b8-75b4-4bac-bdfd-a5b75d499ec1",
+>     "name": "CEO 4",
+>     "adapterType": "openclaw_gateway",
+>     "status": "idle",

@@ -1,0 +1,30 @@
+5,8c5,8
+<     "id": "ceo",
+<     "name": "Foreman CEO",
+<     "workspace": "/Users/jonathanborgia/.openclaw/workspace-ceo",
+<     "agentDir": "/Users/jonathanborgia/.openclaw/agents/ceo/agent",
+---
+>     "id": "smoke-provisioning-ceo",
+>     "name": "smoke-provisioning-ceo",
+>     "workspace": "/Users/jonathanborgia/.openclaw/workspace-smoke-provisioning-ceo",
+>     "agentDir": "/Users/jonathanborgia/.openclaw/agents/smoke-provisioning-ceo/agent",
+17,25d16
+<     "id": "smoke-provisioning-ceo",
+<     "name": "smoke-provisioning-ceo",
+<     "workspace": "/Users/jonathanborgia/.openclaw/workspace-smoke-provisioning-ceo",
+<     "agentDir": "/Users/jonathanborgia/.openclaw/agents/smoke-provisioning-ceo/agent",
+<     "model": "openrouter/deepseek/deepseek-chat-v3.1",
+<     "bindings": 0,
+<     "isDefault": false
+<   },
+<   {
+53a45,53
+>   },
+>   {
+>     "id": "foreman-ceo",
+>     "name": "foreman-ceo",
+>     "workspace": "/Users/jonathanborgia/.openclaw/workspace-foreman-ceo",
+>     "agentDir": "/Users/jonathanborgia/.openclaw/agents/foreman-ceo/agent",
+>     "model": "openrouter/deepseek/deepseek-chat-v3.1",
+>     "bindings": 0,
+>     "isDefault": false
