@@ -11,7 +11,7 @@ describe("step5PaperclipHire", () => {
         name: "CEO",
         role: "ceo",
         adapterType: "openclaw_gateway",
-        adapterConfig: { gatewayUrl: "ws://", headers: { "x-openclaw-token": "pending-sync" } },
+        adapterConfig: { url: "ws://", gatewayUrl: "ws://", headers: { "x-openclaw-token": "pending-sync" } },
         companyId: "pc1"
       }
     });
