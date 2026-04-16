@@ -1,11 +1,12 @@
 import type { Hono } from "hono";
 import { z } from "zod";
+import { resolveSessionCustomerId } from "../auth/session.js";
 import type { AppDeps } from "../app-deps.js";
 import { provisionForemanAgent } from "../provisioning/orchestrator.js";
 import type { ProvisionFailure, ProvisionSuccess } from "../provisioning/types.js";
 
 const ProvisionInputSchema = z.object({
-  customer_id: z.string().uuid(),
+  customer_id: z.string().uuid().optional(),
   agent_name: z.string().min(1),
   role: z.literal("ceo"),
   model_tier: z.enum(["open", "frontier", "hybrid"]),
@@ -13,7 +14,11 @@ const ProvisionInputSchema = z.object({
   workspace_path: z.string().optional()
 });
 
-const toInput = (payload: z.infer<typeof ProvisionInputSchema>) => ({
+const toInput = (
+  payload: Omit<z.infer<typeof ProvisionInputSchema>, "customer_id"> & {
+    customer_id: string;
+  }
+) => ({
   customerId: payload.customer_id,
   agentName: payload.agent_name,
   role: payload.role,
@@ -58,7 +63,19 @@ export function registerAgentRoutes(app: Hono, deps: AppDeps) {
       return c.json({ error: "idempotency_key_required" }, 400);
     }
 
-    const result = await provisionForemanAgent(toInput(parsed.data), deps);
+    const sessionCustomerId = await resolveSessionCustomerId(c, deps);
+    const customerId = parsed.data.customer_id ?? sessionCustomerId;
+    if (!customerId) {
+      return c.json({ error: "customer_id_required_or_login_required" }, 401);
+    }
+
+    const result = await provisionForemanAgent(
+      toInput({
+        ...parsed.data,
+        customer_id: customerId
+      }),
+      deps
+    );
     if (isFailure(result)) {
       return c.json(formatFailureResponse(result), 422);
     }

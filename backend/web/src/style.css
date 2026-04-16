@@ -1,0 +1,139 @@
+:root {
+  color-scheme: light;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #f5f7fb;
+  color: #1c2733;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+#app {
+  min-height: 100vh;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.panel {
+  width: min(780px, 100%);
+  background: white;
+  border-radius: 14px;
+  padding: 24px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.panel h1 {
+  margin: 0 0 10px;
+}
+
+.muted {
+  margin: 0 0 16px;
+  color: #4b5563;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.field legend {
+  font-weight: 600;
+  padding: 0 4px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input:not([type]) {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+button,
+.button-link {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.progress-card,
+.failure-card {
+  margin-top: 18px;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.progress-card {
+  background: #eef4ff;
+  border: 1px solid #c7dbff;
+}
+
+.failure-card {
+  background: #fff6f6;
+  border: 1px solid #fecaca;
+}
+
+.failure-card h2 {
+  margin-top: 0;
+}
+
+.technical-details {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+}
+
+.button-row {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.success-text {
+  color: #0f766e;
+}
+
+.error-text {
+  color: #b42318;
+}

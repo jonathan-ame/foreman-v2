@@ -39,6 +39,15 @@ export async function getCustomerById(db: SupabaseClient, customerId: string): P
   return data as Customer | null;
 }
 
+export async function getCustomerByEmail(db: SupabaseClient, email: string): Promise<Customer | null> {
+  const { data, error } = await db.from("customers").select("*").eq("email", email).maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load customer by email ${email}: ${error.message}`);
+  }
+  return data as Customer | null;
+}
+
 export async function updateCustomerByStripeCustomerId(
   db: SupabaseClient,
   stripeCustomerId: string,
