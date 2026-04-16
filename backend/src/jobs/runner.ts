@@ -1,5 +1,6 @@
 import cron, { type ScheduledTask } from "node-cron";
 import type { AppDeps } from "../app-deps.js";
+import { runAgentHealthCheckJob } from "./agent-health-check.js";
 import { runIdempotencyCleanupJob } from "./idempotency-cleanup.js";
 import { runOpenClawAbsorptionRepairJob } from "./openclaw-absorption-repair.js";
 import { runOrphanWorkspaceCleanupJob } from "./orphan-workspace-cleanup.js";
@@ -20,6 +21,11 @@ const JOBS: JobDefinition[] = [
     name: "orphan_workspace_cleanup",
     schedule: "30 3 * * *",
     run: runOrphanWorkspaceCleanupJob
+  },
+  {
+    name: "agent_health_check",
+    schedule: "*/5 * * * *",
+    run: runAgentHealthCheckJob
   }
 ];
 

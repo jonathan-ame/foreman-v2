@@ -296,4 +296,37 @@ describe("OpenClawClient", () => {
       expect.any(Object)
     );
   });
+
+  it("normalizes nested gateway status output shape", async () => {
+    spawnMock.mockImplementation(() =>
+      createChild({
+        code: 0,
+        stdout: JSON.stringify({
+          service: {
+            runtime: {
+              status: "running",
+              pid: 12345
+            }
+          },
+          port: {
+            listeners: [{ address: "127.0.0.1:18789" }]
+          },
+          rpc: {
+            ok: true
+          }
+        })
+      })
+    );
+    const client = new OpenClawClient({
+      binPath: "openclaw",
+      configPath: "/tmp/openclaw.json",
+      includePath: "/tmp/foreman.json5",
+      logger
+    });
+
+    const status = await client.gatewayStatus();
+    expect(status.running).toBe(true);
+    expect(status.pid).toBe(12345);
+    expect(status.listening).toBe("127.0.0.1:18789");
+  });
 });

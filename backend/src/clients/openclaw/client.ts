@@ -123,12 +123,32 @@ export class OpenClawClient {
 
   async gatewayStatus(): Promise<{ running: boolean; pid?: number; listening?: string }> {
     const output = await this.runCommand(["gateway", "status", "--non-interactive", "--json"], true);
-    return this.parseJson<{ running: boolean; pid?: number; listening?: string }>(output.stdout, [
+    const parsed = this.parseJson<Record<string, unknown>>(output.stdout, [
       "gateway",
       "status",
       "--non-interactive",
       "--json"
     ]);
+
+    const directRunning = typeof parsed.running === "boolean" ? parsed.running : null;
+    const serviceRuntime = (
+      parsed.service as { runtime?: { status?: string; pid?: number } } | undefined
+    )?.runtime;
+    const rpc = parsed.rpc as { ok?: boolean } | undefined;
+    const listeners = (parsed.port as { listeners?: Array<{ address?: string }> } | undefined)?.listeners ?? [];
+    const directListening = typeof parsed.listening === "string" ? parsed.listening : undefined;
+    const listenerAddress = listeners[0]?.address;
+    const resolvedListening = directListening ?? listenerAddress;
+    const normalized: { running: boolean; pid?: number; listening?: string } = {
+      running: directRunning ?? (serviceRuntime?.status === "running" || rpc?.ok === true)
+    };
+    if (typeof serviceRuntime?.pid === "number") {
+      normalized.pid = serviceRuntime.pid;
+    }
+    if (resolvedListening !== undefined) {
+      normalized.listening = resolvedListening;
+    }
+    return normalized;
   }
 
   private async runCommand(args: string[], expectJson: boolean): Promise<CommandResult> {

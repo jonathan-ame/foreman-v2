@@ -2,7 +2,7 @@ import type { SupabaseClient } from "./supabase.js";
 
 export interface NotificationInsert {
   workspace_slug: string;
-  type: "agent_hired";
+  type: "agent_hired" | "agent_paused_health" | "agent_recovered_health";
   title: string;
   body: string;
   reference_id?: string | null;

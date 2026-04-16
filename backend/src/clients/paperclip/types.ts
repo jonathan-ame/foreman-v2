@@ -10,6 +10,7 @@ export interface PaperclipAgent {
   id: string;
   name: string;
   role: string;
+  status?: string;
   adapterType: string;
   adapterConfig: AdapterConfig;
   companyId: string;
