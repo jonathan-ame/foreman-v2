@@ -24,7 +24,9 @@ export function createAppDeps(baseLogger?: Logger): AppDeps {
     OPENCLAW_BIN: env.OPENCLAW_BIN,
     OPENCLAW_CONFIG_PATH: env.OPENCLAW_CONFIG_PATH,
     OPENCLAW_INCLUDE_PATH: env.OPENCLAW_INCLUDE_PATH,
-    STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY
+    STRIPE_MODE: env.stripeMode,
+    STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY,
+    STRIPE_SECRET_KEY_TEST: env.STRIPE_SECRET_KEY_TEST
   };
   return {
     clients: createClients(clientEnv, logger),

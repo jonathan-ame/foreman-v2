@@ -61,10 +61,10 @@ const resolveTierFromPriceId = (priceId: string | null, deps: AppDeps): string |
     return null;
   }
   const priceToTier: Record<string, string> = {
-    [deps.env.STRIPE_PRICE_TIER_1]: "tier_1",
-    [deps.env.STRIPE_PRICE_TIER_2]: "tier_2",
-    [deps.env.STRIPE_PRICE_TIER_3]: "tier_3",
-    [deps.env.STRIPE_PRICE_BYOK_PLATFORM]: "byok_platform"
+    [deps.env.STRIPE_PRICE_TIER_1_ACTIVE]: "tier_1",
+    [deps.env.STRIPE_PRICE_TIER_2_ACTIVE]: "tier_2",
+    [deps.env.STRIPE_PRICE_TIER_3_ACTIVE]: "tier_3",
+    [deps.env.STRIPE_PRICE_BYOK_PLATFORM_ACTIVE]: "byok_platform"
   };
   return priceToTier[priceId] ?? null;
 };
@@ -100,7 +100,7 @@ export function registerStripeWebhookRoutes(app: Hono, deps: AppDeps) {
       event = deps.clients.stripe.constructWebhookEvent(
         payload,
         signature,
-        deps.env.STRIPE_WEBHOOK_SECRET
+        deps.env.STRIPE_WEBHOOK_SECRET_ACTIVE
       );
     } catch (error) {
       deps.logger.error({ err: error }, "failed to verify stripe webhook signature");

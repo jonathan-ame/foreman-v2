@@ -27,11 +27,17 @@ describe("Stripe webhook route", () => {
     db: {},
     logger,
     env: {
+      stripeMode: "test",
       STRIPE_WEBHOOK_SECRET: "whsec_test",
+      STRIPE_WEBHOOK_SECRET_ACTIVE: "whsec_test",
       STRIPE_PRICE_TIER_1: "price_tier_1",
       STRIPE_PRICE_TIER_2: "price_tier_2",
       STRIPE_PRICE_TIER_3: "price_tier_3",
-      STRIPE_PRICE_BYOK_PLATFORM: "price_byok"
+      STRIPE_PRICE_BYOK_PLATFORM: "price_byok",
+      STRIPE_PRICE_TIER_1_ACTIVE: "price_tier_1",
+      STRIPE_PRICE_TIER_2_ACTIVE: "price_tier_2",
+      STRIPE_PRICE_TIER_3_ACTIVE: "price_tier_3",
+      STRIPE_PRICE_BYOK_PLATFORM_ACTIVE: "price_byok"
     }
   } as unknown as AppDeps;
 

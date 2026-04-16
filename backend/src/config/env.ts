@@ -20,12 +20,19 @@ const envSchema = z.object({
   OPENCLAW_INCLUDE_PATH: z.string().min(1).default("~/.openclaw/foreman.json5"),
   OPENROUTER_API_KEY: z.string().min(1),
   DASHSCOPE_SG_KEY: z.string().min(1),
-  STRIPE_SECRET_KEY: z.string().min(1),
-  STRIPE_WEBHOOK_SECRET: z.string().min(1),
-  STRIPE_PRICE_TIER_1: z.string().min(1).default("price_test_tier_1"),
-  STRIPE_PRICE_TIER_2: z.string().min(1).default("price_test_tier_2"),
-  STRIPE_PRICE_TIER_3: z.string().min(1).default("price_test_tier_3"),
-  STRIPE_PRICE_BYOK_PLATFORM: z.string().min(1).default("price_test_byok_platform"),
+  STRIPE_MODE: z.enum(["live", "test"]).optional(),
+  STRIPE_SECRET_KEY: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_1: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_2: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_3: z.string().min(1).optional(),
+  STRIPE_PRICE_BYOK_PLATFORM: z.string().min(1).optional(),
+  STRIPE_SECRET_KEY_TEST: z.string().min(1).optional(),
+  STRIPE_WEBHOOK_SECRET_TEST: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_1_TEST: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_2_TEST: z.string().min(1).optional(),
+  STRIPE_PRICE_TIER_3_TEST: z.string().min(1).optional(),
+  STRIPE_PRICE_BYOK_PLATFORM_TEST: z.string().min(1).optional(),
   FOREMAN_LOG_DIR: z.string().min(1).default("~/.foreman/logs")
 });
 
@@ -52,9 +59,70 @@ const expandHome = (value: string): string => {
 };
 
 const data = parsed.data;
+const isVitest = process.env.VITEST === "true";
+const defaultStripeMode: "live" | "test" = data.NODE_ENV === "production" ? "live" : "test";
+const stripeMode: "live" | "test" = data.STRIPE_MODE ?? defaultStripeMode;
+
+const selectByMode = (liveValue: string | undefined, testValue: string | undefined): string | undefined =>
+  stripeMode === "live" ? liveValue : testValue;
+
+const activeStripeSecretKey = selectByMode(data.STRIPE_SECRET_KEY, data.STRIPE_SECRET_KEY_TEST);
+const activeStripeWebhookSecret = selectByMode(data.STRIPE_WEBHOOK_SECRET, data.STRIPE_WEBHOOK_SECRET_TEST);
+const activeStripeTier1Price = selectByMode(data.STRIPE_PRICE_TIER_1, data.STRIPE_PRICE_TIER_1_TEST);
+const activeStripeTier2Price = selectByMode(data.STRIPE_PRICE_TIER_2, data.STRIPE_PRICE_TIER_2_TEST);
+const activeStripeTier3Price = selectByMode(data.STRIPE_PRICE_TIER_3, data.STRIPE_PRICE_TIER_3_TEST);
+const activeStripeByokPrice = selectByMode(
+  data.STRIPE_PRICE_BYOK_PLATFORM,
+  data.STRIPE_PRICE_BYOK_PLATFORM_TEST
+);
+
+const modePrefix = stripeMode === "live" ? "" : "_TEST";
+const validationErrors: string[] = [];
+if (!activeStripeSecretKey) {
+  validationErrors.push(`STRIPE_SECRET_KEY${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+if (!activeStripeWebhookSecret) {
+  validationErrors.push(`STRIPE_WEBHOOK_SECRET${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+if (!activeStripeTier1Price) {
+  validationErrors.push(`STRIPE_PRICE_TIER_1${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+if (!activeStripeTier2Price) {
+  validationErrors.push(`STRIPE_PRICE_TIER_2${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+if (!activeStripeTier3Price) {
+  validationErrors.push(`STRIPE_PRICE_TIER_3${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+if (!activeStripeByokPrice) {
+  validationErrors.push(`STRIPE_PRICE_BYOK_PLATFORM${modePrefix} is required for STRIPE_MODE=${stripeMode}`);
+}
+
+if (!isVitest && validationErrors.length > 0) {
+  process.stderr.write("Environment validation failed:\n");
+  for (const error of validationErrors) {
+    process.stderr.write(`- ${error}\n`);
+  }
+  process.exit(1);
+}
+
+const fallbackByMode = (liveFallback: string, testFallback: string): string =>
+  stripeMode === "live" ? liveFallback : testFallback;
 
 export const env = {
   ...data,
+  stripeMode,
+  STRIPE_SECRET_KEY_ACTIVE:
+    activeStripeSecretKey ?? fallbackByMode("sk_live_test_placeholder", "sk_test_test_placeholder"),
+  STRIPE_WEBHOOK_SECRET_ACTIVE:
+    activeStripeWebhookSecret ?? fallbackByMode("whsec_live_test_placeholder", "whsec_test_test_placeholder"),
+  STRIPE_PRICE_TIER_1_ACTIVE:
+    activeStripeTier1Price ?? fallbackByMode("price_live_tier_1_test", "price_test_tier_1_test"),
+  STRIPE_PRICE_TIER_2_ACTIVE:
+    activeStripeTier2Price ?? fallbackByMode("price_live_tier_2_test", "price_test_tier_2_test"),
+  STRIPE_PRICE_TIER_3_ACTIVE:
+    activeStripeTier3Price ?? fallbackByMode("price_live_tier_3_test", "price_test_tier_3_test"),
+  STRIPE_PRICE_BYOK_PLATFORM_ACTIVE:
+    activeStripeByokPrice ?? fallbackByMode("price_live_byok_test", "price_test_byok_test"),
   OPENCLAW_CONFIG_PATH: expandHome(data.OPENCLAW_CONFIG_PATH),
   OPENCLAW_INCLUDE_PATH: expandHome(data.OPENCLAW_INCLUDE_PATH),
   FOREMAN_LOG_DIR: expandHome(data.FOREMAN_LOG_DIR)

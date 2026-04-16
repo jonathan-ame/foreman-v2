@@ -1,0 +1,12 @@
+{
+  "audited_at": "2026-04-16T00:58:28.864063Z",
+  "stripe_mode": "test",
+  "total_customers": 0,
+  "livemode_counts": {
+    "true": 0,
+    "false": 0,
+    "unknown": 0
+  },
+  "oldest_customer_created_at": null,
+  "newest_customer_created_at": null
+}

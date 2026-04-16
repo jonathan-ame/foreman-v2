@@ -9,13 +9,17 @@ export interface ClientFactoryEnv {
   OPENCLAW_BIN: string;
   OPENCLAW_CONFIG_PATH: string;
   OPENCLAW_INCLUDE_PATH: string;
-  STRIPE_SECRET_KEY: string;
+  STRIPE_MODE: "live" | "test";
+  STRIPE_SECRET_KEY: string | undefined;
+  STRIPE_SECRET_KEY_TEST: string | undefined;
 }
 
 export const createClients = (env: ClientFactoryEnv, logger: Logger) => {
   const stripeConfig = {
     logger: logger.child({ name: "stripe-client" }),
-    apiKey: env.STRIPE_SECRET_KEY
+    mode: env.STRIPE_MODE,
+    liveApiKey: env.STRIPE_SECRET_KEY,
+    testApiKey: env.STRIPE_SECRET_KEY_TEST
   };
 
   return {

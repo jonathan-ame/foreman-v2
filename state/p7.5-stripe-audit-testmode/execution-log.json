@@ -1,0 +1,22 @@
+{
+  "generated_at": "2026-04-16T01:03:32.893548+00:00",
+  "stripe_mode": "test",
+  "mapping": {
+    "tier_1": {
+      "product_id": "prod_ULL1JfbKTUrLrk",
+      "price_id": "price_1TMeL7LIeTmtbHlG6R6reoJb"
+    },
+    "tier_2": {
+      "product_id": "prod_ULL13NajuMtpZe",
+      "price_id": "price_1TMeL8LIeTmtbHlGCj8H13rp"
+    },
+    "tier_3": {
+      "product_id": "prod_ULL1j8V4hSDIVJ",
+      "price_id": "price_1TMeL9LIeTmtbHlGbgdqeDYK"
+    },
+    "byok_platform": {
+      "product_id": "prod_ULL1FYpwgdb7Yv",
+      "price_id": "price_1TMeLALIeTmtbHlGnoXQqZks"
+    }
+  }
+}

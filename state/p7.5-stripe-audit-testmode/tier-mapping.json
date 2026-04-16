@@ -1,0 +1,46 @@
+{
+  "tier_1": {
+    "target": {
+      "name": "Foreman Starter",
+      "amount_cents": 4900,
+      "interval": "month"
+    },
+    "decision": "create",
+    "existing_product_id": null,
+    "existing_price_id": null,
+    "notes": "No active recurring USD monthly price found at target amount."
+  },
+  "tier_2": {
+    "target": {
+      "name": "Foreman Growth",
+      "amount_cents": 9900,
+      "interval": "month"
+    },
+    "decision": "create",
+    "existing_product_id": null,
+    "existing_price_id": null,
+    "notes": "No active recurring USD monthly price found at target amount."
+  },
+  "tier_3": {
+    "target": {
+      "name": "Foreman Scale",
+      "amount_cents": 19900,
+      "interval": "month"
+    },
+    "decision": "create",
+    "existing_product_id": null,
+    "existing_price_id": null,
+    "notes": "No active recurring USD monthly price found at target amount."
+  },
+  "byok_platform": {
+    "target": {
+      "name": "Foreman BYOK Platform",
+      "amount_cents": 1900,
+      "interval": "month"
+    },
+    "decision": "create",
+    "existing_product_id": null,
+    "existing_price_id": null,
+    "notes": "No active recurring USD monthly price found at target amount."
+  }
+}

@@ -4,7 +4,9 @@ import { StripeApiError } from "./errors.js";
 import type { PaymentIntentResult, PaymentStatus } from "./types.js";
 
 export interface StripeClientConfig {
-  apiKey: string;
+  mode: "live" | "test";
+  liveApiKey: string | undefined;
+  testApiKey: string | undefined;
   apiVersion?: "2026-03-25.dahlia";
   logger: Logger;
 }
@@ -14,8 +16,12 @@ export class StripeClient {
   private readonly logger: Logger;
 
   constructor(config: StripeClientConfig) {
+    const apiKey = config.mode === "live" ? config.liveApiKey : config.testApiKey;
+    if (!apiKey) {
+      throw new StripeApiError(`Missing Stripe API key for mode=${config.mode}`);
+    }
     this.stripe = new Stripe(
-      config.apiKey,
+      apiKey,
       config.apiVersion ? { apiVersion: config.apiVersion } : {}
     );
     this.logger = config.logger;
