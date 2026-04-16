@@ -1,4 +1,5 @@
 export interface AdapterConfig {
+  url?: string;
   gatewayUrl: string;
   headers: {
     "x-openclaw-token": string;

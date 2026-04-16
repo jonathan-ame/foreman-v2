@@ -38,6 +38,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     budgetMonthlyCents: roleConfig.budgetMonthlyCents,
     adapterType: "openclaw_gateway",
     adapterConfig: {
+      url: env.OPENCLAW_GATEWAY_URL,
       gatewayUrl: env.OPENCLAW_GATEWAY_URL,
       headers: {
         "x-openclaw-token": "pending-sync"
