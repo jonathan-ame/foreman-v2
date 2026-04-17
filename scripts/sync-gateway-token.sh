@@ -10,7 +10,7 @@ set -euo pipefail
 BOARD_KEY="${PAPERCLIP_BOARD_KEY:-$(python3 -c "import re, pathlib; txt=pathlib.Path('/Users/jonathanborgia/foreman-git/foreman-v2/.env').read_text(); m=re.search(r'^PAPERCLIP_API_KEY=(.*)$', txt, re.M); print(m.group(1).strip() if m else '')")}"
 GATEWAY_TOKEN="$(python3 -c 'import json; print(json.load(open("/Users/jonathanborgia/.openclaw/openclaw.json"))["gateway"]["auth"]["token"])')"
 COMPANY_ID=5d1780c4-7574-4632-a97d-a9917b1f2fc0
-CEO_ID=e061b917-c9e5-4891-876e-0579c12bec03
+CEO_ID=44f95028-f240-4be9-8e9c-e5420240aa41
 API_BASE="${PAPERCLIP_API_BASE:-http://localhost:3125}"
 
 if [[ -z "${BOARD_KEY}" ]]; then

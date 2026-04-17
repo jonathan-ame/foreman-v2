@@ -15,6 +15,30 @@ export async function step0PaymentGate(ctx: StepContext): Promise<StepResult> {
     };
   }
 
+  const billingMode = customer.current_billing_mode;
+  // BYOK customers with active platform status were already validated at onboarding.
+  // Skip per-hire Stripe checks to avoid mode mismatches and unnecessary API calls.
+  if (billingMode === "byok" && customer.payment_status === "active") {
+    return {
+      ok: true,
+      data: {
+        customer,
+        payment: {
+          billingMode,
+          subscriptionStatus: customer.payment_status,
+          hasFailedPayment: false,
+          prepaidBalanceCents: customer.prepaid_balance_cents ?? 0,
+          activeSubscription: true,
+          tokensConsumedCurrentPeriodCents:
+            typeof customer.tokens_consumed_current_period_cents === "number"
+              ? customer.tokens_consumed_current_period_cents
+              : null,
+          tierAllowanceCents: typeof customer.tier_allowance_cents === "number" ? customer.tier_allowance_cents : null
+        }
+      }
+    };
+  }
+
   const stripeCustomerId = customer.stripe_customer_id;
   const subscriptionStatus = stripeCustomerId
     ? await ctx.clients.stripe.getSubscriptionStatus(stripeCustomerId)
@@ -29,7 +53,6 @@ export async function step0PaymentGate(ctx: StepContext): Promise<StepResult> {
     ? await ctx.clients.stripe.getPrepaidBalanceCents(stripeCustomerId)
     : (customer.prepaid_balance_cents ?? 0);
 
-  const billingMode = customer.current_billing_mode;
   const activeSubscription = ACTIVE_STATUSES.has(subscriptionStatus);
   const isDelinquent = DELINQUENT_STATUSES.has(subscriptionStatus) || hasFailedPayment;
   const hasBalance = prepaidBalanceCents > 0;
