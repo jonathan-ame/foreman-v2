@@ -3,6 +3,12 @@
 **Last updated:** 2026-04-17  
 **Assessment:** Local autonomous operation is fully functional.
 
+## Architecture
+
+- CEO: Paperclip process adapter -> DeepSeek V3.1 via OpenRouter (plans) -> Node.js executor (acts)
+- Workers: Paperclip OpenClaw gateway adapter -> Qwen 2.5 72B via OpenRouter (tool execution)
+- Token metering: CEO reports directly to Paperclip + Foreman usage endpoint; workers use the `foreman-token-meter` plugin
+
 ## Capability Status
 
 | Capability | Status | Notes |
@@ -13,7 +19,7 @@
 | BYOK fallback | ⚠️ Designed, not built | P19 skipped - scope doc complete |
 | Health checks | ✅ Ready | P12 |
 | Scheduled heartbeats | ✅ Ready | P16 (30-min proactive + backup cron) |
-| Token metering | ✅ Ready | P17 (OpenClaw -> Paperclip cost-events) |
+| Token metering | ✅ Ready | P17 + S7 (CEO direct metering, workers via plugin) |
 | Budget enforcement | ✅ Ready | P18 ($100 company / $50 CEO) |
 | Hybrid tier escalation | ✅ Ready | P20 (2-rejection rule + manual tool) |
 | CEO workspace files | ✅ Ready | P15 |
