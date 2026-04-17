@@ -56,3 +56,12 @@ Conclusion: heartbeat fired via backup scheduler during this validation window.
 
 - `paperclipai/paperclip#1165`: scheduler may stop after server restart; backup launchd covers this
 - `paperclipai/paperclip#1749`: zombie runs can block next heartbeat; `timeoutSec` mitigates this
+
+## Budget configuration
+
+- Company budget: $100/month (10000 cents) - safety ceiling
+- CEO agent budget: $50/month (5000 cents)
+- Warning at 80% ($40 for CEO)
+- Auto-pause at 100% ($50 for CEO)
+- Budget resets monthly at 00:00 UTC
+- Board operator can override via Paperclip dashboard or API
