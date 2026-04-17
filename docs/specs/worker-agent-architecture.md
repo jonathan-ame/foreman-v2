@@ -120,3 +120,25 @@ Deferred roles:
 - `engineer`
 - `qa`
 - `designer`
+
+## OpenClaw Model Configuration (Applied)
+
+Worker agents are routed to Qwen 2.5 72B via OpenRouter.
+
+- Config locations:
+  - `~/.openclaw/foreman.json5` (Foreman profile source)
+  - `~/.openclaw/openclaw.json` (active gateway runtime config)
+- Config path used:
+  - `agents.defaults.model.primary`
+  - `agents.list[].model` for worker slugs
+- Model string:
+  - `openrouter/qwen/qwen-2.5-72b-instruct`
+
+Validation results:
+
+- `openclaw agents list --json` reports worker agents on Qwen
+- gateway log confirms active model switched to Qwen:
+  - `agent model: openrouter/qwen/qwen-2.5-72b-instruct`
+
+The CEO does not run through OpenClaw, so this routing applies to worker
+agents only.
