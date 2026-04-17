@@ -103,3 +103,12 @@ Notifications table (latest 20):
 
 Autonomous scheduling, issue execution, completion, comments, and Paperclip cost/budget tracking are working.
 Foreman DB token counters remain zero despite Paperclip spend increasing; this indicates a remaining sync gap between metering events and Foreman `agents` token counter updates.
+
+## P22 Follow-up
+
+Root cause was identified in backend DB trigger wiring: `agents` updates invoked `update_updated_at_column()` (which expects an `updated_at` field) while `agents` uses `last_modified_at`. This caused usage counter writes to fail at runtime.
+
+P22 applied migration `012_agents_last_modified_trigger.sql` and validated with a manual usage POST:
+
+- `POST /api/internal/agents/f4d652b8-75b4-4bac-bdfd-a5b75d499ec1/usage` -> `HTTP 200`
+- `agents.total_tokens_input` and `agents.total_tokens_output` now increment correctly for the CEO row.
