@@ -35,6 +35,13 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
   const heartbeatConfig = isWorkerRole
     ? { enabled: true, mode: "reactive" as const }
     : { enabled: true, mode: "proactive" as const, intervalSec: 1800 };
+  const workerRoutingConfig = isWorkerRole
+    ? {
+        agentId: openclawAgentId,
+        sessionKeyStrategy: "fixed" as const,
+        sessionKey: `agent:${openclawAgentId}:paperclip`
+      }
+    : {};
 
   const hireResponse = await ctx.clients.paperclip.hireAgent(customer.paperclip_company_id, {
     name: ctx.input.agentName,
@@ -46,6 +53,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
       url: env.OPENCLAW_GATEWAY_URL,
       gatewayUrl: env.OPENCLAW_GATEWAY_URL,
       timeoutSec: 1500,
+      ...workerRoutingConfig,
       headers: {
         "x-openclaw-token": "pending-sync"
       }
@@ -58,6 +66,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
   const patchedAgent = await ctx.clients.paperclip.patchAgent(hireResponse.agent.id, {
     adapterConfig: {
       ...hireResponse.agent.adapterConfig,
+      ...workerRoutingConfig,
       timeoutSec: 1500
     },
     runtimeConfig: {

@@ -56,9 +56,9 @@ export const FRONTIER_ESCALATION_MAP: FrontierEscalationMap = {
 
 export const WORKER_ROLE_MODEL_OVERRIDES: Record<string, RoleTierOverride> = {
   marketing_analyst: {
-    primary: "openrouter/qwen/qwen-2.5-72b-instruct",
+    primary: "openrouter/qwen/qwen3-coder",
     fallbacks: [
-      "openrouter/deepseek/deepseek-chat-v3.1",
+      "openrouter/qwen/qwen-2.5-72b-instruct",
       "openrouter/meta-llama/llama-3.3-70b-instruct"
     ]
   }
