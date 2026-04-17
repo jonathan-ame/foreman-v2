@@ -20,6 +20,9 @@
       "paperclipCompanyId": {
         "type": "string"
       },
+      "paperclipAgentId": {
+        "type": "string"
+      },
       "foremanApiBase": {
         "type": "string",
         "default": "http://localhost:8080"

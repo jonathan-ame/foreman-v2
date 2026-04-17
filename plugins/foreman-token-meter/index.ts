@@ -15,6 +15,7 @@ const DEFAULT_PAPERCLIP_API_BASE = "http://localhost:3125";
 const DEFAULT_FOREMAN_API_BASE = "http://localhost:8080";
 const DEFAULT_TIMEOUT_MS = 5_000;
 const DEFAULT_COMPANY_ID = "5d1780c4-7574-4632-a97d-a9917b1f2fc0";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const REPO_ENV_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../.env");
 
 const toRecord = (value: unknown): Record<string, unknown> =>
@@ -57,6 +58,14 @@ const resolvePluginConfig = (value: unknown): Record<string, unknown> => {
   const raw = toRecord(value);
   const nested = toRecord(raw.config);
   return Object.keys(nested).length > 0 ? nested : raw;
+};
+
+const uuidOrNull = (value: unknown): string | null => {
+  const candidate = nonEmptyString(value);
+  if (!candidate) {
+    return null;
+  }
+  return UUID_PATTERN.test(candidate) ? candidate : null;
 };
 
 const postJson = async (url: string, headers: Record<string, string>, payload: unknown): Promise<void> => {
@@ -112,15 +121,19 @@ export default definePluginEntry({
           nonEmptyString(process.env.PAPERCLIP_API_KEY) ??
           nonEmptyString(pluginConfig.paperclipApiKey) ??
           readDotEnvValue("PAPERCLIP_API_KEY");
-        const currentAgentId = nonEmptyString(ctx.agentId) ?? nonEmptyString(process.env.PAPERCLIP_AGENT_ID);
+        const paperclipAgentId =
+          uuidOrNull(pluginConfig.paperclipAgentId) ??
+          uuidOrNull(process.env.PAPERCLIP_AGENT_ID) ??
+          uuidOrNull(ctx.agentId);
+        const currentAgentId = nonEmptyString(ctx.agentId);
         const currentIssueId =
           nonEmptyString(process.env.PAPERCLIP_ISSUE_ID) ?? nonEmptyString(process.env.PAPERCLIP_TASK_ID);
 
-        if (!paperclipCompanyId || !paperclipApiKey || !currentAgentId) {
+        if (!paperclipCompanyId || !paperclipApiKey || !paperclipAgentId) {
           api.logger.warn("foreman-token-meter skipped usage event due to missing required config/context", {
             missingCompanyId: !paperclipCompanyId,
             missingApiKey: !paperclipApiKey,
-            missingAgentId: !currentAgentId
+            missingAgentId: !paperclipAgentId
           });
           return;
         }
@@ -135,7 +148,7 @@ export default definePluginEntry({
         const occurredAt = new Date().toISOString();
 
         const paperclipPayload: Record<string, unknown> = {
-          agentId: currentAgentId,
+          agentId: paperclipAgentId,
           provider: providerLabel,
           model: modelLabel,
           inputTokens,
@@ -164,7 +177,7 @@ export default definePluginEntry({
             { Authorization: `Bearer ${paperclipApiKey}` },
             paperclipPayload
           ),
-          postJson(`${foremanApiBase}/api/internal/agents/${currentAgentId}/usage`, {}, usagePayload)
+          postJson(`${foremanApiBase}/api/internal/agents/${paperclipAgentId}/usage`, {}, usagePayload)
         ]).then((results) => {
           const rejected = results.filter((result) => result.status === "rejected");
           if (rejected.length > 0) {
@@ -180,6 +193,8 @@ export default definePluginEntry({
             sessionId: event.sessionId,
             provider: providerLabel,
             model: modelLabel,
+            openclawAgentId: currentAgentId,
+            paperclipAgentId,
             inputTokens,
             outputTokens,
             costCents

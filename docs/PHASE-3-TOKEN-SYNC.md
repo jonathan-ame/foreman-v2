@@ -115,6 +115,22 @@ Then run a heartbeat with an explicit long timeout:
 
 `Status: succeeded` means the substrate is healthy.
 
+## OpenClaw config include (CRITICAL)
+
+`~/.openclaw/openclaw.json` MUST contain:
+
+```json
+"$include": "./foreman.json5"
+```
+
+Without this, `foreman.json5` is never loaded and:
+
+- `PAPERCLIP_*` env vars do not reach the gateway process
+- Plugin config (`paperclipCompanyId`, `paperclipAgentId`) is missing
+- Token metering plugin skips all events
+
+If `openclaw doctor` reports `must NOT have additional properties` for plugin config keys, this is cosmetic for current runtime behavior and does not block plugin execution.
+
 ## Phase 6 retirement
 
 This runbook becomes obsolete when Paperclip's OpenClaw integration
