@@ -31,6 +31,11 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     };
   }
 
+  const isWorkerRole = ctx.input.role !== "ceo";
+  const heartbeatConfig = isWorkerRole
+    ? { enabled: true, mode: "reactive" as const }
+    : { enabled: true, mode: "proactive" as const, intervalSec: 1800 };
+
   const hireResponse = await ctx.clients.paperclip.hireAgent(customer.paperclip_company_id, {
     name: ctx.input.agentName,
     role: roleConfig.paperclipRole,
@@ -40,16 +45,30 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     adapterConfig: {
       url: env.OPENCLAW_GATEWAY_URL,
       gatewayUrl: env.OPENCLAW_GATEWAY_URL,
+      timeoutSec: 1500,
       headers: {
         "x-openclaw-token": "pending-sync"
       }
+    },
+    runtimeConfig: {
+      heartbeat: heartbeatConfig
+    }
+  });
+
+  const patchedAgent = await ctx.clients.paperclip.patchAgent(hireResponse.agent.id, {
+    adapterConfig: {
+      ...hireResponse.agent.adapterConfig,
+      timeoutSec: 1500
+    },
+    runtimeConfig: {
+      heartbeat: heartbeatConfig
     }
   });
 
   return {
     ok: true,
     data: {
-      paperclipAgent: hireResponse.agent,
+      paperclipAgent: patchedAgent,
       pendingApproval: hireResponse.approval ?? null
     }
   };

@@ -1,7 +1,7 @@
 import { getAgentByWorkspaceAndName } from "../../db/agents.js";
 import { getCustomerById } from "../../db/customers.js";
 import { resolveRoleConfig } from "../role-config.js";
-import { resolveTierSpec } from "../model-tiers.js";
+import { resolveModelForRole } from "../model-tiers.js";
 import { workspaceSlugFromCustomer } from "../slug.js";
 import type { StepContext, StepResult } from "./types.js";
 
@@ -27,7 +27,7 @@ export async function step2ValidateInputs(ctx: StepContext): Promise<StepResult>
     };
   }
 
-  const tierSpec = resolveTierSpec(ctx.input.modelTier);
+  const tierSpec = resolveModelForRole(ctx.input.role, ctx.input.modelTier);
   const roleConfig = resolveRoleConfig(ctx.input.role);
 
   return {

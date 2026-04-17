@@ -5,6 +5,22 @@ import type { StepContext } from "./types.js";
 
 describe("step5PaperclipHire", () => {
   it("calls hireAgent using paperclip company id", async () => {
+    const patchAgent = vi.fn().mockResolvedValue({
+      id: "pa1",
+      name: "CEO",
+      role: "ceo",
+      adapterType: "openclaw_gateway",
+      adapterConfig: {
+        url: "ws://",
+        gatewayUrl: "ws://",
+        timeoutSec: 1500,
+        headers: { "x-openclaw-token": "pending-sync" }
+      },
+      runtimeConfig: {
+        heartbeat: { enabled: true, mode: "proactive", intervalSec: 1800 }
+      },
+      companyId: "pc1"
+    });
     const hireAgent = vi.fn().mockResolvedValue({
       agent: {
         id: "pa1",
@@ -25,7 +41,8 @@ describe("step5PaperclipHire", () => {
       },
       clients: {
         paperclip: {
-          hireAgent
+          hireAgent,
+          patchAgent
         },
         openclaw: {} as never,
         stripe: {} as never
@@ -48,6 +65,14 @@ describe("step5PaperclipHire", () => {
     const result = await step5PaperclipHire(ctx);
     expect(result.ok).toBe(true);
     expect(hireAgent).toHaveBeenCalledWith("pc1", expect.objectContaining({ name: "CEO" }));
+    expect(patchAgent).toHaveBeenCalledWith(
+      "pa1",
+      expect.objectContaining({
+        runtimeConfig: expect.objectContaining({
+          heartbeat: expect.objectContaining({ mode: "proactive" })
+        })
+      })
+    );
   });
 
   it("fails if paperclip_company_id is missing", async () => {
@@ -61,7 +86,8 @@ describe("step5PaperclipHire", () => {
       },
       clients: {
         paperclip: {
-          hireAgent: vi.fn()
+          hireAgent: vi.fn(),
+          patchAgent: vi.fn()
         },
         openclaw: {} as never,
         stripe: {} as never

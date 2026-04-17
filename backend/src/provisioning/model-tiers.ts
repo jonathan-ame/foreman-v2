@@ -6,6 +6,11 @@ export interface TierSpec {
   embedding: string;
 }
 
+export interface RoleTierOverride {
+  primary: string;
+  fallbacks: string[];
+}
+
 export const TIER_SPECS: Record<ModelTier, TierSpec> = {
   open: {
     primary: "openrouter/deepseek/deepseek-chat-v3.1",
@@ -49,6 +54,18 @@ export const FRONTIER_ESCALATION_MAP: FrontierEscalationMap = {
   default: "disabled"
 };
 
+export const WORKER_ROLE_MODEL_OVERRIDES: Record<string, RoleTierOverride> = {
+  marketing_analyst: {
+    primary: "openrouter/qwen/qwen-2.5-72b-instruct",
+    fallbacks: [
+      "openrouter/deepseek/deepseek-chat-v3.1",
+      "openrouter/meta-llama/llama-3.3-70b-instruct"
+    ]
+  }
+};
+
+export const CEO_ROLES = new Set(["ceo"]);
+
 export function resolveFrontierModelForTaskType(taskType?: string | null): string {
   if (!taskType) {
     return FRONTIER_ESCALATION_MAP.default;
@@ -58,5 +75,22 @@ export function resolveFrontierModelForTaskType(taskType?: string | null): strin
 }
 
 export function resolveTierSpec(tier: ModelTier): TierSpec {
+  return TIER_SPECS[tier];
+}
+
+export function resolveModelForRole(role: string, tier: ModelTier): TierSpec {
+  if (CEO_ROLES.has(role)) {
+    return TIER_SPECS[tier];
+  }
+
+  const override = WORKER_ROLE_MODEL_OVERRIDES[role];
+  if (override) {
+    return {
+      primary: override.primary,
+      fallbacks: override.fallbacks,
+      embedding: TIER_SPECS[tier].embedding
+    };
+  }
+
   return TIER_SPECS[tier];
 }
