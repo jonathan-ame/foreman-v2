@@ -32,6 +32,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
   }
 
   const isWorkerRole = ctx.input.role !== "ceo";
+  const adapterTimeoutSec = isWorkerRole ? 300 : 1500;
   const heartbeatConfig = isWorkerRole
     ? { enabled: true, mode: "reactive" as const }
     : { enabled: true, mode: "proactive" as const, intervalSec: 1800 };
@@ -52,7 +53,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     adapterConfig: {
       url: env.OPENCLAW_GATEWAY_URL,
       gatewayUrl: env.OPENCLAW_GATEWAY_URL,
-      timeoutSec: 1500,
+      timeoutSec: adapterTimeoutSec,
       ...workerRoutingConfig,
       headers: {
         "x-openclaw-token": "pending-sync"
@@ -67,7 +68,7 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     adapterConfig: {
       ...hireResponse.agent.adapterConfig,
       ...workerRoutingConfig,
-      timeoutSec: 1500
+      timeoutSec: adapterTimeoutSec
     },
     runtimeConfig: {
       heartbeat: heartbeatConfig
