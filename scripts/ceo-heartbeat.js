@@ -182,6 +182,73 @@ function validatePlan(plan) {
   }
 }
 
+function calculateCostCents(model, promptTokens, completionTokens) {
+  const pricingPerMillionUsd = {
+    "deepseek/deepseek-chat-v3-0324": { input: 0.15, output: 0.75 },
+    "deepseek/deepseek-chat-v3.1": { input: 0.15, output: 0.75 },
+  };
+  const pricing = pricingPerMillionUsd[model] || pricingPerMillionUsd["deepseek/deepseek-chat-v3-0324"];
+  const inputCostUsd = (Math.max(0, Number(promptTokens) || 0) / 1_000_000) * pricing.input;
+  const outputCostUsd = (Math.max(0, Number(completionTokens) || 0) / 1_000_000) * pricing.output;
+  const rawCents = (inputCostUsd + outputCostUsd) * 100;
+  if (rawCents <= 0) return 0;
+  return Math.max(1, Math.ceil(rawCents));
+}
+
+async function reportUsage(env, usage) {
+  const inputTokens = Number(usage.prompt_tokens ?? 0);
+  const outputTokens = Number(usage.completion_tokens ?? 0);
+  const costCents = calculateCostCents(env.DEEPSEEK_MODEL, inputTokens, outputTokens);
+  const occurredAt = new Date().toISOString();
+
+  const paperclipPromise = fetch(
+    `${env.PAPERCLIP_API_URL}/api/companies/${env.PAPERCLIP_COMPANY_ID}/cost-events`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.PAPERCLIP_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        agentId: env.PAPERCLIP_AGENT_ID,
+        provider: "openrouter",
+        model: env.DEEPSEEK_MODEL,
+        inputTokens,
+        outputTokens,
+        costCents,
+        occurredAt,
+      }),
+    },
+  );
+
+  const foremanPromise = fetch(`${env.FOREMAN_API_BASE}/api/internal/agents/${env.PAPERCLIP_AGENT_ID}/usage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      inputTokens,
+      outputTokens,
+      costCents,
+      model: env.DEEPSEEK_MODEL,
+      occurredAt,
+      provider: "openrouter",
+    }),
+  });
+
+  const results = await Promise.allSettled([paperclipPromise, foremanPromise]);
+  for (const result of results) {
+    if (result.status === "rejected") {
+      process.stderr.write(`[ceo-metering] non-blocking metering error: ${result.reason?.message || result.reason}\n`);
+    } else if (!result.value.ok) {
+      const body = await result.value.text().catch(() => "");
+      process.stderr.write(
+        `[ceo-metering] non-blocking metering response ${result.value.status}: ${body.slice(0, 200)}\n`,
+      );
+    }
+  }
+}
+
 async function callOpenRouter(env, systemPrompt, userPrompt) {
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method: "POST",
@@ -284,6 +351,7 @@ async function main() {
   });
 
   const usage = openRouterData.usage || {};
+  await reportUsage(env, usage);
   console.log(
     JSON.stringify({
       status: "completed",
