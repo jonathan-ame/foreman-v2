@@ -46,10 +46,13 @@ export async function recordTaskRejection(
   const existing = await getTaskEscalationState(db, input.issueId);
   const rejectionCount = Number(existing?.rejection_count ?? 0) + 1;
   const wasEscalated = Boolean(existing?.escalated_to_frontier);
-  const shouldEscalate = wasEscalated || (input.modelTier === "hybrid" && rejectionCount >= 2);
+  const mappedFrontierModel = resolveFrontierModelForTaskType(input.taskType);
+  const frontierModelCandidate = mappedFrontierModel === "disabled" ? null : mappedFrontierModel;
+  const shouldEscalate =
+    wasEscalated || (input.modelTier === "hybrid" && rejectionCount >= 2 && Boolean(frontierModelCandidate));
   const frontierModel =
     existing?.frontier_model ??
-    (shouldEscalate ? resolveFrontierModelForTaskType(input.taskType) : null);
+    (shouldEscalate ? frontierModelCandidate : null);
 
   const patch = {
     issue_id: input.issueId,

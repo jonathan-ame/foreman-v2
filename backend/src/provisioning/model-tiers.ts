@@ -41,12 +41,12 @@ export interface FrontierEscalationMap {
 }
 
 export const FRONTIER_ESCALATION_MAP: FrontierEscalationMap = {
-  code_generation: "openrouter/anthropic/claude-sonnet-4.6",
-  code_review: "openrouter/anthropic/claude-sonnet-4.6",
-  reasoning: "openrouter/openai/gpt-5",
-  research: "openrouter/google/gemini-2.5-pro",
-  writing: "openrouter/anthropic/claude-sonnet-4.6",
-  default: "openrouter/anthropic/claude-sonnet-4.6"
+  code_generation: "disabled",
+  code_review: "disabled",
+  reasoning: "disabled",
+  research: "disabled",
+  writing: "disabled",
+  default: "disabled"
 };
 
 export function resolveFrontierModelForTaskType(taskType?: string | null): string {

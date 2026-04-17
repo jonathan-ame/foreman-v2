@@ -89,16 +89,11 @@ describe("task escalation routes", () => {
     });
   });
 
-  it("supports manual escalation endpoint", async () => {
+  it("rejects manual escalation when frontier escalation is disabled", async () => {
     getAgentByOpenclawAgentIdMock.mockResolvedValue({
       agent_id: "11111111-1111-4111-8111-111111111111",
       workspace_slug: "acme",
       model_tier: "hybrid"
-    });
-    escalateTaskToFrontierMock.mockResolvedValue({
-      rejectionCount: 0,
-      escalatedToFrontier: true,
-      frontierModel: "openrouter/google/gemini-2.5-pro"
     });
 
     const response = await app.request("/api/internal/tasks/issue-456/escalate", {
@@ -110,11 +105,11 @@ describe("task escalation routes", () => {
       })
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(409);
     await expect(response.json()).resolves.toMatchObject({
-      escalated: true,
-      frontier_model: "openrouter/google/gemini-2.5-pro",
-      rejection_count: 0
+      error: "frontier_escalation_disabled",
+      message: "Frontier escalation is currently disabled for this workspace."
     });
+    expect(escalateTaskToFrontierMock).not.toHaveBeenCalled();
   });
 });

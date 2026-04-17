@@ -7,7 +7,7 @@ import {
   getTaskEscalationState,
   recordTaskRejection
 } from "../db/task-escalation.js";
-import { resolveTierSpec } from "../provisioning/model-tiers.js";
+import { resolveFrontierModelForTaskType, resolveTierSpec } from "../provisioning/model-tiers.js";
 
 const TaskBodySchema = z.object({
   openclawAgentId: z.string().min(1),
@@ -105,6 +105,15 @@ export function registerEscalationRoutes(app: Hono, deps: AppDeps) {
     const agent = await getAgentByOpenclawAgentId(deps.db, parsed.data.openclawAgentId);
     if (!agent) {
       return c.json({ error: "agent_not_found" }, 404);
+    }
+    if (resolveFrontierModelForTaskType(parsed.data.taskType) === "disabled") {
+      return c.json(
+        {
+          error: "frontier_escalation_disabled",
+          message: "Frontier escalation is currently disabled for this workspace."
+        },
+        409
+      );
     }
 
     const state = await escalateTaskToFrontier(deps.db, {
