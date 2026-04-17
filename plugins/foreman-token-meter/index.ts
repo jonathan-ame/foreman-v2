@@ -1,4 +1,7 @@
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { calculateCostUsd, resolveModelCostRates } from "./pricing.js";
 
 type UsageTotals = {
@@ -11,6 +14,8 @@ type UsageTotals = {
 const DEFAULT_PAPERCLIP_API_BASE = "http://localhost:3125";
 const DEFAULT_FOREMAN_API_BASE = "http://localhost:8080";
 const DEFAULT_TIMEOUT_MS = 5_000;
+const DEFAULT_COMPANY_ID = "5d1780c4-7574-4632-a97d-a9917b1f2fc0";
+const REPO_ENV_PATH = resolve(dirname(fileURLToPath(import.meta.url)), "../../.env");
 
 const toRecord = (value: unknown): Record<string, unknown> =>
   value && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -35,6 +40,23 @@ const nonEmptyString = (value: unknown): string | null => {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
+};
+
+const readDotEnvValue = (key: string): string | null => {
+  try {
+    const content = readFileSync(REPO_ENV_PATH, "utf8");
+    const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const match = content.match(new RegExp(`^${escaped}=(.*)$`, "m"));
+    return match?.[1]?.trim() || null;
+  } catch {
+    return null;
+  }
+};
+
+const resolvePluginConfig = (value: unknown): Record<string, unknown> => {
+  const raw = toRecord(value);
+  const nested = toRecord(raw.config);
+  return Object.keys(nested).length > 0 ? nested : raw;
 };
 
 const postJson = async (url: string, headers: Record<string, string>, payload: unknown): Promise<void> => {
@@ -66,8 +88,9 @@ export default definePluginEntry({
   register(api) {
     api.on("llm_output", (event, ctx) => {
       try {
-        const pluginConfig = toRecord(api.pluginConfig);
-        const enabled = pluginConfig.enabled !== false;
+        const pluginConfig = resolvePluginConfig(api.pluginConfig);
+        const rawPluginConfig = toRecord(api.pluginConfig);
+        const enabled = rawPluginConfig.enabled !== false;
         if (!enabled) {
           return;
         }
@@ -81,9 +104,14 @@ export default definePluginEntry({
 
         const paperclipApiBase = normalizeBaseUrl(pluginConfig.paperclipApiBase, DEFAULT_PAPERCLIP_API_BASE);
         const foremanApiBase = normalizeBaseUrl(pluginConfig.foremanApiBase, DEFAULT_FOREMAN_API_BASE);
-        const paperclipCompanyId = nonEmptyString(pluginConfig.paperclipCompanyId);
+        const paperclipCompanyId =
+          nonEmptyString(pluginConfig.paperclipCompanyId) ??
+          nonEmptyString(process.env.PAPERCLIP_COMPANY_ID) ??
+          DEFAULT_COMPANY_ID;
         const paperclipApiKey =
-          nonEmptyString(process.env.PAPERCLIP_API_KEY) ?? nonEmptyString(pluginConfig.paperclipApiKey);
+          nonEmptyString(process.env.PAPERCLIP_API_KEY) ??
+          nonEmptyString(pluginConfig.paperclipApiKey) ??
+          readDotEnvValue("PAPERCLIP_API_KEY");
         const currentAgentId = nonEmptyString(ctx.agentId) ?? nonEmptyString(process.env.PAPERCLIP_AGENT_ID);
         const currentIssueId =
           nonEmptyString(process.env.PAPERCLIP_ISSUE_ID) ?? nonEmptyString(process.env.PAPERCLIP_TASK_ID);

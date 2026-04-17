@@ -52,7 +52,22 @@ ac['headers'] = headers
 print(json.dumps({"adapterConfig": ac}, indent=2))
 PY
 
-# 3. PATCH the agent
+# 3. Safety check: abort if merge would wipe critical fields
+python3 <<PY
+import json, sys
+agent = json.load(open('/tmp/agent-before-patch.json'))
+agent = agent.get('agent', agent)
+patch = json.load(open('/tmp/patch-body.json'))
+merged = patch.get('adapterConfig', {})
+current = agent.get('adapterConfig', {})
+if current.get('gatewayUrl') and not merged.get('gatewayUrl'):
+    sys.exit('ABORT: patch would wipe adapterConfig.gatewayUrl')
+if current.get('headers', {}).get('x-openclaw-token') and not merged.get('headers', {}).get('x-openclaw-token'):
+    sys.exit('ABORT: patch would wipe adapterConfig.headers[\"x-openclaw-token\"]')
+print('SAFE: critical adapter fields preserved')
+PY
+
+# 4. PATCH the agent
 curl -sS -X PATCH "${PAPERCLIP_API_BASE}/api/agents/${AGENT_ID}" \
   -H "Authorization: Bearer ${PAPERCLIP_API_KEY}" \
   -H "Content-Type: application/json" \
@@ -89,10 +104,13 @@ print('MATCH' if tok == expected else 'DRIFT')
 "
 ```
 
-Then run a heartbeat:
+Then run a heartbeat with an explicit long timeout:
 
 ```bash
-"${PAPERCLIP_BIN}" heartbeat run --agent-id "${AGENT_ID}"
+"${PAPERCLIP_BIN}" heartbeat run \
+  --agent-id "${AGENT_ID}" \
+  --api-base "${PAPERCLIP_API_BASE}" \
+  --timeout-ms 1500000
 ```
 
 `Status: succeeded` means the substrate is healthy.

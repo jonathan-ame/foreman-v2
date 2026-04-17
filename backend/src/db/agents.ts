@@ -81,11 +81,53 @@ export interface AgentHealthUpdate {
   last_health_check_result: string;
 }
 
+export interface AgentUsageIncrement {
+  inputTokens: number;
+  outputTokens: number;
+  costCents: number;
+}
+
 export async function updateAgentHealth(db: SupabaseClient, agentId: string, patch: AgentHealthUpdate): Promise<void> {
   const { error } = await db.from("agents").update(patch).eq("agent_id", agentId);
   if (error) {
     throw new Error(`Failed to update health fields for agent ${agentId}: ${error.message}`);
   }
+}
+
+export async function incrementAgentUsageByPaperclipAgentId(
+  db: SupabaseClient,
+  paperclipAgentId: string,
+  usage: AgentUsageIncrement
+): Promise<boolean> {
+  const { data, error } = await db
+    .from("agents")
+    .select(
+      "agent_id,total_tokens_input,total_tokens_output,tokens_input_current_period,tokens_output_current_period,surcharge_accrued_current_period_cents"
+    )
+    .eq("paperclip_agent_id", paperclipAgentId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to read usage counters for paperclip agent ${paperclipAgentId}: ${error.message}`);
+  }
+  if (!data) {
+    return false;
+  }
+
+  const patch = {
+    total_tokens_input: Number(data.total_tokens_input ?? 0) + usage.inputTokens,
+    total_tokens_output: Number(data.total_tokens_output ?? 0) + usage.outputTokens,
+    tokens_input_current_period: Number(data.tokens_input_current_period ?? 0) + usage.inputTokens,
+    tokens_output_current_period: Number(data.tokens_output_current_period ?? 0) + usage.outputTokens,
+    surcharge_accrued_current_period_cents: Number(data.surcharge_accrued_current_period_cents ?? 0) + usage.costCents
+  };
+
+  const { error: updateError } = await db.from("agents").update(patch).eq("agent_id", data.agent_id);
+  if (updateError) {
+    throw new Error(`Failed to update usage counters for paperclip agent ${paperclipAgentId}: ${updateError.message}`);
+  }
+
+  return true;
 }
 
 export async function getAgentStatusCounts(

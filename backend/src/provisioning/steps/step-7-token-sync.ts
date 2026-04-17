@@ -1,4 +1,5 @@
 import type { PaperclipAgent } from "../../clients/paperclip/types.js";
+import { safePatchAgent } from "../../clients/paperclip/safe-patch.js";
 import type { StepContext, StepResult } from "./types.js";
 
 export async function step7TokenSync(ctx: StepContext): Promise<StepResult> {
@@ -12,20 +13,15 @@ export async function step7TokenSync(ctx: StepContext): Promise<StepResult> {
   }
 
   const token = await ctx.clients.openclaw.readGatewayToken();
-  // PATCH on Paperclip replaces adapterConfig, so start from the latest full shape.
-  const latestAgent = await ctx.clients.paperclip.getAgent(paperclipAgent.id);
-  const currentAdapterConfig = latestAgent.adapterConfig;
-  const currentHeaders = currentAdapterConfig.headers ?? {};
-
-  const patchedAgent = await ctx.clients.paperclip.patchAgent(latestAgent.id, {
+  await safePatchAgent(ctx.clients.paperclip, paperclipAgent.companyId, paperclipAgent.id, {
     adapterConfig: {
-      ...currentAdapterConfig,
       headers: {
-        ...currentHeaders,
         "x-openclaw-token": token
       }
     }
-  });
+  }, ctx.logger);
+
+  const patchedAgent = await ctx.clients.paperclip.getAgent(paperclipAgent.id);
 
   return {
     ok: true,

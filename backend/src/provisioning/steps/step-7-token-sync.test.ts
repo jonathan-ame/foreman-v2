@@ -63,6 +63,7 @@ describe("step7TokenSync", () => {
 
     const result = await step7TokenSync(ctx);
     expect(result.ok).toBe(true);
+    expect(getAgent).toHaveBeenCalledTimes(2);
     expect(getAgent).toHaveBeenCalledWith("pa1");
     expect(patchAgent).toHaveBeenCalledWith(
       "pa1",

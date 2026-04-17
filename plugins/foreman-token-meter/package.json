@@ -1,0 +1,19 @@
+{
+  "name": "@foreman/foreman-token-meter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run"
+  },
+  "openclaw": {
+    "extensions": ["./index.ts"],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    }
+  },
+  "devDependencies": {
+    "vitest": "^4.1.4"
+  }
+}

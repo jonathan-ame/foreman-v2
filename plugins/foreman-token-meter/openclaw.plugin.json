@@ -1,0 +1,29 @@
+{
+  "id": "foreman-token-meter",
+  "name": "Foreman Token Meter",
+  "description": "Reports OpenClaw model usage to Paperclip cost-events and Foreman agent usage counters.",
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "enabled": {
+        "type": "boolean",
+        "default": true
+      },
+      "paperclipApiBase": {
+        "type": "string",
+        "default": "http://localhost:3125"
+      },
+      "paperclipApiKey": {
+        "type": "string"
+      },
+      "paperclipCompanyId": {
+        "type": "string"
+      },
+      "foremanApiBase": {
+        "type": "string",
+        "default": "http://localhost:8080"
+      }
+    }
+  }
+}

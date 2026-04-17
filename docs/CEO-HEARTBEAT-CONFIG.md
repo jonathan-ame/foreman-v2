@@ -20,7 +20,11 @@ Configured on agent record:
 macOS launchd plist at `~/Library/LaunchAgents/ai.foreman.ceo-heartbeat-backup.plist`.
 
 Runs every 30 minutes (`StartInterval=1800`) and invokes:
-- `POST /api/agents/{id}/heartbeat/invoke`
+- `paperclipai heartbeat run --agent-id <CEO_ID> --api-base http://localhost:3125 --timeout-ms 1500000 --api-key <backup-key>`
+
+Important details:
+- Use `--timeout-ms 1500000` (25 minutes) so the CLI does not abort long OpenClaw/OpenRouter runs.
+- Pass `--api-key` explicitly from `~/.foreman/ceo-heartbeat-backup-key.json` to avoid context-principal drift (`Agent can only invoke itself`).
 
 Uses dedicated CEO API key file:
 - `~/.foreman/ceo-heartbeat-backup-key.json`

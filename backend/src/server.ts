@@ -12,6 +12,7 @@ import { registerAgentRoutes } from "./routes/agents.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
+import { registerUsageRoutes } from "./routes/usage.js";
 
 const logger = createLogger("server");
 
@@ -52,6 +53,7 @@ registerAuthRoutes(app, deps);
 registerHealthRoutes(app, deps);
 registerAgentRoutes(app, deps);
 registerStripeWebhookRoutes(app, deps);
+registerUsageRoutes(app, deps);
 app.get("*", async (c) => {
   const requestPath = c.req.path;
   if (requestPath.startsWith("/api/") || requestPath === "/health") {
