@@ -2,6 +2,7 @@
 
 const { readFileSync } = require("node:fs");
 const { resolve } = require("node:path");
+const { executePlan } = require("./lib/plan-executor.js");
 
 const REQUIRED_ENV_VARS = [
   "PAPERCLIP_RUN_ID",
@@ -24,6 +25,7 @@ function readEnv() {
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
     DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL || "deepseek/deepseek-chat-v3-0324",
     FOREMAN_API_BASE: process.env.FOREMAN_API_BASE || "http://localhost:8080",
+    FOREMAN_CUSTOMER_ID: process.env.FOREMAN_CUSTOMER_ID || "31c326fa-2f13-4f57-a448-127a3d3d19ec",
   };
 
   const missing = REQUIRED_ENV_VARS.filter((key) => !env[key] || String(env[key]).trim() === "");
@@ -269,12 +271,27 @@ async function main() {
   const plan = parsePlanContent(content);
   validatePlan(plan);
 
+  const executionResults = await executePlan(plan, {
+    apiUrl: env.PAPERCLIP_API_URL,
+    apiKey: env.PAPERCLIP_API_KEY,
+    companyId: env.PAPERCLIP_COMPANY_ID,
+    agentId: env.PAPERCLIP_AGENT_ID,
+    runId: env.PAPERCLIP_RUN_ID,
+    taskId: env.PAPERCLIP_TASK_ID,
+    foremanApiBase: env.FOREMAN_API_BASE,
+    customerId: env.FOREMAN_CUSTOMER_ID,
+    logger: (msg) => process.stderr.write(`[ceo-executor] ${msg}\n`),
+  });
+
   const usage = openRouterData.usage || {};
   console.log(
     JSON.stringify({
-      status: "plan_ready",
+      status: "completed",
       reasoning: plan.reasoning,
-      actions: plan.actions,
+      actionsPlanned: plan.actions.length,
+      actionsExecuted: executionResults.filter((result) => result.status === "ok").length,
+      actionsFailed: executionResults.filter((result) => result.status === "error").length,
+      results: executionResults,
       usage: {
         inputTokens: usage.prompt_tokens ?? 0,
         outputTokens: usage.completion_tokens ?? 0,
