@@ -35,7 +35,7 @@ export async function safePatchAgent(
   const current = await client.getAgent(agentId);
   const merged = deepMerge(current as unknown as JsonRecord, patch) as JsonRecord;
 
-  const currentAdapter = (current.adapterConfig ?? {}) as JsonRecord;
+  const currentAdapter = (current.adapterConfig ?? {}) as unknown as JsonRecord;
   const mergedAdapter = (merged.adapterConfig ?? {}) as JsonRecord;
   const currentHeaders = (currentAdapter.headers ?? {}) as JsonRecord;
   const mergedHeaders = (mergedAdapter.headers ?? {}) as JsonRecord;
@@ -50,7 +50,7 @@ export async function safePatchAgent(
   // Send only patch-intended top-level fields, but with fully merged nested payloads.
   const payload: Partial<PaperclipAgent> & JsonRecord = { ...patch };
   if ("adapterConfig" in patch) {
-    payload.adapterConfig = mergedAdapter as PaperclipAgent["adapterConfig"];
+    payload.adapterConfig = mergedAdapter as unknown as PaperclipAgent["adapterConfig"];
   }
   if ("runtimeConfig" in patch) {
     payload.runtimeConfig = merged.runtimeConfig as JsonRecord;

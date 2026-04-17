@@ -11,6 +11,10 @@ type UsageTotals = {
   cacheWrite?: number;
   total?: number;
 };
+type TaskModelResponse = {
+  model?: unknown;
+  escalated?: unknown;
+};
 const DEFAULT_PAPERCLIP_API_BASE = "http://localhost:3125";
 const DEFAULT_FOREMAN_API_BASE = "http://localhost:8080";
 const DEFAULT_TIMEOUT_MS = 5_000;
@@ -90,11 +94,62 @@ const postJson = async (url: string, headers: Record<string, string>, payload: u
   }
 };
 
+const getJson = async (url: string): Promise<unknown> => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), DEFAULT_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      method: "GET",
+      signal: controller.signal
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`HTTP ${response.status}${body ? `: ${body.slice(0, 300)}` : ""}`);
+    }
+    return response.json();
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export default definePluginEntry({
   id: "foreman-token-meter",
   name: "Foreman Token Meter",
   description: "Bridge OpenClaw usage to Paperclip cost-events.",
   register(api) {
+    api.on("before_model_resolve", async (_event, ctx) => {
+      try {
+        const pluginConfig = resolvePluginConfig(api.pluginConfig);
+        const foremanApiBase = normalizeBaseUrl(pluginConfig.foremanApiBase, DEFAULT_FOREMAN_API_BASE);
+        const issueId =
+          nonEmptyString(process.env.PAPERCLIP_ISSUE_ID) ?? nonEmptyString(process.env.PAPERCLIP_TASK_ID);
+        const openclawAgentId = nonEmptyString(ctx.agentId);
+        if (!issueId || !openclawAgentId) {
+          return;
+        }
+
+        const query = new URLSearchParams({ openclawAgentId }).toString();
+        const response = (await getJson(
+          `${foremanApiBase}/api/internal/tasks/${encodeURIComponent(issueId)}/model?${query}`
+        )) as TaskModelResponse;
+        const modelOverride = nonEmptyString(response.model);
+        const escalated = Boolean(response.escalated);
+
+        if (escalated && modelOverride) {
+          api.logger.info("foreman-token-meter escalating task model", {
+            issueId,
+            openclawAgentId,
+            modelOverride
+          });
+          return { modelOverride };
+        }
+      } catch (err) {
+        api.logger.warn("foreman-token-meter failed to resolve task model escalation", {
+          err: err instanceof Error ? err.message : String(err)
+        });
+      }
+    });
+
     api.on("llm_output", (event, ctx) => {
       try {
         const pluginConfig = resolvePluginConfig(api.pluginConfig);
