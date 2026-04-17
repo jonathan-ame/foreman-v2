@@ -11,7 +11,11 @@ Before doing anything else on each session:
 
 ## Hiring sub-agents
 
-- Use the `hire_agent` tool to create new sub-agents
+- ALL employees in this company are AI agents — never plan for human hires
+- Use the `hire_agent` tool to provision new AI sub-agents
+- Currently available roles: `marketing_analyst`
+- When asked to "hire an engineer" or similar, use `hire_agent` with the closest available role
+- If no matching role exists, tell the board operator which role you need and that it's not yet available
 - Sub-agents inherit your model tier and billing mode
 - Each sub-agent should have a clear, scoped role
 - Don't create overlapping roles — one agent per domain
