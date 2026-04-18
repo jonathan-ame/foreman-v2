@@ -16,6 +16,15 @@ const expandHome = (value: string): string => {
   return value;
 };
 
+const resolveTemplateDir = (workspaceTemplate: string): string => {
+  const direct = path.resolve(process.cwd(), workspaceTemplate);
+  if (existsSync(direct)) {
+    return direct;
+  }
+  const parent = path.resolve(process.cwd(), "..", workspaceTemplate);
+  return parent;
+};
+
 export async function step3CreateWorkspace(ctx: StepContext): Promise<StepResult> {
   const workspaceSlug = ctx.state.workspaceSlug as string | undefined;
   if (!workspaceSlug) {
@@ -32,7 +41,7 @@ export async function step3CreateWorkspace(ctx: StepContext): Promise<StepResult
 
   await mkdir(resolvedWorkspacePath, { recursive: true });
   const workspaceTemplate = CEO_ROLES.has(ctx.input.role) ? "config/ceo-workspace" : "config/worker-workspace";
-  const templateDir = path.resolve(process.cwd(), workspaceTemplate);
+  const templateDir = resolveTemplateDir(workspaceTemplate);
   const filesToCopy = CEO_ROLES.has(ctx.input.role)
     ? ["SOUL.md", "HEARTBEAT.md", "AGENTS.md", "USER.md", "IDENTITY.md"]
     : ["SOUL.md", "HEARTBEAT.md", "USER.md"];
