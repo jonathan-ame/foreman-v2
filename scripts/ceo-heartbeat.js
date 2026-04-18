@@ -80,6 +80,13 @@ function normalizeIssuesResponse(data) {
   return [];
 }
 
+function normalizeAgentsResponse(data) {
+  const unwrapped = unwrapEntity(data, ["agents", "data"]);
+  if (Array.isArray(unwrapped)) return unwrapped;
+  if (unwrapped && typeof unwrapped === "object") return [unwrapped];
+  return [];
+}
+
 function loadWorkspace() {
   const wsDir = resolve(process.cwd(), "config/ceo-workspace");
   return {
@@ -141,6 +148,12 @@ function buildUserPrompt(input) {
     "Plan actions for this heartbeat context.",
     "Use only the allowed action types.",
     "Keep actions minimal and high impact.",
+    "Delegation rules:",
+    "- Prefer assigning work to an existing relevant worker from availableAgents.",
+    "- Only use hire_agent if no suitable active worker exists for the role.",
+    "- When creating a delegated sub-task, include assignee_agent_id and parent_id.",
+    "- If delegatedChildrenByParent already shows an open child task, do not create duplicates.",
+    "- If a child task is done with deliverables, synthesize findings on the parent issue and move parent to done.",
     "",
     JSON.stringify(input, null, 2),
   ].join("\n");
@@ -316,13 +329,56 @@ async function fetchIssuesContext(env) {
     issues = normalizeIssuesResponse(issuesData);
   }
 
-  return { me, issues };
+  const agentsData = await paperclipRequest(env, `/api/companies/${env.PAPERCLIP_COMPANY_ID}/agents`);
+  const availableAgents = normalizeAgentsResponse(agentsData).map((agent) => ({
+    id: agent.id || null,
+    name: agent.name || null,
+    role: agent.role || null,
+    status: agent.status || null,
+    adapterType: agent.adapterType || null,
+  }));
+
+  const delegatedChildrenByParent = {};
+  if (issues.length > 0) {
+    const allIssuesData = await paperclipRequest(env, `/api/companies/${env.PAPERCLIP_COMPANY_ID}/issues`);
+    const allIssues = normalizeIssuesResponse(allIssuesData);
+    const parentIds = new Set(issues.map((issue) => issue.id).filter(Boolean));
+    for (const child of allIssues) {
+      if (!child?.parentId || !parentIds.has(child.parentId)) continue;
+      if (!delegatedChildrenByParent[child.parentId]) delegatedChildrenByParent[child.parentId] = [];
+      delegatedChildrenByParent[child.parentId].push({
+        id: child.id || null,
+        identifier: child.identifier || null,
+        title: child.title || null,
+        status: child.status || null,
+        assigneeAgentId: child.assigneeAgentId || null,
+      });
+    }
+
+    for (const parentId of Object.keys(delegatedChildrenByParent)) {
+      for (const child of delegatedChildrenByParent[parentId]) {
+        try {
+          const commentsData = await paperclipRequest(env, `/api/issues/${child.id}/comments`);
+          const comments = normalizeIssuesResponse(commentsData);
+          child.comments = comments.slice(-2).map((comment) => ({
+            id: comment.id || null,
+            body: comment.body || comment.content || "",
+            authorAgentId: comment.authorAgentId || null,
+          }));
+        } catch {
+          child.comments = [];
+        }
+      }
+    }
+  }
+
+  return { me, issues, availableAgents, delegatedChildrenByParent };
 }
 
 async function main() {
   const env = readEnv();
   const workspace = loadWorkspace();
-  const { me, issues } = await fetchIssuesContext(env);
+  const { me, issues, availableAgents, delegatedChildrenByParent } = await fetchIssuesContext(env);
 
   const systemPrompt = buildSystemPrompt(workspace);
   const userPrompt = buildUserPrompt({
@@ -331,6 +387,8 @@ async function main() {
     taskId: env.PAPERCLIP_TASK_ID || null,
     agent: me,
     issues,
+    availableAgents,
+    delegatedChildrenByParent,
   });
 
   const openRouterData = await callOpenRouter(env, systemPrompt, userPrompt);

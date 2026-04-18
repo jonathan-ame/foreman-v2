@@ -60,31 +60,60 @@ async function checkoutIssue(action, ctx) {
 async function postComment(action, ctx) {
   if (!action.issue_id) throw new Error("comment requires issue_id");
   if (!action.body || String(action.body).trim() === "") throw new Error("comment requires body");
-  await paperclipPost(
-    ctx,
-    `/api/issues/${action.issue_id}/comments`,
-    { body: action.body },
-    {
-      "X-Paperclip-Run-Id": ctx.runId,
-    },
-  );
+  try {
+    await paperclipPost(
+      ctx,
+      `/api/issues/${action.issue_id}/comments`,
+      { body: action.body },
+      {
+        "X-Paperclip-Run-Id": ctx.runId,
+      },
+    );
+  } catch (error) {
+    if (!isOwnershipConflict(error)) throw error;
+    await checkoutIssueForWrite(ctx, action.issue_id);
+    await paperclipPost(
+      ctx,
+      `/api/issues/${action.issue_id}/comments`,
+      { body: action.body },
+      {
+        "X-Paperclip-Run-Id": ctx.runId,
+      },
+    );
+  }
   return { summary: `Commented on ${action.issue_id}` };
 }
 
 async function updateIssueStatus(action, ctx) {
   if (!action.issue_id) throw new Error("update_status requires issue_id");
   if (!action.status) throw new Error("update_status requires status");
-  await paperclipPatch(
-    ctx,
-    `/api/issues/${action.issue_id}`,
-    {
-      status: action.status,
-      comment: action.comment,
-    },
-    {
-      "X-Paperclip-Run-Id": ctx.runId,
-    },
-  );
+  try {
+    await paperclipPatch(
+      ctx,
+      `/api/issues/${action.issue_id}`,
+      {
+        status: action.status,
+        comment: action.comment,
+      },
+      {
+        "X-Paperclip-Run-Id": ctx.runId,
+      },
+    );
+  } catch (error) {
+    if (!isOwnershipConflict(error)) throw error;
+    await checkoutIssueForWrite(ctx, action.issue_id);
+    await paperclipPatch(
+      ctx,
+      `/api/issues/${action.issue_id}`,
+      {
+        status: action.status,
+        comment: action.comment,
+      },
+      {
+        "X-Paperclip-Run-Id": ctx.runId,
+      },
+    );
+  }
   return { summary: `${action.issue_id} -> ${action.status}` };
 }
 
@@ -208,6 +237,25 @@ async function paperclipRequest(ctx, path, method, body, extraHeaders = {}) {
   }
 
   return parsed;
+}
+
+function isOwnershipConflict(error) {
+  const message = String(error?.message || "");
+  return message.includes("Issue run ownership conflict");
+}
+
+async function checkoutIssueForWrite(ctx, issueId) {
+  await paperclipPost(
+    ctx,
+    `/api/issues/${issueId}/checkout`,
+    {
+      agentId: ctx.agentId,
+      expectedStatuses: ["todo", "backlog", "blocked", "in_progress"],
+    },
+    {
+      "X-Paperclip-Run-Id": ctx.runId,
+    },
+  );
 }
 
 function unwrapEntity(data, keys) {
