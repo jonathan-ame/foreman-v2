@@ -8,11 +8,17 @@ TEMPLATE_FILE="${ROOT_DIR}/config/openclaw.foreman.json5"
 TARGET_INCLUDE="${HOME}/.openclaw/foreman.json5"
 PLUGIN_SOURCE_DIR="${ROOT_DIR}/plugins/foreman-hire-agent"
 PLUGIN_TARGET_DIR="${HOME}/.openclaw/plugins/foreman-hire-agent"
+CEO_WORKSPACE_SOURCE_DIR="${ROOT_DIR}/config/ceo-workspace"
+CEO_WORKSPACE_TARGET_DIR="${HOME}/.openclaw/workspace-ceo"
 
 [[ -f "${ENV_FILE}" ]] || { echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2; exit 1; }
 [[ -f "${TEMPLATE_FILE}" ]] || { echo "ERROR: Missing template ${TEMPLATE_FILE}." >&2; exit 1; }
 [[ -f "${PLUGIN_SOURCE_DIR}/openclaw.plugin.json" ]] || {
   echo "ERROR: Missing OpenClaw plugin manifest in ${PLUGIN_SOURCE_DIR}." >&2
+  exit 1
+}
+[[ -d "${CEO_WORKSPACE_SOURCE_DIR}" ]] || {
+  echo "ERROR: Missing CEO workspace template directory ${CEO_WORKSPACE_SOURCE_DIR}." >&2
   exit 1
 }
 
@@ -27,6 +33,7 @@ done
 
 mkdir -p "$(dirname "${TARGET_INCLUDE}")"
 mkdir -p "$(dirname "${PLUGIN_TARGET_DIR}")"
+mkdir -p "${CEO_WORKSPACE_TARGET_DIR}"
 
 if [[ -f "${TARGET_INCLUDE}" ]]; then
   cp "${TARGET_INCLUDE}" "${TARGET_INCLUDE}.bak-$(date +%Y%m%d-%H%M%S)"
@@ -167,6 +174,14 @@ rm -rf "${PLUGIN_TARGET_DIR}"
 cp -R "${PLUGIN_SOURCE_DIR}" "${PLUGIN_TARGET_DIR}"
 chmod -R go-rwx "${PLUGIN_TARGET_DIR}"
 
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/SOUL.md" "${CEO_WORKSPACE_TARGET_DIR}/SOUL.md"
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/HEARTBEAT.md" "${CEO_WORKSPACE_TARGET_DIR}/HEARTBEAT.md"
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/USER.md" "${CEO_WORKSPACE_TARGET_DIR}/USER.md"
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/AGENTS.md" "${CEO_WORKSPACE_TARGET_DIR}/AGENTS.md"
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/IDENTITY.md" "${CEO_WORKSPACE_TARGET_DIR}/IDENTITY.md"
+chmod go-rwx "${CEO_WORKSPACE_TARGET_DIR}"/*.md
+
 echo "Wrote ${TARGET_INCLUDE} (mode 600)"
 echo "Installed plugin to ${PLUGIN_TARGET_DIR}"
+echo "Synced CEO workspace templates to ${CEO_WORKSPACE_TARGET_DIR}"
 echo "OpenClaw will pick up the new include on next gateway start or 'openclaw secrets reload'."
