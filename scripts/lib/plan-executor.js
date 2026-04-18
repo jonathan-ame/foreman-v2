@@ -9,8 +9,13 @@ async function executePlan(plan, context) {
   for (const action of actions) {
     try {
       const result = await executeAction(action, context);
-      results.push({ action: action.type, status: "ok", ...result });
-      context.logger(`ok ${action.type}: ${result.summary || "done"}`);
+      if (result?.status === "skipped") {
+        results.push({ action: action.type, ...result });
+        context.logger(`skipped ${action.type}: ${result.summary || result.reason || "skipped"}`);
+      } else {
+        results.push({ action: action.type, status: "ok", ...result });
+        context.logger(`ok ${action.type}: ${result.summary || "done"}`);
+      }
     } catch (error) {
       results.push({ action: action?.type || "unknown", status: "error", error: error.message });
       context.logger(`error ${action?.type || "unknown"}: ${error.message}`);
@@ -147,6 +152,18 @@ async function hireAgent(action, ctx) {
   if (!action.role) throw new Error("hire_agent requires role");
   if (!ctx.customerId) throw new Error("customerId is required for hire_agent execution");
 
+  const existingWorker = await findExistingActiveWorkerForRole(action.role, ctx);
+  if (existingWorker) {
+    const requestedRole = normalizeDelegationRole({ role: action.role });
+    return {
+      status: "skipped",
+      reason: "worker already exists for role",
+      role: requestedRole,
+      existingAgentId: existingWorker.id || null,
+      summary: `Skipped hiring ${requestedRole}; existing active worker ${existingWorker.id || "unknown"} (${existingWorker.name || "unknown"})`,
+    };
+  }
+
   const response = await fetch(`${ctx.foremanApiBase}/api/internal/agents/provision`, {
     method: "POST",
     headers: {
@@ -185,6 +202,19 @@ async function hireAgent(action, ctx) {
   return { summary: `Hired ${action.role}`, agentId: payload?.agent_id || payload?.id || null };
 }
 
+async function findExistingActiveWorkerForRole(role, ctx) {
+  const requestedRole = normalizeDelegationRole({ role });
+  const agentsData = await paperclipRequest(ctx, `/api/companies/${ctx.companyId}/agents`, "GET", null);
+  const agents = normalizeAgentsResponse(agentsData);
+  const activeStatuses = new Set(["active", "idle", "running", "in_progress"]);
+  return (
+    agents.find((agent) => {
+      const status = String(agent?.status || "").toLowerCase();
+      return activeStatuses.has(status) && normalizeDelegationRole(agent) === requestedRole;
+    }) || null
+  );
+}
+
 async function postEscalation(action, ctx) {
   const issueId = action.issue_id || ctx.taskId;
   if (!issueId) throw new Error("escalate requires issue_id (or an active task context)");
@@ -208,6 +238,31 @@ async function paperclipPost(ctx, path, body, extraHeaders = {}) {
 
 async function paperclipPatch(ctx, path, body, extraHeaders = {}) {
   return paperclipRequest(ctx, path, "PATCH", body, extraHeaders);
+}
+
+function normalizeAgentsResponse(data) {
+  const unwrapped = unwrapEntity(data, ["agents", "data"]);
+  if (Array.isArray(unwrapped)) return unwrapped;
+  if (unwrapped && typeof unwrapped === "object") return [unwrapped];
+  return [];
+}
+
+function normalizeDelegationRole(agent) {
+  const role = String(agent?.role || "").toLowerCase().trim();
+  const name = String(agent?.name || "").toLowerCase();
+  const urlKey = String(agent?.urlKey || "").toLowerCase();
+
+  if (role === "cmo" || role === "marketing_analyst") return "marketing_analyst";
+  if (
+    name.includes("marketing analyst") ||
+    name.includes("market research") ||
+    urlKey.includes("marketing-analyst") ||
+    urlKey.includes("market-research")
+  ) {
+    return "marketing_analyst";
+  }
+  if (["engineer", "qa", "designer", "ceo"].includes(role)) return role;
+  return role || "unknown";
 }
 
 async function paperclipRequest(ctx, path, method, body, extraHeaders = {}) {

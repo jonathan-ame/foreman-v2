@@ -167,6 +167,32 @@ function formatDelegationCandidates(agents) {
   return lines.join("\n");
 }
 
+function formatHiringConstraint(agents) {
+  const activeStatuses = new Set(["active", "idle", "running", "in_progress"]);
+  const activeWorkers = (Array.isArray(agents) ? agents : []).filter((agent) =>
+    activeStatuses.has(String(agent.status || "").toLowerCase()),
+  );
+  const lines = ["## Hiring constraint"];
+
+  if (activeWorkers.length === 0) {
+    lines.push(
+      "No active workers detected. You may use hire_agent if required by the task.",
+      "Only use hire_agent if no existing worker can handle the required task type.",
+    );
+    return lines.join("\n");
+  }
+
+  lines.push(
+    "You MUST NOT hire new agents for roles that already have active workers.",
+    "The following roles already have workers — delegate to them, do not hire replacements:",
+  );
+  for (const worker of activeWorkers) {
+    lines.push(`- ${worker.id || "unknown-id"} | ${worker.name || "Unknown"} | ${worker.delegationRole || "unknown"}`);
+  }
+  lines.push("Only use hire_agent if no existing worker can handle the required task type.");
+  return lines.join("\n");
+}
+
 function loadWorkspace() {
   const wsDir = resolve(process.cwd(), "config/ceo-workspace");
   return {
@@ -225,6 +251,7 @@ function buildSystemPrompt(workspace) {
 
 function buildUserPrompt(input) {
   const delegationBlock = formatDelegationCandidates(input.availableAgents);
+  const hiringConstraintBlock = formatHiringConstraint(input.availableAgents);
   const roleCapabilityBlock = JSON.stringify(ROLE_CAPABILITIES, null, 2);
   return [
     "Plan actions for this heartbeat context.",
@@ -245,6 +272,8 @@ function buildUserPrompt(input) {
     roleCapabilityBlock,
     "",
     delegationBlock,
+    "",
+    hiringConstraintBlock,
     "",
     JSON.stringify(input, null, 2),
   ].join("\n");
