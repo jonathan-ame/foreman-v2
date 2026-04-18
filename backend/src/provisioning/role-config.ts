@@ -35,6 +35,15 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     budgetMonthlyCents: 20_000,
     capabilities: "Market research, campaign analysis, funnel diagnostics, and growth recommendations",
     systemPromptTemplate: "MARKETING_ANALYST_TEMPLATE_V1"
+  },
+  engineer: {
+    toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
+    toolsDeny: ["browser", "canvas", "nodes", "cron", "hire_agent"],
+    paperclipRole: "engineer",
+    budgetMonthlyCents: 30_000,
+    capabilities:
+      "Code implementation, bug fixes, architecture design, technical documentation, code review, shell commands",
+    systemPromptTemplate: "ENGINEER_TEMPLATE_V1"
   }
 };
 

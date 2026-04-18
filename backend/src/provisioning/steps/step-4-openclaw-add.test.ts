@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { rollbackStep4OpenClawAdd, step4OpenClawAdd } from "./step-4-openclaw-add.js";
 import { createLogger } from "../../config/logger.js";
 import type { StepContext } from "./types.js";
+import { OpenClawAgentExistsError } from "../../clients/openclaw/errors.js";
 
 describe("step4OpenClawAdd", () => {
   it("calls openclaw add with expected spec", async () => {
@@ -37,6 +38,46 @@ describe("step4OpenClawAdd", () => {
         workspace: "/tmp/ws"
       })
     );
+  });
+
+  it("treats existing openclaw agent as success", async () => {
+    const addAgent = vi.fn().mockRejectedValue(
+      new OpenClawAgentExistsError({
+        command: "openclaw agents add ws-ceo",
+        exitCode: 1,
+        stderr: "already exists",
+        stdout: ""
+      })
+    );
+    const getAgent = vi.fn().mockResolvedValue({ id: "ws-ceo", workspace: "/tmp/ws", defaultAgent: false });
+    const ctx = {
+      input: {
+        customerId: "c1",
+        agentName: "CEO",
+        role: "ceo",
+        modelTier: "open",
+        idempotencyKey: "i1"
+      },
+      clients: {
+        openclaw: {
+          addAgent,
+          getAgent
+        },
+        paperclip: {} as never,
+        stripe: {} as never
+      },
+      db: {} as never,
+      logger: createLogger("step4-test"),
+      state: {
+        openclawAgentId: "ws-ceo",
+        workspacePath: "/tmp/ws"
+      }
+    } as unknown as StepContext;
+
+    const result = await step4OpenClawAdd(ctx);
+    expect(result.ok).toBe(true);
+    expect(addAgent).toHaveBeenCalledTimes(1);
+    expect(getAgent).toHaveBeenCalledWith("ws-ceo");
   });
 
   it("rollback deletes the exact openclaw agent id from step state", async () => {

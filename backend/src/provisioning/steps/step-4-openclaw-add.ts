@@ -1,4 +1,5 @@
 import type { StepContext, StepResult } from "./types.js";
+import { OpenClawAgentExistsError } from "../../clients/openclaw/errors.js";
 
 export async function step4OpenClawAdd(ctx: StepContext): Promise<StepResult> {
   const openclawAgentId = ctx.state.openclawAgentId as string | undefined;
@@ -12,13 +13,26 @@ export async function step4OpenClawAdd(ctx: StepContext): Promise<StepResult> {
     };
   }
 
-  const openclawAgent = await ctx.clients.openclaw.addAgent({
-    id: openclawAgentId,
-    workspace: workspacePath,
-    identity: {
-      name: ctx.input.agentName
+  let openclawAgent;
+  try {
+    openclawAgent = await ctx.clients.openclaw.addAgent({
+      id: openclawAgentId,
+      workspace: workspacePath,
+      identity: {
+        name: ctx.input.agentName
+      }
+    });
+  } catch (error) {
+    if (!(error instanceof OpenClawAgentExistsError)) {
+      throw error;
     }
-  });
+
+    const existing = await ctx.clients.openclaw.getAgent(openclawAgentId);
+    if (!existing) {
+      throw error;
+    }
+    openclawAgent = existing;
+  }
 
   return {
     ok: true,

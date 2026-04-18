@@ -4,9 +4,18 @@ import { createLogger } from "../../config/logger.js";
 import type { StepContext } from "./types.js";
 
 const mkdirMock = vi.hoisted(() => vi.fn());
+const copyFileSyncMock = vi.hoisted(() => vi.fn());
+const existsSyncMock = vi.hoisted(() => vi.fn(() => false));
+const readdirSyncMock = vi.hoisted(() => vi.fn(() => []));
 
 vi.mock("node:fs/promises", () => ({
   mkdir: mkdirMock
+}));
+
+vi.mock("node:fs", () => ({
+  copyFileSync: copyFileSyncMock,
+  existsSync: existsSyncMock,
+  readdirSync: readdirSyncMock
 }));
 
 describe("step3CreateWorkspace", () => {

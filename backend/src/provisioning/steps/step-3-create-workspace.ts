@@ -1,4 +1,4 @@
-import { copyFileSync, existsSync } from "node:fs";
+import { copyFileSync, existsSync, readdirSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -40,11 +40,16 @@ export async function step3CreateWorkspace(ctx: StepContext): Promise<StepResult
   const resolvedWorkspacePath = expandHome(workspacePath);
 
   await mkdir(resolvedWorkspacePath, { recursive: true });
-  const workspaceTemplate = CEO_ROLES.has(ctx.input.role) ? "config/ceo-workspace" : "config/worker-workspace";
+  const roleSpecificTemplate = `config/${ctx.input.role.replace(/_/g, "-")}-workspace`;
+  const workspaceTemplate = CEO_ROLES.has(ctx.input.role)
+    ? "config/ceo-workspace"
+    : existsSync(resolveTemplateDir(roleSpecificTemplate))
+      ? roleSpecificTemplate
+      : "config/worker-workspace";
   const templateDir = resolveTemplateDir(workspaceTemplate);
   const filesToCopy = CEO_ROLES.has(ctx.input.role)
     ? ["SOUL.md", "HEARTBEAT.md", "AGENTS.md", "USER.md", "IDENTITY.md"]
-    : ["SOUL.md", "HEARTBEAT.md", "USER.md"];
+    : readdirSync(templateDir).filter((file) => file.endsWith(".md"));
 
   for (const file of filesToCopy) {
     const src = path.resolve(templateDir, file);

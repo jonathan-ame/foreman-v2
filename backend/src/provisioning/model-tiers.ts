@@ -61,6 +61,10 @@ export const WORKER_ROLE_MODEL_OVERRIDES: Record<string, RoleTierOverride> = {
       "openrouter/qwen/qwen-2.5-72b-instruct",
       "openrouter/meta-llama/llama-3.3-70b-instruct"
     ]
+  },
+  engineer: {
+    primary: "openrouter/qwen/qwen3-coder",
+    fallbacks: ["openrouter/deepseek/deepseek-chat-v3.1", "openrouter/qwen/qwen-2.5-72b-instruct"]
   }
 };
 
