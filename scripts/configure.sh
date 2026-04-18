@@ -33,18 +33,80 @@ if [[ -f "${TARGET_INCLUDE}" ]]; then
 fi
 
 python3 - "${TEMPLATE_FILE}" "${TARGET_INCLUDE}" <<'PY'
-import os, re, sys
+import json
+import os
+import re
+import sys
+from pathlib import Path
+
 src, dst = sys.argv[1], sys.argv[2]
 with open(src) as f:
     content = f.read()
+
 def sub(match):
     var = match.group(1)
-    val = os.environ.get(var, '')
+    val = os.environ.get(var, "")
     if not val:
         raise SystemExit(f"ERROR: template references ${{{var}}} but not set in env")
     return val
-content = re.sub(r'\$\{([A-Z_][A-Z0-9_]*)\}', sub, content)
-with open(dst, 'w') as f:
+
+content = re.sub(r"\$\{([A-Z_][A-Z0-9_]*)\}", sub, content)
+
+# Preserve live provisioned agents by merging unknown agents.list entries from openclaw.json.
+cfg_path = Path.home() / ".openclaw" / "openclaw.json"
+if cfg_path.exists():
+    try:
+        with cfg_path.open() as f:
+            live_cfg = json.load(f)
+    except Exception as exc:
+        raise SystemExit(f"ERROR: failed to parse {cfg_path}: {exc}")
+
+    live_agents = live_cfg.get("agents", {}).get("list", [])
+    if isinstance(live_agents, dict):
+        live_agents = list(live_agents.values())
+    if not isinstance(live_agents, list):
+        live_agents = []
+
+    agents_anchor = content.find("agents:")
+    list_anchor = content.find("list:", agents_anchor if agents_anchor >= 0 else 0)
+    if list_anchor >= 0:
+        bracket_start = content.find("[", list_anchor)
+        if bracket_start >= 0:
+            depth = 0
+            bracket_end = -1
+            for idx in range(bracket_start, len(content)):
+                ch = content[idx]
+                if ch == "[":
+                    depth += 1
+                elif ch == "]":
+                    depth -= 1
+                    if depth == 0:
+                        bracket_end = idx
+                        break
+            if bracket_end >= 0:
+                list_body = content[bracket_start + 1 : bracket_end]
+                template_ids = set(re.findall(r'\bid\s*:\s*"([^"]+)"', list_body))
+                extra_agents = []
+                for agent in live_agents:
+                    if not isinstance(agent, dict):
+                        continue
+                    aid = agent.get("id")
+                    if isinstance(aid, str) and aid and aid not in template_ids:
+                        extra_agents.append(agent)
+
+                if extra_agents:
+                    rendered = list_body.rstrip()
+                    if rendered.strip() and not rendered.rstrip().endswith(","):
+                        rendered = rendered.rstrip() + ","
+                    extra_chunks = []
+                    for agent in extra_agents:
+                        block = json.dumps(agent, indent=2)
+                        block = "\n".join("      " + line for line in block.splitlines())
+                        extra_chunks.append(block)
+                    rendered += "\n" + ",\n".join(extra_chunks) + "\n    "
+                    content = content[: bracket_start + 1] + rendered + content[bracket_end:]
+
+with open(dst, "w") as f:
     f.write(content)
 os.chmod(dst, 0o600)
 PY
