@@ -44,6 +44,15 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     capabilities:
       "Code implementation, bug fixes, architecture design, technical documentation, code review, shell commands",
     systemPromptTemplate: "ENGINEER_TEMPLATE_V1"
+  },
+  qa: {
+    toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
+    toolsDeny: ["browser", "canvas", "nodes", "cron", "hire_agent"],
+    paperclipRole: "qa",
+    budgetMonthlyCents: 20_000,
+    capabilities:
+      "Test planning, test execution, bug reporting, regression testing, quality standards enforcement",
+    systemPromptTemplate: "QA_TEMPLATE_V1"
   }
 };
 

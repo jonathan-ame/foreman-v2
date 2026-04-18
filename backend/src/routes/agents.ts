@@ -10,7 +10,7 @@ import type { ProvisionFailure, ProvisionSuccess } from "../provisioning/types.j
 const ProvisionInputSchema = z.object({
   customer_id: z.string().uuid().optional(),
   agent_name: z.string().min(1),
-  role: z.enum(["ceo", "marketing_analyst", "engineer"]),
+  role: z.enum(["ceo", "marketing_analyst", "engineer", "qa"]),
   model_tier: z.enum(["open", "frontier", "hybrid"]).optional(),
   idempotency_key: z.string().uuid(),
   workspace_path: z.string().optional(),

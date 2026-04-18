@@ -1,4 +1,4 @@
-export type AgentRole = "ceo" | "marketing_analyst" | "engineer";
+export type AgentRole = "ceo" | "marketing_analyst" | "engineer" | "qa";
 export type ModelTier = "open" | "frontier" | "hybrid";
 export type ProvisioningOutcome = "success" | "failed" | "partial" | "partial_with_warning" | "blocked";
 
