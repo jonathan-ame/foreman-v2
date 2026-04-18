@@ -8,16 +8,14 @@
   agents: {
     defaults: {
       model: {
-        primary: "openrouter/deepseek/deepseek-chat-v3.1",
-        fallbacks: [
-          "openrouter/qwen/qwen3-coder",
-          "openrouter/qwen/qwen-2.5-72b-instruct",
-        ],
+        primary: "openrouter/deepseek/deepseek-v3.2",
+        fallbacks: [],
       },
       models: {
         // Chat models via OpenRouter
         "openrouter/deepseek/deepseek-chat-v3.1": { alias: "DeepSeek V3.1 (OpenRouter)" },
-        "openrouter/deepseek/deepseek-chat-v3.2": { alias: "DeepSeek V3.2 (OpenRouter)" },
+        "openrouter/deepseek/deepseek-v3.2": { alias: "DeepSeek V3.2 (OpenRouter)" },
+        "openrouter/z-ai/glm-5.1": { alias: "GLM 5.1 (OpenRouter)" },
         "openrouter/qwen/qwen3-coder": { alias: "Qwen3 Coder (OpenRouter)" },
         "openrouter/qwen/qwen-2.5-72b-instruct": { alias: "Qwen 2.5 72B (OpenRouter)" },
         "openrouter/meta-llama/llama-3.3-70b-instruct": { alias: "Llama 3.3 70B (OpenRouter)" },
@@ -36,10 +34,8 @@
         name: "Foreman CEO",
         workspace: "~/.openclaw/workspace-ceo",
         model: {
-          primary: "openrouter/deepseek/deepseek-chat-v3.1",
-          fallbacks: [
-            "openrouter/qwen/qwen-2.5-72b-instruct",
-          ],
+          primary: "openrouter/deepseek/deepseek-v3.2",
+          fallbacks: [],
         },
         params: {
           temperature: 0.2,
@@ -84,13 +80,22 @@
             maxTokens: 8192,
           },
           {
-            id: "deepseek/deepseek-chat-v3.2",
+            id: "deepseek/deepseek-v3.2",
             name: "DeepSeek V3.2 (OpenRouter)",
             reasoning: true,
             input: ["text"],
             cost: { input: 0.26, output: 0.38, cacheRead: 0, cacheWrite: 0 },
             contextWindow: 163840,
             maxTokens: 8192,
+          },
+          {
+            id: "z-ai/glm-5.1",
+            name: "GLM 5.1 (OpenRouter)",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0.95, output: 3.15, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 202752,
+            maxTokens: 131072,
           },
           {
             id: "qwen/qwen3-coder",
@@ -127,13 +132,22 @@
         api: "openai-completions",
         models: [
           {
-            id: "qwen/qwen3-coder",
-            name: "Qwen3 Coder (OpenRouter)",
+            id: "deepseek/deepseek-v3.2",
+            name: "DeepSeek V3.2 (OpenRouter)",
             reasoning: true,
             input: ["text"],
-            cost: { input: 0.30, output: 1.20, cacheRead: 0, cacheWrite: 0 },
-            contextWindow: 262144,
-            maxTokens: 8192,
+            cost: { input: 0.26, output: 0.38, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 163840,
+            maxTokens: 163840,
+          },
+          {
+            id: "z-ai/glm-5.1",
+            name: "GLM 5.1 (OpenRouter)",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0.95, output: 3.15, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 202752,
+            maxTokens: 131072,
           },
         ],
       },

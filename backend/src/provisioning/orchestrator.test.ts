@@ -211,10 +211,11 @@ describe("provisionForemanAgent", () => {
       }
       if (tier === "frontier") {
         expect(result.modelPrimary).toBe("openrouter/anthropic/claude-sonnet-4.6");
+        expect(result.modelFallbacks).toHaveLength(2);
       } else {
-        expect(result.modelPrimary).toBe("openrouter/deepseek/deepseek-chat-v3.1");
+        expect(result.modelPrimary).toBe("openrouter/deepseek/deepseek-v3.2");
+        expect(result.modelFallbacks).toHaveLength(0);
       }
-      expect(result.modelFallbacks).toHaveLength(2);
     }
   });
 });

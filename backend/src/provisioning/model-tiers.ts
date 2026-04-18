@@ -13,11 +13,8 @@ export interface RoleTierOverride {
 
 export const TIER_SPECS: Record<ModelTier, TierSpec> = {
   open: {
-    primary: "openrouter/deepseek/deepseek-chat-v3.1",
-    fallbacks: [
-      "openrouter/qwen/qwen-2.5-72b-instruct",
-      "openrouter/meta-llama/llama-3.3-70b-instruct"
-    ],
+    primary: "openrouter/deepseek/deepseek-v3.2",
+    fallbacks: [],
     embedding: "qwen_embedding/text-embedding-v4"
   },
   frontier: {
@@ -26,11 +23,8 @@ export const TIER_SPECS: Record<ModelTier, TierSpec> = {
     embedding: "qwen_embedding/text-embedding-v4"
   },
   hybrid: {
-    primary: "openrouter/deepseek/deepseek-chat-v3.1",
-    fallbacks: [
-      "openrouter/qwen/qwen-2.5-72b-instruct",
-      "openrouter/meta-llama/llama-3.3-70b-instruct"
-    ],
+    primary: "openrouter/deepseek/deepseek-v3.2",
+    fallbacks: [],
     embedding: "qwen_embedding/text-embedding-v4"
   }
 };
@@ -56,23 +50,20 @@ export const FRONTIER_ESCALATION_MAP: FrontierEscalationMap = {
 
 export const WORKER_ROLE_MODEL_OVERRIDES: Record<string, RoleTierOverride> = {
   marketing_analyst: {
-    primary: "openrouter/qwen/qwen3-coder",
-    fallbacks: [
-      "openrouter/qwen/qwen-2.5-72b-instruct",
-      "openrouter/meta-llama/llama-3.3-70b-instruct"
-    ]
+    primary: "openrouter/deepseek/deepseek-v3.2",
+    fallbacks: []
   },
   engineer: {
-    primary: "openrouter/qwen/qwen3-coder",
-    fallbacks: ["openrouter/deepseek/deepseek-chat-v3.1", "openrouter/qwen/qwen-2.5-72b-instruct"]
+    primary: "openrouter/z-ai/glm-5.1",
+    fallbacks: []
   },
   qa: {
-    primary: "openrouter/qwen/qwen3-coder",
-    fallbacks: ["openrouter/qwen/qwen-2.5-72b-instruct", "openrouter/meta-llama/llama-3.3-70b-instruct"]
+    primary: "openrouter/deepseek/deepseek-v3.2",
+    fallbacks: []
   },
   designer: {
-    primary: "openrouter/qwen/qwen3-coder",
-    fallbacks: ["openrouter/qwen/qwen-2.5-72b-instruct", "openrouter/meta-llama/llama-3.3-70b-instruct"]
+    primary: "openrouter/deepseek/deepseek-v3.2",
+    fallbacks: []
   }
 };
 

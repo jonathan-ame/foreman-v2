@@ -164,6 +164,29 @@ def is_openclaw_llm_outcome_failure(text: str) -> bool:
     return False
 
 
+def is_transient_failure(stderr: str, stdout: str) -> bool:
+    """Detect errors that are worth retrying (rate limits, timeouts, 5xx)."""
+    combined = ((stderr or "") + " " + (stdout or "")).lower()
+    transient_patterns = (
+        "rate limit",
+        "429",
+        "503",
+        "502",
+        "504",
+        "timed out",
+        "timeout",
+        "connection refused",
+        "econnrefused",
+        "econnreset",
+        "network error",
+        "temporarily unavailable",
+        "service unavailable",
+        "overloaded",
+        "capacity",
+    )
+    return any(p in combined for p in transient_patterns)
+
+
 def is_substantive_deliverable(text: str) -> bool:
     """
     Guard against false-success runs where OpenClaw returns trivial status words
@@ -580,24 +603,22 @@ preflight_openclaw_executor_config(TASK_ID, identifier)
 oc_timeout = resolve_openclaw_subprocess_timeout_sec()
 agent_notes = ""
 agent_ok = False
+last_stderr = ""
 
 def run_openclaw_attempt(
     prompt: str,
     current_session_id: str,
     *,
     step_id: str,
-    local_mode: bool = False,
 ) -> tuple[bool, str]:
+    global last_stderr
     print(
-        f"[executor] openclaw_attempt_start mode={'local' if local_mode else 'default'} "
-        f"agent_id={OPENCLAW_AGENT_ID} session_id={current_session_id}",
+        f"[executor] openclaw_attempt_start mode=default agent_id={OPENCLAW_AGENT_ID} session_id={current_session_id}",
         flush=True,
     )
     started_ms = int(time.time() * 1000)
     try:
         cmd = ["openclaw", "agent", "--agent", OPENCLAW_AGENT_ID, "--session-id", current_session_id, "-m", prompt]
-        if local_mode:
-            cmd.insert(2, "--local")
         agent_proc = subprocess.run(
             cmd,
             capture_output=True,
@@ -628,6 +649,7 @@ def run_openclaw_attempt(
 
     if agent_proc.returncode != 0:
         stderr = (agent_proc.stderr or "").strip()
+        last_stderr = stderr
         print(
             f"[executor] openclaw_attempt_nonzero_exit code={agent_proc.returncode} "
             f"stderr_excerpt={stderr[:180]}",
@@ -636,6 +658,7 @@ def run_openclaw_attempt(
         return False, f"OpenClaw agent exited with code {agent_proc.returncode}. stderr: {stderr[:400]}"
 
     output = (agent_proc.stdout or "").strip()
+    last_stderr = (agent_proc.stderr or "").strip()
     output = strip_reasoning_think_blocks(output)
     print(f"[executor] openclaw_attempt_completed stdout_chars={len(output)}", flush=True)
     if not output:
@@ -646,36 +669,49 @@ def run_openclaw_attempt(
         return False, f"OpenClaw returned non-substantive output. Raw output preview: {output[:300]}"
     return True, output
 
-# Attempt 1: standard issue prompt.
-agent_ok, agent_notes = run_openclaw_attempt(
-    exec_prompt,
-    session_id,
-    step_id="single_path_primary",
-)
+MAX_RETRIES = 3
+RETRY_BACKOFF_SEC = [10, 30, 60]
+attempt_failures = []
+for attempt in range(MAX_RETRIES):
+    if attempt > 0:
+        backoff = RETRY_BACKOFF_SEC[min(attempt - 1, len(RETRY_BACKOFF_SEC) - 1)]
+        print(f"[executor] retry_backoff attempt={attempt + 1} backoff_sec={backoff}", flush=True)
+        time.sleep(backoff)
 
-# Attempt 2: stricter prompt on non-substantive outcome.
-if not agent_ok:
-    retry_prompt = (
-        exec_prompt
-        + "\n\nIMPORTANT: Your response must be a project-specific markdown deliverable grounded in the repository context. "
-          "Do not return status words like 'completed' or any compaction notice. "
-          "Include concrete findings and actions specific to this issue."
+    retry_session_id = make_valid_session_id(
+        COMPANY_ID,
+        AGENT_ID,
+        TASK_ID,
+        f"{session_suffix}-a{attempt}",
     )
-    retry_session_id = make_valid_session_id(COMPANY_ID, AGENT_ID, TASK_ID, f"{session_suffix}-retry")
-    retry_ok, retry_notes = run_openclaw_attempt(
-        retry_prompt,
-        retry_session_id,
-        step_id="single_path_retry_local",
-        local_mode=True,
-    )
-    if retry_ok:
-        agent_ok = True
-        agent_notes = retry_notes
-    else:
-        agent_notes = (
-            f"{agent_notes}\n\nSecond attempt also failed non-substantively.\n"
-            f"{retry_notes}"
+    prompt = exec_prompt
+    if attempt > 0:
+        prompt = (
+            exec_prompt
+            + "\n\nIMPORTANT: Your response must be a project-specific markdown deliverable "
+              "grounded in the repository context. Do not return status words like 'completed' "
+              "or any compaction notice. Include concrete findings and actions specific to this issue."
         )
+
+    agent_ok, agent_notes = run_openclaw_attempt(
+        prompt,
+        retry_session_id,
+        step_id=f"attempt_{attempt}",
+    )
+    if agent_ok:
+        break
+
+    attempt_failures.append(f"Attempt {attempt + 1}: {agent_notes}")
+    if not is_transient_failure(last_stderr, agent_notes):
+        print(
+            f"[executor] non_transient_failure attempt={attempt + 1} notes_excerpt={agent_notes[:200]}",
+            flush=True,
+        )
+        break
+    print(f"[executor] transient_failure attempt={attempt + 1}", flush=True)
+
+if not agent_ok and attempt_failures:
+    agent_notes = "\n\n".join(attempt_failures)
 
 if agent_ok:
     comment_body = (

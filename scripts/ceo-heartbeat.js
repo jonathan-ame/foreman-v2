@@ -31,7 +31,7 @@ function readEnv() {
     PAPERCLIP_TASK_ID: process.env.PAPERCLIP_TASK_ID,
     PAPERCLIP_WAKE_REASON: process.env.PAPERCLIP_WAKE_REASON || "unknown",
     OPENROUTER_API_KEY: process.env.OPENROUTER_API_KEY,
-    DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL || "deepseek/deepseek-chat-v3-0324",
+    DEEPSEEK_MODEL: process.env.DEEPSEEK_MODEL || "deepseek/deepseek-v3.2",
     FOREMAN_API_BASE: process.env.FOREMAN_API_BASE || "http://localhost:8080",
     FOREMAN_CUSTOMER_ID: process.env.FOREMAN_CUSTOMER_ID || "31c326fa-2f13-4f57-a448-127a3d3d19ec",
   };
@@ -319,8 +319,9 @@ function calculateCostCents(model, promptTokens, completionTokens) {
   const pricingPerMillionUsd = {
     "deepseek/deepseek-chat-v3-0324": { input: 0.15, output: 0.75 },
     "deepseek/deepseek-chat-v3.1": { input: 0.15, output: 0.75 },
+    "deepseek/deepseek-v3.2": { input: 0.26, output: 0.38 },
   };
-  const pricing = pricingPerMillionUsd[model] || pricingPerMillionUsd["deepseek/deepseek-chat-v3-0324"];
+  const pricing = pricingPerMillionUsd[model] || pricingPerMillionUsd["deepseek/deepseek-v3.2"];
   const inputCostUsd = (Math.max(0, Number(promptTokens) || 0) / 1_000_000) * pricing.input;
   const outputCostUsd = (Math.max(0, Number(completionTokens) || 0) / 1_000_000) * pricing.output;
   const rawCents = (inputCostUsd + outputCostUsd) * 100;

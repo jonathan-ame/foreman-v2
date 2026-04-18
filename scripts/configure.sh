@@ -135,13 +135,22 @@ providers["executor"] = {
     "api": "openai-completions",
     "models": [
         {
-            "id": "qwen/qwen3-coder",
-            "name": "Qwen3 Coder (OpenRouter)",
+            "id": "deepseek/deepseek-v3.2",
+            "name": "DeepSeek V3.2 (OpenRouter)",
             "reasoning": True,
             "input": ["text"],
-            "cost": {"input": 0.30, "output": 1.20, "cacheRead": 0, "cacheWrite": 0},
-            "contextWindow": 262144,
-            "maxTokens": 8192,
+            "cost": {"input": 0.26, "output": 0.38, "cacheRead": 0, "cacheWrite": 0},
+            "contextWindow": 163840,
+            "maxTokens": 163840,
+        },
+        {
+            "id": "z-ai/glm-5.1",
+            "name": "GLM 5.1 (OpenRouter)",
+            "reasoning": True,
+            "input": ["text"],
+            "cost": {"input": 0.95, "output": 3.15, "cacheRead": 0, "cacheWrite": 0},
+            "contextWindow": 202752,
+            "maxTokens": 131072,
         }
     ],
 }
