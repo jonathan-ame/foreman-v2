@@ -53,6 +53,15 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     capabilities:
       "Test planning, test execution, bug reporting, regression testing, quality standards enforcement",
     systemPromptTemplate: "QA_TEMPLATE_V1"
+  },
+  designer: {
+    toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
+    toolsDeny: ["browser", "canvas", "nodes", "cron", "hire_agent"],
+    paperclipRole: "designer",
+    budgetMonthlyCents: 20_000,
+    capabilities:
+      "UI/UX analysis, design system review, wireframe descriptions, accessibility audits, visual design feedback",
+    systemPromptTemplate: "DESIGNER_TEMPLATE_V1"
   }
 };
 
