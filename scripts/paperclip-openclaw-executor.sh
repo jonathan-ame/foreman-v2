@@ -118,7 +118,11 @@ def _resolve_run_id_from_heartbeat_runs() -> str:
 RUN_ID = _resolve_run_id_from_heartbeat_runs()
 print(f"[executor] heartbeat bootstrap run_id={RUN_ID}", flush=True)
 RUN_LOGS_DIR = ROOT_DIR / "state" / "run-logs" / RUN_ID
-OPENCLAW_AGENT_ID = (os.environ.get("FOREMAN_CEO_OPENCLAW_AGENT_ID") or "main").strip() or "main"
+OPENCLAW_AGENT_ID = (
+    os.environ.get("FOREMAN_OPENCLAW_AGENT_ID")
+    or os.environ.get("FOREMAN_CEO_OPENCLAW_AGENT_ID")
+    or "main"
+).strip() or "main"
 
 
 def fetch_agent_adapter_timeout_sec() -> int:
@@ -469,6 +473,22 @@ def patch_issue(issue_id: str, status: str | None = None, comment: str | None = 
         req("PATCH", f"/issues/{issue_id}", payload)
 
 
+def post_comment(issue_id: str, body: str) -> str | None:
+    """Post a comment on an issue and return its id when available."""
+    try:
+        result = req("POST", f"/issues/{issue_id}/comments", {"body": body})
+    except Exception as exc:
+        print(f"[executor] comment_post_failed issue_id={issue_id} error={exc}", flush=True)
+        return None
+    comment_id = ""
+    if isinstance(result, dict):
+        comment_id = (
+            str(result.get("id") or result.get("commentId") or result.get("comment_id") or "").strip()
+        )
+    print(f"[executor] comment_posted issue_id={issue_id} comment_id={(comment_id or 'none')}", flush=True)
+    return comment_id or None
+
+
 def checkout_issue(task_id: str):
     """
     Paperclip task workflow requires checkout before work.
@@ -570,12 +590,12 @@ def run_openclaw_attempt(
 ) -> tuple[bool, str]:
     print(
         f"[executor] openclaw_attempt_start mode={'local' if local_mode else 'default'} "
-        f"session_id={current_session_id}",
+        f"agent_id={OPENCLAW_AGENT_ID} session_id={current_session_id}",
         flush=True,
     )
     started_ms = int(time.time() * 1000)
     try:
-        cmd = ["openclaw", "agent", "--session-id", current_session_id, "-m", prompt]
+        cmd = ["openclaw", "agent", "--agent", OPENCLAW_AGENT_ID, "--session-id", current_session_id, "-m", prompt]
         if local_mode:
             cmd.insert(2, "--local")
         agent_proc = subprocess.run(
@@ -658,24 +678,30 @@ if not agent_ok:
         )
 
 if agent_ok:
-    comment = (
+    comment_body = (
         f"OpenClawWorker execution update for `{identifier}`.\n\n"
         "### Deliverable / execution notes\n"
         f"{agent_notes[:6000]}"
     )
-    patch_issue(TASK_ID, status="done", comment=comment)
+    comment_id = post_comment(TASK_ID, comment_body)
+    if comment_id:
+        patch_issue(TASK_ID, status="done", comment=f"completed; results posted in comment {comment_id}")
+    else:
+        patch_issue(TASK_ID, status="done", comment=comment_body)
     print("HEARTBEAT_OK:executor")
     raise SystemExit(0)
 
 # Paperclip task workflow: use `blocked` when progress cannot be made (docs: Issues API / task workflow).
+blocked_comment = (
+    f"OpenClawWorker could not complete `{identifier}` in this heartbeat.\n\n"
+    f"{agent_notes}\n\n"
+    "Narrow the task, fix OpenClaw/gateway availability, or re-run manually after adjusting scope."
+)
+post_comment(TASK_ID, blocked_comment)
 patch_issue(
     TASK_ID,
     status="blocked",
-    comment=(
-        f"OpenClawWorker could not complete `{identifier}` in this heartbeat.\n\n"
-        f"{agent_notes}\n\n"
-        "Narrow the task, fix OpenClaw/gateway availability, or re-run manually after adjusting scope."
-    ),
+    comment=blocked_comment,
 )
 print("HEARTBEAT_FAIL:executor")
 raise SystemExit(1)

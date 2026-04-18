@@ -23,6 +23,14 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
   }
 
   const isWorkerRole = ctx.input.role !== "ceo";
+  const openclawAgentId = ctx.state.openclawAgentId as string | undefined;
+  if (isWorkerRole && !openclawAgentId) {
+    return {
+      ok: false,
+      errorCode: "OPENCLAW_AGENT_ID_MISSING",
+      errorMessage: "openclaw agent id missing for worker process adapter"
+    };
+  }
   const adapterTimeoutSec = isWorkerRole ? 300 : 1500;
   const heartbeatConfig = isWorkerRole
     ? { enabled: true, mode: "reactive" as const }
@@ -31,7 +39,10 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     ? {
         command: "/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh",
         cwd: "/Users/jonathanborgia/foreman-git/foreman-v2",
-        timeoutSec: adapterTimeoutSec
+        timeoutSec: adapterTimeoutSec,
+        env: {
+          FOREMAN_OPENCLAW_AGENT_ID: openclawAgentId!
+        }
       }
     : null;
   const openclawGatewayConfig = {
