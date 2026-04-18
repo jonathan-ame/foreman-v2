@@ -15,7 +15,7 @@
     "lint:fix": "ESLINT_USE_FLAT_CONFIG=false eslint src --ext .ts --fix",
     "format": "prettier --write 'src/**/*.ts'",
     "test": "vitest run",
-    "test:e2e": "pnpm exec playwright install chromium && pnpm --dir web build && vitest run test/e2e/full-customer-journey.test.ts --testTimeout=600000",
+    "test:e2e": "pnpm exec playwright install chromium && pnpm --dir web build && FOREMAN_RUN_E2E=1 vitest run test/e2e/full-customer-journey.test.ts --testTimeout=600000",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "cli": "tsx src/cli/index.ts"

@@ -205,10 +205,6 @@ describe("full customer journey e2e", () => {
         await supabase?.from("notifications").delete().eq("workspace_slug", createdWorkspaceSlug);
       }
       await supabase?.from("customers").delete().eq("customer_id", createdCustomerId);
-    if (!runtime || !supabase || !stripe) {
-      throw new Error("E2E runtime not initialized");
-    }
-
     }
 
     if (backendProcess && !backendProcess.killed) {
@@ -220,6 +216,10 @@ describe("full customer journey e2e", () => {
   }, 180_000);
 
   it("runs signup to working CEO journey", async () => {
+    if (!runtime || !supabase || !stripe) {
+      throw new Error("E2E runtime not initialized");
+    }
+
     const runId = randomUUID().slice(0, 8);
     const email = `foreman-e2e-${runId}@example.com`;
     const workspaceSlug = `e2e-${runId}`;
@@ -258,7 +258,7 @@ describe("full customer journey e2e", () => {
 
     const customerId = randomUUID();
     createdCustomerId = customerId;
-      const { error: insertError } = await supabase.from("customers").insert({
+    const { error: insertError } = await supabase.from("customers").insert({
       customer_id: customerId,
       workspace_slug: workspaceSlug,
       email,
