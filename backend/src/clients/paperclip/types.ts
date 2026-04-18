@@ -1,12 +1,32 @@
-export interface AdapterConfig {
+export interface OpenClawGatewayAdapterConfig {
   url?: string;
   gatewayUrl: string;
   timeoutSec?: number;
+  agentId?: string;
+  sessionKeyStrategy?: "fixed" | "issue" | "run";
+  sessionKey?: string;
+  waitTimeoutMs?: number;
+  payloadTemplate?: {
+    message?: string;
+    text?: string;
+    [key: string]: unknown;
+  };
   headers: {
     "x-openclaw-token": string;
     [key: string]: string;
   };
 }
+
+export interface ProcessAdapterConfig {
+  command: string;
+  cwd?: string;
+  timeoutSec?: number;
+  args?: string[];
+  env?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+export type AdapterConfig = OpenClawGatewayAdapterConfig | ProcessAdapterConfig;
 
 export interface HeartbeatRuntimeConfig {
   enabled: boolean;

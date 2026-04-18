@@ -22,52 +22,44 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     };
   }
 
-  const openclawAgentId = ctx.state.openclawAgentId as string | undefined;
-  if (!openclawAgentId) {
-    return {
-      ok: false,
-      errorCode: "OPENCLAW_AGENT_ID_MISSING",
-      errorMessage: "openclaw agent id missing"
-    };
-  }
-
   const isWorkerRole = ctx.input.role !== "ceo";
   const adapterTimeoutSec = isWorkerRole ? 300 : 1500;
   const heartbeatConfig = isWorkerRole
     ? { enabled: true, mode: "reactive" as const }
     : { enabled: true, mode: "proactive" as const, intervalSec: 1800 };
-  const workerRoutingConfig = isWorkerRole
+  const workerProcessConfig = isWorkerRole
     ? {
-        agentId: openclawAgentId,
-        sessionKeyStrategy: "fixed" as const,
-        sessionKey: `agent:${openclawAgentId}:paperclip`
+        command: "/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh",
+        cwd: "/Users/jonathanborgia/foreman-git/foreman-v2",
+        timeoutSec: adapterTimeoutSec
       }
-    : {};
+    : null;
+  const openclawGatewayConfig = {
+    url: env.OPENCLAW_GATEWAY_URL,
+    gatewayUrl: env.OPENCLAW_GATEWAY_URL,
+    timeoutSec: adapterTimeoutSec,
+    headers: {
+      "x-openclaw-token": "pending-sync"
+    }
+  };
 
   const hireResponse = await ctx.clients.paperclip.hireAgent(customer.paperclip_company_id, {
     name: ctx.input.agentName,
     role: roleConfig.paperclipRole,
     capabilities: roleConfig.capabilities,
     budgetMonthlyCents: roleConfig.budgetMonthlyCents,
-    adapterType: "openclaw_gateway",
-    adapterConfig: {
-      url: env.OPENCLAW_GATEWAY_URL,
-      gatewayUrl: env.OPENCLAW_GATEWAY_URL,
-      timeoutSec: adapterTimeoutSec,
-      ...workerRoutingConfig,
-      headers: {
-        "x-openclaw-token": "pending-sync"
-      }
-    },
+    adapterType: isWorkerRole ? "process" : "openclaw_gateway",
+    adapterConfig: isWorkerRole ? workerProcessConfig! : openclawGatewayConfig,
     runtimeConfig: {
       heartbeat: heartbeatConfig
     }
   });
 
   const patchedAgent = await ctx.clients.paperclip.patchAgent(hireResponse.agent.id, {
+    ...(isWorkerRole ? { adapterType: "process" } : {}),
     adapterConfig: {
       ...hireResponse.agent.adapterConfig,
-      ...workerRoutingConfig,
+      ...(isWorkerRole ? workerProcessConfig! : openclawGatewayConfig),
       timeoutSec: adapterTimeoutSec
     },
     runtimeConfig: {

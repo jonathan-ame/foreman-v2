@@ -17,13 +17,16 @@ export async function step9Verify(ctx: StepContext): Promise<StepResult> {
   const openclawAgents = await ctx.clients.openclaw.listAgents();
   const openclawMatch = openclawAgents.find((item) => item.id === openclawAgentId);
 
-  const token = freshPaperclipAgent.adapterConfig.headers["x-openclaw-token"];
-  if (!token) {
-    return {
-      ok: false,
-      errorCode: "VERIFY_TOKEN_MISSING",
-      errorMessage: "Paperclip agent is missing gateway token in adapter config"
-    };
+  if (freshPaperclipAgent.adapterType === "openclaw_gateway") {
+    const adapterConfig = freshPaperclipAgent.adapterConfig as { headers?: Record<string, string> };
+    const token = adapterConfig.headers?.["x-openclaw-token"];
+    if (!token) {
+      return {
+        ok: false,
+        errorCode: "VERIFY_TOKEN_MISSING",
+        errorMessage: "Paperclip agent is missing gateway token in adapter config"
+      };
+    }
   }
 
   if (!openclawMatch) {
