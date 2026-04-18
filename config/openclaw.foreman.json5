@@ -121,6 +121,22 @@
           },
         ],
       },
+      executor: {
+        baseUrl: "https://openrouter.ai/api/v1",
+        apiKey: "${OPENROUTER_API_KEY}",
+        api: "openai-completions",
+        models: [
+          {
+            id: "qwen/qwen3-coder",
+            name: "Qwen3 Coder (OpenRouter)",
+            reasoning: true,
+            input: ["text"],
+            cost: { input: 0.30, output: 1.20, cacheRead: 0, cacheWrite: 0 },
+            contextWindow: 262144,
+            maxTokens: 8192,
+          },
+        ],
+      },
       qwen_embedding: {
         baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
         apiKey: "${DASHSCOPE_SG_KEY}",

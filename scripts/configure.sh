@@ -49,6 +49,49 @@ with open(dst, 'w') as f:
 os.chmod(dst, 0o600)
 PY
 
+python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+cfg_path = Path.home() / ".openclaw" / "openclaw.json"
+if not cfg_path.exists():
+    raise SystemExit("ERROR: missing ~/.openclaw/openclaw.json")
+
+with cfg_path.open() as f:
+    cfg = json.load(f)
+
+models = cfg.setdefault("models", {})
+providers = models.setdefault("providers", {})
+openrouter_key = os.environ.get("OPENROUTER_API_KEY", "").strip()
+if not openrouter_key:
+    raise SystemExit("ERROR: Missing OPENROUTER_API_KEY in .env")
+
+providers["executor"] = {
+    "baseUrl": "https://openrouter.ai/api/v1",
+    "apiKey": openrouter_key,
+    "api": "openai-completions",
+    "models": [
+        {
+            "id": "qwen/qwen3-coder",
+            "name": "Qwen3 Coder (OpenRouter)",
+            "reasoning": True,
+            "input": ["text"],
+            "cost": {"input": 0.30, "output": 1.20, "cacheRead": 0, "cacheWrite": 0},
+            "contextWindow": 262144,
+            "maxTokens": 8192,
+        }
+    ],
+}
+
+with cfg_path.open("w") as f:
+    json.dump(cfg, f, indent=2)
+    f.write("\n")
+
+os.chmod(cfg_path, 0o600)
+print("Synced executor provider into ~/.openclaw/openclaw.json")
+PY
+
 rm -rf "${PLUGIN_TARGET_DIR}"
 cp -R "${PLUGIN_SOURCE_DIR}" "${PLUGIN_TARGET_DIR}"
 chmod -R go-rwx "${PLUGIN_TARGET_DIR}"
