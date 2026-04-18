@@ -13,6 +13,14 @@ const REQUIRED_ENV_VARS = [
   "OPENROUTER_API_KEY",
 ];
 
+const ROLE_CAPABILITIES = {
+  marketing_analyst:
+    "Market research, competitive analysis, content strategy, campaign analysis, funnel diagnostics",
+  engineer: "Code implementation, bug fixes, architecture, technical documentation, code review",
+  qa: "Test planning, test execution, bug reporting, quality standards, regression testing",
+  designer: "UI/UX design, visual assets, design systems, wireframes, prototyping",
+};
+
 function readEnv() {
   const env = {
     PAPERCLIP_RUN_ID: process.env.PAPERCLIP_RUN_ID,
@@ -87,6 +95,78 @@ function normalizeAgentsResponse(data) {
   return [];
 }
 
+function normalizeDelegationRole(agent) {
+  const role = String(agent?.role || "").toLowerCase().trim();
+  const name = String(agent?.name || "").toLowerCase();
+  const urlKey = String(agent?.urlKey || "").toLowerCase();
+
+  if (role === "cmo") return "marketing_analyst";
+  if (role === "marketing_analyst") return "marketing_analyst";
+  if (
+    name.includes("marketing analyst") ||
+    name.includes("market research") ||
+    urlKey.includes("marketing-analyst") ||
+    urlKey.includes("market-research")
+  ) {
+    return "marketing_analyst";
+  }
+  if (["engineer", "qa", "designer"].includes(role)) return role;
+  return role || "unknown";
+}
+
+function buildPreferredWorkerIds(agents) {
+  const preferred = {};
+  const usableStatuses = new Set(["active", "idle", "running"]);
+  for (const role of Object.keys(ROLE_CAPABILITIES)) {
+    const matches = agents.filter(
+      (agent) =>
+        agent.delegationRole === role && usableStatuses.has(String(agent.status || "").toLowerCase()),
+    );
+    if (matches.length === 0) continue;
+    matches.sort((a, b) => {
+      const aName = String(a.name || "").toLowerCase();
+      const bName = String(b.name || "").toLowerCase();
+      const aScore = aName.includes("marketing analyst") ? 0 : 1;
+      const bScore = bName.includes("marketing analyst") ? 0 : 1;
+      return aScore - bScore;
+    });
+    preferred[role] = matches[0].id;
+  }
+  return preferred;
+}
+
+function formatDelegationCandidates(agents) {
+  if (!Array.isArray(agents) || agents.length === 0) {
+    return "Available workers for delegation:\n- none";
+  }
+
+  const lines = ["Available workers for delegation:"];
+  for (const agent of agents) {
+    const role = agent.delegationRole || "unknown";
+    const capabilities = ROLE_CAPABILITIES[role] || "General support capabilities";
+    const status = String(agent.status || "unknown").toLowerCase();
+    const statusNote = ["paused", "disabled", "terminated"].includes(status)
+      ? "Do NOT delegate new tasks while unavailable."
+      : "Eligible for delegation.";
+    const guidance =
+      role === "marketing_analyst"
+        ? "Assign research, competitor, and go-to-market analysis tasks."
+        : role === "engineer"
+          ? "Assign implementation, bug-fix, and codebase change tasks."
+          : role === "qa"
+            ? "Assign test execution, validation, and regression tasks."
+            : role === "designer"
+              ? "Assign UX review, design feedback, and accessibility tasks."
+              : "Match tasks carefully based on current issue scope.";
+    lines.push(`- ${agent.name || "Unknown"} (id: ${agent.id || "unknown"})`);
+    lines.push(`  Role: ${role}`);
+    lines.push(`  Capabilities: ${capabilities}`);
+    lines.push(`  Status: ${status}`);
+    lines.push(`  Guidance: ${guidance} ${statusNote}`);
+  }
+  return lines.join("\n");
+}
+
 function loadWorkspace() {
   const wsDir = resolve(process.cwd(), "config/ceo-workspace");
   return {
@@ -144,16 +224,27 @@ function buildSystemPrompt(workspace) {
 }
 
 function buildUserPrompt(input) {
+  const delegationBlock = formatDelegationCandidates(input.availableAgents);
+  const roleCapabilityBlock = JSON.stringify(ROLE_CAPABILITIES, null, 2);
   return [
     "Plan actions for this heartbeat context.",
     "Use only the allowed action types.",
     "Keep actions minimal and high impact.",
     "Delegation rules:",
-    "- Prefer assigning work to an existing relevant worker from availableAgents.",
+    "- When creating a sub-task, assign it to the worker whose role best matches the task.",
+    "- Use availableAgents to choose the correct assignee_agent_id.",
     "- Only use hire_agent if no suitable active worker exists for the role.",
+    "- Never delegate new work to paused, disabled, or terminated agents.",
     "- When creating a delegated sub-task, include assignee_agent_id and parent_id.",
     "- If delegatedChildrenByParent already shows an open child task, do not create duplicates.",
-    "- If a child task is done with deliverables, synthesize findings on the parent issue and move parent to done.",
+    "- If a child task is done with deliverables, review child comments, synthesize findings, and close the parent.",
+    "- Prefer delegating specialist work over doing specialist work in the CEO run.",
+    "- For research/comparison/competitor analysis requests, create a child task assigned to marketing_analyst before any direct execution.",
+    "",
+    "Role capability map:",
+    roleCapabilityBlock,
+    "",
+    delegationBlock,
     "",
     JSON.stringify(input, null, 2),
   ].join("\n");
@@ -334,9 +425,12 @@ async function fetchIssuesContext(env) {
     id: agent.id || null,
     name: agent.name || null,
     role: agent.role || null,
+    delegationRole: normalizeDelegationRole(agent),
     status: agent.status || null,
     adapterType: agent.adapterType || null,
+    urlKey: agent.urlKey || null,
   }));
+  const preferredWorkerIds = buildPreferredWorkerIds(availableAgents);
 
   const delegatedChildrenByParent = {};
   if (issues.length > 0) {
@@ -372,13 +466,13 @@ async function fetchIssuesContext(env) {
     }
   }
 
-  return { me, issues, availableAgents, delegatedChildrenByParent };
+  return { me, issues, availableAgents, preferredWorkerIds, delegatedChildrenByParent };
 }
 
 async function main() {
   const env = readEnv();
   const workspace = loadWorkspace();
-  const { me, issues, availableAgents, delegatedChildrenByParent } = await fetchIssuesContext(env);
+  const { me, issues, availableAgents, preferredWorkerIds, delegatedChildrenByParent } = await fetchIssuesContext(env);
 
   const systemPrompt = buildSystemPrompt(workspace);
   const userPrompt = buildUserPrompt({
@@ -388,6 +482,7 @@ async function main() {
     agent: me,
     issues,
     availableAgents,
+    preferredWorkerIds,
     delegatedChildrenByParent,
   });
 
