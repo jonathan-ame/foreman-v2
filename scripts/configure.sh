@@ -8,6 +8,8 @@ TEMPLATE_FILE="${ROOT_DIR}/config/openclaw.foreman.json5"
 TARGET_INCLUDE="${HOME}/.openclaw/foreman.json5"
 PLUGIN_SOURCE_DIR="${ROOT_DIR}/plugins/foreman-hire-agent"
 PLUGIN_TARGET_DIR="${HOME}/.openclaw/plugins/foreman-hire-agent"
+TOKEN_METER_SOURCE_DIR="${ROOT_DIR}/plugins/foreman-token-meter"
+TOKEN_METER_TARGET_DIR="${HOME}/.openclaw/plugins/foreman-token-meter"
 CEO_WORKSPACE_SOURCE_DIR="${ROOT_DIR}/config/ceo-workspace"
 CEO_WORKSPACE_TARGET_DIR="${HOME}/.openclaw/workspace-ceo"
 
@@ -27,7 +29,7 @@ set -a
 source "${ENV_FILE}"
 set +a
 
-for key in TOGETHER_API_KEY DASHSCOPE_US_KEY DASHSCOPE_SG_KEY; do
+for key in OPENROUTER_API_KEY DASHSCOPE_SG_KEY PAPERCLIP_API_URL PAPERCLIP_COMPANY_ID PAPERCLIP_AGENT_ID; do
   [[ -n "${!key:-}" ]] || { echo "ERROR: Missing ${key} in .env" >&2; exit 1; }
 done
 
@@ -174,11 +176,17 @@ rm -rf "${PLUGIN_TARGET_DIR}"
 cp -R "${PLUGIN_SOURCE_DIR}" "${PLUGIN_TARGET_DIR}"
 chmod -R go-rwx "${PLUGIN_TARGET_DIR}"
 
+if [[ -d "${TOKEN_METER_SOURCE_DIR}" ]]; then
+  rm -rf "${TOKEN_METER_TARGET_DIR}"
+  cp -R "${TOKEN_METER_SOURCE_DIR}" "${TOKEN_METER_TARGET_DIR}"
+  chmod -R go-rwx "${TOKEN_METER_TARGET_DIR}"
+  echo "Installed token-meter plugin to ${TOKEN_METER_TARGET_DIR}"
+fi
+
 cp -f "${CEO_WORKSPACE_SOURCE_DIR}/SOUL.md" "${CEO_WORKSPACE_TARGET_DIR}/SOUL.md"
 cp -f "${CEO_WORKSPACE_SOURCE_DIR}/HEARTBEAT.md" "${CEO_WORKSPACE_TARGET_DIR}/HEARTBEAT.md"
-cp -f "${CEO_WORKSPACE_SOURCE_DIR}/USER.md" "${CEO_WORKSPACE_TARGET_DIR}/USER.md"
 cp -f "${CEO_WORKSPACE_SOURCE_DIR}/AGENTS.md" "${CEO_WORKSPACE_TARGET_DIR}/AGENTS.md"
-cp -f "${CEO_WORKSPACE_SOURCE_DIR}/IDENTITY.md" "${CEO_WORKSPACE_TARGET_DIR}/IDENTITY.md"
+cp -f "${CEO_WORKSPACE_SOURCE_DIR}/TOOLS.md" "${CEO_WORKSPACE_TARGET_DIR}/TOOLS.md"
 chmod go-rwx "${CEO_WORKSPACE_TARGET_DIR}"/*.md
 
 echo "Wrote ${TARGET_INCLUDE} (mode 600)"

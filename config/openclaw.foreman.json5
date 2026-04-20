@@ -3,6 +3,9 @@
     vars: {
       OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}",
       DASHSCOPE_SG_KEY: "${DASHSCOPE_SG_KEY}",
+      PAPERCLIP_API_URL: "${PAPERCLIP_API_URL}",
+      PAPERCLIP_COMPANY_ID: "${PAPERCLIP_COMPANY_ID}",
+      PAPERCLIP_AGENT_ID: "${PAPERCLIP_AGENT_ID}",
     },
   },
   agents: {
@@ -171,7 +174,7 @@
   },
   plugins: {
     load: {
-      paths: ["~/.openclaw/plugins/foreman-hire-agent"],
+      paths: ["~/.openclaw/plugins/foreman-hire-agent", "~/.openclaw/plugins/foreman-token-meter"],
     },
     entries: {
       openrouter: { enabled: true },
@@ -180,6 +183,15 @@
         config: {
           apiBaseUrl: "http://127.0.0.1:8080",
           requestTimeoutMs: 30000,
+        },
+      },
+      "foreman-token-meter": {
+        enabled: true,
+        config: {
+          paperclipApiBase: "${PAPERCLIP_API_URL}",
+          paperclipCompanyId: "${PAPERCLIP_COMPANY_ID}",
+          paperclipAgentId: "${PAPERCLIP_AGENT_ID}",
+          foremanApiBase: "http://localhost:8080",
         },
       },
     },
