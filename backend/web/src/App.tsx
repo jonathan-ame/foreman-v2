@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { MarketingLayout } from "./components/MarketingLayout";
 import { AcceptableUse } from "./pages/legal/AcceptableUse";
 import { Cookies } from "./pages/legal/Cookies";
@@ -15,6 +15,12 @@ import { HowItWorks } from "./pages/marketing/HowItWorks";
 import { Pricing } from "./pages/marketing/Pricing";
 import { AuthPage } from "./pages/AuthPage";
 import { CreateCEO } from "./pages/CreateCEO";
+import { DashboardLayout } from "./pages/dashboard/DashboardLayout";
+import { ChiefOfStaff } from "./pages/dashboard/ChiefOfStaff";
+import { Projects } from "./pages/dashboard/Projects";
+import { Team } from "./pages/dashboard/Team";
+import { Inbox } from "./pages/dashboard/Inbox";
+import { Settings } from "./pages/dashboard/Settings";
 
 interface CustomerSession {
   customer_id: string;
@@ -89,9 +95,21 @@ export function App() {
         <Route path="/acceptable-use" element={<AcceptableUse />} />
         <Route path="/security" element={<Security />} />
 
-        {/* Authenticated app shell */}
+        {/* Authenticated app shell (CEO onboarding) */}
         <Route path="/app" element={<AppShell />} />
         <Route path="/app/*" element={<AppShell />} />
+
+        {/* Dashboard — main app after CEO is provisioned */}
+        <Route path="/dashboard" element={<DashboardLayout />}>
+          <Route index element={<ChiefOfStaff />} />
+          <Route path="projects" element={<Projects />} />
+          <Route path="team" element={<Team />} />
+          <Route path="inbox" element={<Inbox />} />
+          <Route path="settings" element={<Settings />} />
+        </Route>
+
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
