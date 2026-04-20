@@ -1,6 +1,20 @@
 import { useEffect, useState } from "react";
-import { CreateCEO } from "./pages/CreateCEO";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { MarketingLayout } from "./components/MarketingLayout";
+import { AcceptableUse } from "./pages/legal/AcceptableUse";
+import { Cookies } from "./pages/legal/Cookies";
+import { DPA } from "./pages/legal/DPA";
+import { Privacy } from "./pages/legal/Privacy";
+import { Security } from "./pages/legal/Security";
+import { Terms } from "./pages/legal/Terms";
+import { About } from "./pages/marketing/About";
+import { Blog } from "./pages/marketing/Blog";
+import { Contact } from "./pages/marketing/Contact";
+import { Home } from "./pages/marketing/Home";
+import { HowItWorks } from "./pages/marketing/HowItWorks";
+import { Pricing } from "./pages/marketing/Pricing";
 import { AuthPage } from "./pages/AuthPage";
+import { CreateCEO } from "./pages/CreateCEO";
 
 interface CustomerSession {
   customer_id: string;
@@ -10,8 +24,7 @@ interface CustomerSession {
   current_billing_mode: string;
 }
 
-
-export function App() {
+function AppShell() {
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
   const [loadingSession, setLoadingSession] = useState(true);
 
@@ -52,4 +65,34 @@ export function App() {
   }
 
   return <CreateCEO customer={customer} />;
+}
+
+export function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        {/* Marketing site with shared nav/footer */}
+        <Route element={<MarketingLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/blog" element={<Blog />} />
+        </Route>
+
+        {/* Legal pages (self-contained layout) */}
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/cookies" element={<Cookies />} />
+        <Route path="/dpa" element={<DPA />} />
+        <Route path="/acceptable-use" element={<AcceptableUse />} />
+        <Route path="/security" element={<Security />} />
+
+        {/* Authenticated app shell */}
+        <Route path="/app" element={<AppShell />} />
+        <Route path="/app/*" element={<AppShell />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
