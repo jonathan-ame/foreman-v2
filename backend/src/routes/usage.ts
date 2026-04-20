@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import type { AppDeps } from "../app-deps.js";
+import { insertAgentUsageEvent } from "../db/agent-usage-events.js";
 import { incrementAgentUsageByPaperclipAgentId } from "../db/agents.js";
 
 const UsageUpdateSchema = z.object({
@@ -30,6 +31,23 @@ export function registerUsageRoutes(app: Hono, deps: AppDeps) {
     if (!found) {
       return c.json({ error: "agent_not_found" }, 404);
     }
+
+    // Append-only event log for reconciliation (best-effort; never fails the request)
+    void insertAgentUsageEvent(deps.db, {
+      paperclip_agent_id: agentId,
+      input_tokens: parsed.data.inputTokens,
+      output_tokens: parsed.data.outputTokens,
+      cost_cents: parsed.data.costCents,
+      model: parsed.data.model,
+      provider: parsed.data.provider ?? null,
+      issue_id: parsed.data.issueId ?? null,
+      occurred_at: parsed.data.occurredAt
+    }).catch((err: unknown) => {
+      deps.logger.warn(
+        { err: err instanceof Error ? err.message : String(err), paperclipAgentId: agentId },
+        "failed to append agent usage event"
+      );
+    });
 
     deps.logger.info(
       {

@@ -12,6 +12,10 @@ vi.mock("../db/agents.js", () => ({
   getAgentStatusCounts: getAgentStatusCountsMock
 }));
 
+vi.mock("../jobs/paperclip-usage-reconcile.js", () => ({
+  lastReconcileResult: null
+}));
+
 describe("integration health route", () => {
   const originalFetch = global.fetch;
 

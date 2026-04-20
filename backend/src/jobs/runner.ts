@@ -1,9 +1,11 @@
 import cron, { type ScheduledTask } from "node-cron";
 import type { AppDeps } from "../app-deps.js";
 import { runAgentHealthCheckJob } from "./agent-health-check.js";
+import { runByokKeyHealthCheckJob } from "./byok-key-health-check.js";
 import { runIdempotencyCleanupJob } from "./idempotency-cleanup.js";
 import { runOpenClawAbsorptionRepairJob } from "./openclaw-absorption-repair.js";
 import { runOrphanWorkspaceCleanupJob } from "./orphan-workspace-cleanup.js";
+import { runPaperclipUsageReconcileJob } from "./paperclip-usage-reconcile.js";
 import type { JobDefinition, JobResult } from "./types.js";
 
 const JOBS: JobDefinition[] = [
@@ -26,6 +28,16 @@ const JOBS: JobDefinition[] = [
     name: "agent_health_check",
     schedule: "*/5 * * * *",
     run: runAgentHealthCheckJob
+  },
+  {
+    name: "byok_key_health_check",
+    schedule: "0 * * * *",
+    run: runByokKeyHealthCheckJob
+  },
+  {
+    name: "paperclip_usage_reconcile",
+    schedule: "0 */4 * * *",
+    run: runPaperclipUsageReconcileJob
   }
 ];
 

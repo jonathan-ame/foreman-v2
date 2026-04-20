@@ -1,5 +1,6 @@
 import type { Hono } from "hono";
 import { getAgentStatusCounts } from "../db/agents.js";
+import { lastReconcileResult } from "../jobs/paperclip-usage-reconcile.js";
 import type { AppDeps } from "../app-deps.js";
 
 interface IntegrationCheckResult {
@@ -66,6 +67,21 @@ const checkOpenRouter = async (deps: AppDeps): Promise<IntegrationCheckResult> =
   }
 };
 
+const checkTokenSync = (): IntegrationCheckResult => {
+  if (!lastReconcileResult) {
+    return { ok: true, note: "reconcile_job_not_run_yet" };
+  }
+  const { agents_drifted, max_drift_pct, errors, window_start } = lastReconcileResult;
+  const ok = agents_drifted === 0 && errors.length === 0;
+  return {
+    ok,
+    window_start,
+    agents_drifted,
+    max_drift_pct: parseFloat((max_drift_pct * 100).toFixed(2)),
+    errors: errors.length > 0 ? errors : undefined
+  };
+};
+
 const checkAgentCounts = async (deps: AppDeps): Promise<IntegrationCheckResult> => {
   try {
     const counts = await getAgentStatusCounts(deps.db);
@@ -89,6 +105,7 @@ export function registerHealthRoutes(app: Hono, deps: AppDeps) {
       checkOpenRouter(deps),
       checkAgentCounts(deps)
     ]);
+    const tokenSync = checkTokenSync();
 
     const status =
       !backendSelf.ok || !supabase.ok || !paperclipApi.ok || !openclawGateway.ok
@@ -105,7 +122,8 @@ export function registerHealthRoutes(app: Hono, deps: AppDeps) {
         paperclip_api: paperclipApi,
         openclaw_gateway: openclawGateway,
         openrouter,
-        active_agents: activeAgents
+        active_agents: activeAgents,
+        token_sync: tokenSync
       },
       checked_at: new Date().toISOString()
     });

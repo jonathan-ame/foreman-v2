@@ -4,12 +4,17 @@ import type { AppDeps } from "../app-deps.js";
 import { createLogger } from "../config/logger.js";
 import { registerUsageRoutes } from "./usage.js";
 
-const { incrementAgentUsageByPaperclipAgentIdMock } = vi.hoisted(() => ({
-  incrementAgentUsageByPaperclipAgentIdMock: vi.fn()
+const { incrementAgentUsageByPaperclipAgentIdMock, insertAgentUsageEventMock } = vi.hoisted(() => ({
+  incrementAgentUsageByPaperclipAgentIdMock: vi.fn(),
+  insertAgentUsageEventMock: vi.fn()
 }));
 
 vi.mock("../db/agents.js", () => ({
   incrementAgentUsageByPaperclipAgentId: incrementAgentUsageByPaperclipAgentIdMock
+}));
+
+vi.mock("../db/agent-usage-events.js", () => ({
+  insertAgentUsageEvent: insertAgentUsageEventMock
 }));
 
 describe("agent usage route", () => {
@@ -25,6 +30,7 @@ describe("agent usage route", () => {
 
   beforeEach(() => {
     incrementAgentUsageByPaperclipAgentIdMock.mockReset();
+    insertAgentUsageEventMock.mockResolvedValue(undefined);
   });
 
   it("records usage for a valid payload", async () => {
