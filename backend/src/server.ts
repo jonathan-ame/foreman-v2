@@ -11,6 +11,7 @@ import { captureException, initSentry } from "./config/sentry.js";
 import { startJobs } from "./jobs/runner.js";
 import { registerAgentRoutes } from "./routes/agents.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerChatRoutes } from "./routes/chat.js";
 import { registerEscalationRoutes } from "./routes/escalation.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
@@ -64,6 +65,7 @@ app.get("/health", (c) => {
 registerAuthRoutes(app, deps);
 registerHealthRoutes(app, deps);
 registerAgentRoutes(app, deps);
+registerChatRoutes(app, deps);
 registerEscalationRoutes(app, deps);
 registerStripeWebhookRoutes(app, deps);
 registerUsageRoutes(app, deps);
