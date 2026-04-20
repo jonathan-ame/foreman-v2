@@ -71,6 +71,15 @@ function SettingsIcon() {
   );
 }
 
+function EconomicsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M1.5 12l3.5-4 3 2.5 3-5 3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M1.5 14.5h13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 interface SidebarNavProps {
   pendingApprovals: number;
   customer: CustomerSession;
@@ -119,6 +128,12 @@ function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
                   {pendingApprovals}
                 </span>
               )}
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/dashboard/economics" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+              <EconomicsIcon />
+              <span>Economics</span>
             </NavLink>
           </li>
         </ul>

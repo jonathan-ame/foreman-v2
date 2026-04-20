@@ -17,6 +17,7 @@ import { AuthPage } from "./pages/AuthPage";
 import { CreateCEO } from "./pages/CreateCEO";
 import { DashboardLayout } from "./pages/dashboard/DashboardLayout";
 import { ChiefOfStaff } from "./pages/dashboard/ChiefOfStaff";
+import { EconomicsDashboard } from "./pages/dashboard/EconomicsDashboard";
 import { Projects } from "./pages/dashboard/Projects";
 import { Team } from "./pages/dashboard/Team";
 import { Inbox } from "./pages/dashboard/Inbox";
@@ -106,6 +107,7 @@ export function App() {
           <Route path="team" element={<Team />} />
           <Route path="inbox" element={<Inbox />} />
           <Route path="settings" element={<Settings />} />
+          <Route path="economics" element={<EconomicsDashboard />} />
         </Route>
 
         {/* Fallback */}

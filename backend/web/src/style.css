@@ -1674,6 +1674,172 @@ button:disabled {
   text-transform: capitalize;
 }
 
+/* ── Economics dashboard ──────────────────────────────────────── */
+
+.ec-page {
+  padding: 28px 32px;
+  max-width: 900px;
+}
+
+.ec-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.ec-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+  color: #1c2733;
+}
+
+.ec-updated {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ec-loading,
+.ec-error {
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.ec-section {
+  margin-bottom: 32px;
+}
+
+.ec-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9ca3af;
+  margin: 0 0 14px;
+}
+
+.ec-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.ec-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ec-metric-label {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.ec-metric-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1c2733;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.ec-metric-sub {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.ec-funnel {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ec-funnel-row {
+  display: grid;
+  grid-template-columns: 140px 1fr 80px;
+  align-items: center;
+  gap: 12px;
+}
+
+.ec-funnel-label {
+  font-size: 13px;
+  color: #374151;
+}
+
+.ec-funnel-bar-wrap {
+  height: 8px;
+  background: #f1f5f9;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.ec-funnel-bar {
+  height: 100%;
+  background: #2563eb;
+  border-radius: 99px;
+  transition: width 0.4s ease;
+}
+
+.ec-funnel-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1c2733;
+  white-space: nowrap;
+}
+
+.ec-funnel-pct {
+  font-weight: 400;
+  color: #6b7280;
+}
+
+.ec-funnel-totals {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #6b7280;
+  padding: 0 16px 4px;
+}
+
+.ec-nps-row {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.ec-nps-score {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  min-width: 80px;
+}
+
+.ec-nps-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: #374151;
+}
+
+.ec-nps-promoters { color: #16a34a; }
+.ec-nps-detractors { color: #dc2626; }
+.ec-nps-total { color: #9ca3af; margin-top: 4px; }
+
 /* ── Legal pages ─────────────────────────────────────────────── */
 
 .legal-page {
