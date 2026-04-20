@@ -1,5 +1,6 @@
 import type { Logger } from "pino";
 import { createClients } from "./clients/index.js";
+import type { EmailClient } from "./clients/email.js";
 import { env, type Env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
 import { createSupabaseClient, type SupabaseClient } from "./db/supabase.js";
@@ -10,6 +11,7 @@ export interface AppDeps {
     paperclip: PaperclipClientLike;
     openclaw: OpenClawClientLike;
     stripe: StripeClientLike;
+    email: EmailClient;
   };
   db: SupabaseClient;
   logger: Logger;
@@ -26,7 +28,9 @@ export function createAppDeps(baseLogger?: Logger): AppDeps {
     OPENCLAW_INCLUDE_PATH: env.OPENCLAW_INCLUDE_PATH,
     STRIPE_MODE: env.stripeMode,
     STRIPE_SECRET_KEY: env.STRIPE_SECRET_KEY,
-    STRIPE_SECRET_KEY_TEST: env.STRIPE_SECRET_KEY_TEST
+    STRIPE_SECRET_KEY_TEST: env.STRIPE_SECRET_KEY_TEST,
+    RESEND_API_KEY: env.RESEND_API_KEY,
+    EMAIL_FROM: env.EMAIL_FROM
   };
   return {
     clients: createClients(clientEnv, logger),

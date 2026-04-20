@@ -87,6 +87,28 @@ async function applyCustomerUpdate(
   }
 }
 
+async function markStripeEventProcessed(
+  deps: AppDeps,
+  eventId: string,
+  eventType: string,
+  livemode: boolean
+): Promise<void> {
+  await deps.db.from("stripe_webhook_events").insert({
+    stripe_event_id: eventId,
+    event_type: eventType,
+    livemode
+  });
+}
+
+async function isStripeEventAlreadyProcessed(deps: AppDeps, eventId: string): Promise<boolean> {
+  const { data } = await deps.db
+    .from("stripe_webhook_events")
+    .select("stripe_event_id")
+    .eq("stripe_event_id", eventId)
+    .maybeSingle();
+  return data !== null;
+}
+
 export function registerStripeWebhookRoutes(app: Hono, deps: AppDeps) {
   app.post("/api/internal/webhooks/stripe", async (c) => {
     const signature = c.req.header("stripe-signature");
@@ -105,6 +127,25 @@ export function registerStripeWebhookRoutes(app: Hono, deps: AppDeps) {
     } catch (error) {
       deps.logger.error({ err: error }, "failed to verify stripe webhook signature");
       return c.json({ error: "invalid_signature" }, 400);
+    }
+
+    // In production, reject test-mode events to prevent accidental test data pollution.
+    if (deps.env.NODE_ENV === "production" && !event.livemode) {
+      deps.logger.warn(
+        { eventId: event.id, eventType: event.type },
+        "rejecting test-mode stripe event in production"
+      );
+      return c.json({ error: "test_mode_event_rejected" }, 400);
+    }
+
+    // Idempotency: skip events we have already processed.
+    const alreadyProcessed = await isStripeEventAlreadyProcessed(deps, event.id);
+    if (alreadyProcessed) {
+      deps.logger.info(
+        { eventId: event.id, eventType: event.type },
+        "stripe event already processed — skipping"
+      );
+      return c.json({ received: true, duplicate: true }, 200);
     }
 
     deps.logger.info(
@@ -178,6 +219,9 @@ export function registerStripeWebhookRoutes(app: Hono, deps: AppDeps) {
       default:
         break;
     }
+
+    // Record as processed so retries are deduplicated.
+    await markStripeEventProcessed(deps, event.id, event.type, event.livemode);
 
     return c.json({ received: true }, 200);
   });

@@ -1,4 +1,5 @@
 import type { Logger } from "pino";
+import { createEmailClient } from "./email.js";
 import { OpenClawClient } from "./openclaw/client.js";
 import { PaperclipClient } from "./paperclip/client.js";
 import { StripeClient } from "./stripe/client.js";
@@ -12,6 +13,8 @@ export interface ClientFactoryEnv {
   STRIPE_MODE: "live" | "test";
   STRIPE_SECRET_KEY: string | undefined;
   STRIPE_SECRET_KEY_TEST: string | undefined;
+  RESEND_API_KEY: string | undefined;
+  EMAIL_FROM: string | undefined;
 }
 
 export const createClients = (env: ClientFactoryEnv, logger: Logger) => {
@@ -34,6 +37,7 @@ export const createClients = (env: ClientFactoryEnv, logger: Logger) => {
       includePath: env.OPENCLAW_INCLUDE_PATH,
       logger: logger.child({ name: "openclaw-client" })
     }),
-    stripe: new StripeClient(stripeConfig)
+    stripe: new StripeClient(stripeConfig),
+    email: createEmailClient(env.RESEND_API_KEY, env.EMAIL_FROM)
   };
 };

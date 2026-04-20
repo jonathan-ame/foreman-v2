@@ -7,6 +7,7 @@ import process from "node:process";
 import { createAppDeps } from "./app-deps.js";
 import { env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
+import { captureException, initSentry } from "./config/sentry.js";
 import { startJobs } from "./jobs/runner.js";
 import { registerAgentRoutes } from "./routes/agents.js";
 import { registerAuthRoutes } from "./routes/auth.js";
@@ -15,10 +16,18 @@ import { registerHealthRoutes } from "./routes/health.js";
 import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { registerUsageRoutes } from "./routes/usage.js";
 
+initSentry(env.SENTRY_DSN);
+
 const logger = createLogger("server");
 
 export const app = new Hono();
 const deps = createAppDeps(logger.child({ name: "app-deps" }));
+
+app.onError((err, c) => {
+  captureException(err, { path: c.req.path, method: c.req.method });
+  logger.error({ err, path: c.req.path, method: c.req.method }, "unhandled request error");
+  return c.json({ error: "internal_server_error" }, 500);
+});
 const webDistDir = path.resolve(process.cwd(), "dist-web");
 const webIndexPath = path.join(webDistDir, "index.html");
 const mimeTypes: Record<string, string> = {

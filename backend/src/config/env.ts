@@ -33,7 +33,10 @@ const envSchema = z.object({
   STRIPE_PRICE_TIER_2_TEST: z.string().min(1).optional(),
   STRIPE_PRICE_TIER_3_TEST: z.string().min(1).optional(),
   STRIPE_PRICE_BYOK_PLATFORM_TEST: z.string().min(1).optional(),
-  FOREMAN_LOG_DIR: z.string().min(1).default("~/.foreman/logs")
+  FOREMAN_LOG_DIR: z.string().min(1).default("~/.foreman/logs"),
+  RESEND_API_KEY: z.string().min(1).optional(),
+  EMAIL_FROM: z.string().min(1).optional(),
+  SENTRY_DSN: z.string().url().optional()
 });
 
 const parsed = envSchema.safeParse(process.env);
