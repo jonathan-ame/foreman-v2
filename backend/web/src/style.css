@@ -1840,6 +1840,472 @@ button:disabled {
 .ec-nps-detractors { color: #dc2626; }
 .ec-nps-total { color: #9ca3af; margin-top: 4px; }
 
+/* ── Onboarding wizard ───────────────────────────────────────── */
+
+.wizard-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: min(540px, 100%);
+}
+
+.wizard-wordmark {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1c2733;
+  margin: 0 0 28px;
+}
+
+.wizard-headline {
+  font-size: clamp(22px, 4vw, 32px);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+  outline: none;
+}
+
+.wizard-question {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  outline: none;
+}
+
+.wizard-sub {
+  font-size: 15px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0 0 24px;
+}
+
+.wizard-cta {
+  width: 100%;
+  padding: 13px 20px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.wizard-skip-row {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: 14px;
+}
+
+/* Progress indicator */
+
+.wizard-progress {
+  margin-bottom: 20px;
+}
+
+.wizard-progress-list {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.wizard-progress-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #94a3b8;
+  flex: 1;
+  min-width: 0;
+}
+
+.wizard-progress-step + .wizard-progress-step::before {
+  content: "";
+  display: block;
+  height: 1px;
+  flex: 1;
+  background: #e2e8f0;
+  margin-right: 6px;
+  flex-shrink: 0;
+  width: 12px;
+}
+
+.wizard-progress-step--done {
+  color: #2563eb;
+}
+
+.wizard-progress-step--current {
+  color: #1c2733;
+  font-weight: 600;
+}
+
+.wizard-progress-dot {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #e2e8f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.wizard-progress-step--done .wizard-progress-dot {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #fff;
+}
+
+.wizard-progress-step--current .wizard-progress-dot {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.wizard-progress-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Suggestion chips */
+
+.wizard-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 8px 0 12px;
+}
+
+.wizard-chip {
+  appearance: none;
+  border: 1px solid #cbd5e1;
+  border-radius: 99px;
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: #f8fafc;
+  color: #374151;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.wizard-chip:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.wizard-chip--active {
+  border-color: #2563eb;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+/* Input wrapper */
+
+.wizard-input-wrap {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.wizard-char-count {
+  text-align: right;
+}
+
+.input-valid {
+  border-color: #0f766e !important;
+}
+
+.input-invalid {
+  border-color: #b42318 !important;
+}
+
+/* Role cards */
+
+.wizard-role-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin: 12px 0 20px;
+}
+
+@media (max-width: 480px) {
+  .wizard-role-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.wizard-role-card {
+  position: relative;
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.wizard-role-card:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.wizard-role-card--selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.wizard-role-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c2733;
+}
+
+.wizard-role-desc {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.wizard-role-check {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 12px;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* Option stack (model tier / api-key mode) */
+
+.wizard-option-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+
+.wizard-option {
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.wizard-option:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.wizard-option--selected {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.wizard-option-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1c2733;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.wizard-option-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.wizard-badge {
+  font-size: 11px;
+  font-weight: 600;
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 99px;
+  padding: 1px 8px;
+}
+
+/* Review summary */
+
+.wizard-summary {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin: 12px 0 20px;
+}
+
+.wizard-summary-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.wizard-summary-row:last-child {
+  border-bottom: 0;
+}
+
+.wizard-summary-label {
+  font-size: 13px;
+  color: #6b7280;
+  min-width: 56px;
+}
+
+.wizard-summary-value {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1c2733;
+  flex: 1;
+}
+
+.wizard-edit-btn {
+  font-size: 13px;
+}
+
+/* Nav row */
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.wizard-btn-primary {
+  appearance: none;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 20px;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wizard-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.wizard-btn-primary:not(:disabled):hover {
+  background: #1d4ed8;
+}
+
+.wizard-btn-ghost {
+  appearance: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: transparent;
+  color: #4b5563;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.wizard-btn-ghost:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Launching screen */
+
+.wizard-launching {
+  align-items: center;
+  text-align: center;
+  padding: 40px 24px;
+}
+
+.wizard-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: wizard-spin 0.8s linear infinite;
+  margin-bottom: 24px;
+}
+
+@keyframes wizard-spin {
+  to { transform: rotate(360deg); }
+}
+
+.wizard-launch-status {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 8px 0 0;
+}
+
+/* Success screen */
+
+.wizard-success {
+  align-items: center;
+  text-align: center;
+  padding: 32px 24px;
+}
+
+.wizard-check {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #dcfce7;
+  border: 2px solid #bbf7d0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  font-size: 24px;
+  color: #166534;
+  animation: wizard-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.wizard-check::after {
+  content: "✓";
+}
+
+@keyframes wizard-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+.wizard-first-task-label {
+  width: 100%;
+  margin-top: 16px;
+  display: block;
+}
+
+.wizard-first-task {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+}
+
+.wizard-success .wizard-nav {
+  justify-content: center;
+  margin-top: 16px;
+}
+
 /* ── Legal pages ─────────────────────────────────────────────── */
 
 .legal-page {

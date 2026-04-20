@@ -14,7 +14,7 @@ import { Home } from "./pages/marketing/Home";
 import { HowItWorks } from "./pages/marketing/HowItWorks";
 import { Pricing } from "./pages/marketing/Pricing";
 import { AuthPage } from "./pages/AuthPage";
-import { CreateCEO } from "./pages/CreateCEO";
+import { OnboardingWizard } from "./pages/OnboardingWizard";
 import { DashboardLayout } from "./pages/dashboard/DashboardLayout";
 import { ChiefOfStaff } from "./pages/dashboard/ChiefOfStaff";
 import { EconomicsDashboard } from "./pages/dashboard/EconomicsDashboard";
@@ -71,7 +71,7 @@ function AppShell() {
     return <AuthPage onAuthenticated={setCustomer} />;
   }
 
-  return <CreateCEO customer={customer} />;
+  return <OnboardingWizard customer={customer} />;
 }
 
 export function App() {
