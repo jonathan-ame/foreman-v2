@@ -52,6 +52,17 @@ export interface PendingApproval {
   id: string;
   type: string;
   status: string;
+  requestedByAgentId?: string;
+  createdAt?: string;
+  payload?: {
+    title?: string;
+    summary?: string;
+    recommendedAction?: string;
+    risks?: string[];
+    taskCount?: number;
+    estimatedCostMo?: number | null;
+    [key: string]: unknown;
+  };
 }
 
 export interface HireAgentRequest {

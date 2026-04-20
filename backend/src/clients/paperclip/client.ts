@@ -70,8 +70,8 @@ export class PaperclipClient {
     return this.requestJson<PendingApproval>("GET", `/api/approvals/${approvalId}`);
   }
 
-  async actOnApproval(approvalId: string, action: ApprovalAction): Promise<void> {
-    await this.requestJson("POST", `/api/approvals/${approvalId}/${action}`);
+  async actOnApproval(approvalId: string, action: ApprovalAction, body?: Record<string, unknown>): Promise<void> {
+    await this.requestJson("POST", `/api/approvals/${approvalId}/${action}`, body);
   }
 
   async ping(): Promise<{ ok: boolean; version?: string }> {

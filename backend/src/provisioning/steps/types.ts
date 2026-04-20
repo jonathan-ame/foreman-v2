@@ -13,7 +13,7 @@ export interface PaperclipClientLike {
   deleteAgent(agentId: string): Promise<void>;
   listPendingApprovals(companyId: string): Promise<PendingApproval[]>;
   getApproval(approvalId: string): Promise<PendingApproval>;
-  actOnApproval(approvalId: string, action: ApprovalAction): Promise<void>;
+  actOnApproval(approvalId: string, action: ApprovalAction, body?: Record<string, unknown>): Promise<void>;
   ping(): Promise<{ ok: boolean; version?: string }>;
 }
 

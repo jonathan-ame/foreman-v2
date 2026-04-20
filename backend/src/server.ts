@@ -10,6 +10,7 @@ import { createLogger } from "./config/logger.js";
 import { captureException, initSentry } from "./config/sentry.js";
 import { startJobs } from "./jobs/runner.js";
 import { registerAgentRoutes } from "./routes/agents.js";
+import { registerApprovalRoutes } from "./routes/approvals.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerChatRoutes } from "./routes/chat.js";
 import { registerEscalationRoutes } from "./routes/escalation.js";
@@ -65,6 +66,7 @@ app.get("/health", (c) => {
 registerAuthRoutes(app, deps);
 registerHealthRoutes(app, deps);
 registerAgentRoutes(app, deps);
+registerApprovalRoutes(app, deps);
 registerChatRoutes(app, deps);
 registerEscalationRoutes(app, deps);
 registerStripeWebhookRoutes(app, deps);
