@@ -1,4 +1,5 @@
 import { getAgentUsageTotalsSince } from "../db/agent-usage-events.js";
+import { recordFunnelEvent } from "../db/funnel-events.js";
 import type { AppDeps } from "../app-deps.js";
 import type { JobResult } from "./types.js";
 
@@ -52,15 +53,19 @@ export async function runPaperclipUsageReconcileJob(deps: AppDeps): Promise<JobR
     const paperclipAgentIds = eventTotals.map((e) => e.paperclip_agent_id);
     const { data: agentRows, error } = await deps.db
       .from("agents")
-      .select("agent_id, paperclip_agent_id, surcharge_accrued_current_period_cents")
+      .select("agent_id, paperclip_agent_id, surcharge_accrued_current_period_cents, workspace_slug")
       .in("paperclip_agent_id", paperclipAgentIds);
 
     if (error) {
       throw new Error(`failed to fetch agent rows: ${error.message}`);
     }
 
-    const agentMap = new Map<string, AgentRecord>();
-    for (const row of (agentRows ?? []) as AgentRecord[]) {
+    interface AgentRecordFull extends AgentRecord {
+      workspace_slug: string;
+    }
+
+    const agentMap = new Map<string, AgentRecordFull>();
+    for (const row of (agentRows ?? []) as AgentRecordFull[]) {
       agentMap.set(row.paperclip_agent_id, row);
     }
 
@@ -75,6 +80,18 @@ export async function runPaperclipUsageReconcileJob(deps: AppDeps): Promise<JobR
 
       const dbCents = agent.surcharge_accrued_current_period_cents ?? 0;
       const eventCents = totals.total_cost_cents;
+
+      // Fire first_task_in_progress funnel event once per workspace when usage appears.
+      if (eventCents > 0 && agent.workspace_slug) {
+        void recordFunnelEvent(deps.db, agent.workspace_slug, "first_task_in_progress").catch(
+          (err: unknown) => {
+            logger.warn(
+              { err, workspaceSlug: agent.workspace_slug },
+              "failed to record first_task_in_progress funnel event"
+            );
+          }
+        );
+      }
 
       if (eventCents === 0 && dbCents === 0) {
         continue;

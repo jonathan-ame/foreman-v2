@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { Logger } from "pino";
 import type { Env } from "../config/env.js";
 import { insertAgent } from "../db/agents.js";
+import { recordFunnelEvent } from "../db/funnel-events.js";
 import { cacheResult } from "../db/idempotency.js";
 import { appendLogEntryToFile, writeLogEntry } from "../db/provisioning-log.js";
 import type { SupabaseClient } from "../db/supabase.js";
@@ -155,6 +156,24 @@ export async function provisionForemanAgent(
   await writeLogEntry(deps.db, logEntry);
   await appendLogEntryToFile(stepLogger, logEntry);
   await cacheResult(deps.db, input.idempotencyKey, input.customerId, successResult);
+
+  // Fire activation funnel events (best-effort, non-blocking).
+  const workspaceSlug = logEntry.workspace_slug;
+  if (workspaceSlug && successResult.outcome !== "partial_with_warning") {
+    const isFirstAgentForWorkspace = stepsRun.includes("step_9_verify");
+    if (isFirstAgentForWorkspace) {
+      void (async () => {
+        try {
+          await recordFunnelEvent(deps.db, workspaceSlug, "first_agent_running");
+          if (input.role === "ceo") {
+            await recordFunnelEvent(deps.db, workspaceSlug, "signup");
+          }
+        } catch (err) {
+          deps.logger.warn({ err, workspaceSlug }, "failed to record funnel event after provisioning");
+        }
+      })();
+    }
+  }
 
   return successResult;
 }

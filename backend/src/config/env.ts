@@ -36,6 +36,7 @@ const envSchema = z.object({
   FOREMAN_LOG_DIR: z.string().min(1).default("~/.foreman/logs"),
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
+  CEO_REVIEW_EMAIL: z.string().min(1).optional(),
   SENTRY_DSN: z.string().url().optional()
 });
 

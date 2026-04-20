@@ -3,10 +3,12 @@ import type { AppDeps } from "../app-deps.js";
 import { runAgentHealthCheckJob } from "./agent-health-check.js";
 import { runByokKeyHealthCheckJob } from "./byok-key-health-check.js";
 import { runIdempotencyCleanupJob } from "./idempotency-cleanup.js";
+import { runNpsSurveyDispatcherJob } from "./nps-survey-dispatcher.js";
 import { runNotificationEmailerJob } from "./notification-emailer.js";
 import { runOpenClawAbsorptionRepairJob } from "./openclaw-absorption-repair.js";
 import { runOrphanWorkspaceCleanupJob } from "./orphan-workspace-cleanup.js";
 import { runPaperclipUsageReconcileJob } from "./paperclip-usage-reconcile.js";
+import { runWeeklyCeoReviewJob } from "./weekly-ceo-review.js";
 import type { JobDefinition, JobResult } from "./types.js";
 
 const JOBS: JobDefinition[] = [
@@ -44,6 +46,16 @@ const JOBS: JobDefinition[] = [
     name: "notification_emailer",
     schedule: "* * * * *",
     run: runNotificationEmailerJob
+  },
+  {
+    name: "nps_survey_dispatcher",
+    schedule: "0 * * * *",
+    run: runNpsSurveyDispatcherJob
+  },
+  {
+    name: "weekly_ceo_review",
+    schedule: "0 9 * * 1",
+    run: runWeeklyCeoReviewJob
   }
 ];
 
