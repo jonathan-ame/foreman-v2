@@ -7,7 +7,7 @@
       "provider": "executor",
       "route_role": "executor",
       "transport": "openclaw_agent",
-      "model_id": "PLACEHOLDER_EXECUTOR_MODEL",
+      "model_id": "deepseek/deepseek-v3.2",
       "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Default interactive and chat path."
@@ -16,16 +16,16 @@
       "provider": "planner",
       "route_role": "planner",
       "transport": "openai_chat",
-      "model_id": "PLACEHOLDER_PLANNER_MODEL",
+      "model_id": "deepseek/deepseek-v3.2",
       "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Reasoning and planning path."
     },
     "embedding": {
-      "provider": "embedding",
+      "provider": "qwen_embedding",
       "route_role": "embedding",
       "transport": "openai_embeddings",
-      "model_id": "PLACEHOLDER_EMBEDDING_MODEL",
+      "model_id": "text-embedding-v4",
       "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/embeddings",
       "notes": "Embedding and vector path."
@@ -34,7 +34,7 @@
       "provider": "reviewer",
       "route_role": "reviewer",
       "transport": "openai_chat",
-      "model_id": "PLACEHOLDER_REVIEWER_MODEL",
+      "model_id": "qwen/qwen3-coder",
       "base_url_source": "config/openclaw.foreman.json",
       "health_probe_path": "/chat/completions",
       "notes": "Code review and codebase QA path."

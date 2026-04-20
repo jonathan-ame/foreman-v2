@@ -12,7 +12,7 @@ const envSchema = z.object({
   LOG_LEVEL: z.enum(["debug", "info", "warn", "error"]).default("info"),
   SUPABASE_URL: z.string().min(1),
   SUPABASE_SERVICE_KEY: z.string().min(1),
-  PAPERCLIP_API_BASE: z.string().min(1).default("http://localhost:3125"),
+  PAPERCLIP_API_BASE: z.string().min(1).default("http://localhost:3100"),
   PAPERCLIP_API_KEY: z.string().min(1),
   OPENCLAW_BIN: z.string().min(1).default("openclaw"),
   OPENCLAW_GATEWAY_URL: z.string().min(1).default("ws://127.0.0.1:18789/"),
