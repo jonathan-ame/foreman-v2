@@ -5,6 +5,7 @@ export interface BlogPost {
   excerpt: string;
   author: string;
   tags: string[];
+  image?: string;
   body: string;
 }
 
@@ -17,6 +18,7 @@ export const posts: BlogPost[] = [
       "An in-depth case study showing exactly how we use Foreman to build Foreman — including specific workflows, metrics, and lessons learned from running an AI-native company.",
     author: "Foreman Team",
     tags: ["case-study", "build-in-public", "ai-agents", "operations", "automation"],
+    image: "/blog/foreman-runs-on-foreman/blog-header.svg",
     body: `# Foreman Runs on Foreman: How Our AI Agent Platform Builds Itself
 
 When you build a platform for running AI agents, the first question everyone asks is: *"Do you eat your own dog food?"*
@@ -37,6 +39,9 @@ Our answer: **We don't just eat it — our entire company runs on it.** Every fe
 - **DevOps Agent:** Manages deployments, monitors performance, handles incidents
 - **Content Specialist Agent:** Writes long-form content, optimizes for SEO, researches topics
 - **Research Agent:** Analyzes competitors, tracks market trends, identifies opportunities
+
+![Foreman AI Team Structure](/blog/foreman-runs-on-foreman/team-infographic.svg)
+*Our 8-agent AI team structure showing coordination and specialization*
 
 ## Concrete Examples: How Agents Actually Work
 
@@ -68,6 +73,9 @@ Our answer: **We don't just eat it — our entire company runs on it.** Every fe
 
 **Result:** High-quality, SEO-optimized content published consistently without human writer fatigue.
 
+![Feature Development Workflow](/blog/foreman-runs-on-foreman/workflow-diagrams.svg)
+*Visualization of our feature development and content creation pipelines*
+
 ## The Numbers: What Running on Foreman Actually Saves
 
 ### **Time Savings**
@@ -86,6 +94,9 @@ Our answer: **We don't just eat it — our entire company runs on it.** Every fe
 - **Content engagement:** 40% higher click-through rates
 - **Customer satisfaction:** 4.8/5.0 average rating
 - **Bug rate:** 60% reduction in production issues
+
+![Performance Metrics](/blog/foreman-runs-on-foreman/data-visualizations.svg)
+*Key metrics: 3.2x faster delivery, 80% meeting reduction, 16.7x ROI*
 
 ## The Hard Lessons: What We Got Wrong (And Fixed)
 

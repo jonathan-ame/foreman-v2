@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 627" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-3%" y="-3%" width="106%" height="106%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1c2733" flood-opacity="0.1"/>
+    </filter>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1c2733"/>
+      <stop offset="50%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <pattern id="dots" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="rgba(255,255,255,0.05)"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="627" fill="url(#bgGrad)"/>
+  <rect width="1200" height="627" fill="url(#dots)"/>
+
+  <g opacity="0.12">
+    <circle cx="100" cy="100" r="80" fill="#3b82f6"/>
+    <circle cx="1050" cy="500" r="100" fill="#3b82f6"/>
+    <circle cx="600" cy="80" r="50" fill="#60a5fa"/>
+  </g>
+
+  <g transform="translate(600, 140)">
+    <text x="0" y="0" text-anchor="middle" font-size="12" fill="#60a5fa" font-weight="600" letter-spacing="3">CASE STUDY</text>
+    <text x="0" y="48" text-anchor="middle" font-size="40" font-weight="800" fill="#ffffff" letter-spacing="-1">Foreman Runs on Foreman</text>
+    <text x="0" y="82" text-anchor="middle" font-size="16" fill="rgba(255,255,255,0.65)">How 8 AI agents build and operate our company</text>
+  </g>
+
+  <g transform="translate(120, 260)">
+    <rect x="0" y="0" width="220" height="100" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <text x="20" y="35" font-size="36" font-weight="800" fill="#3b82f6">3.2x</text>
+    <text x="20" y="56" font-size="12" fill="rgba(255,255,255,0.6)">faster delivery</text>
+    <text x="20" y="78" font-size="10" fill="rgba(255,255,255,0.35)">vs. traditional teams</text>
+  </g>
+
+  <g transform="translate(380, 260)">
+    <rect x="0" y="0" width="220" height="100" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <text x="20" y="35" font-size="36" font-weight="800" fill="#34d399">80%</text>
+    <text x="20" y="56" font-size="12" fill="rgba(255,255,255,0.6)">fewer meetings</text>
+    <text x="20" y="78" font-size="10" fill="rgba(255,255,255,0.35)">async coordination</text>
+  </g>
+
+  <g transform="translate(640, 260)">
+    <rect x="0" y="0" width="220" height="100" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <text x="20" y="35" font-size="36" font-weight="800" fill="#fbbf24">16.7x</text>
+    <text x="20" y="56" font-size="12" fill="rgba(255,255,255,0.6)">ROI</text>
+    <text x="20" y="78" font-size="10" fill="rgba(255,255,255,0.35)">on agent costs</text>
+  </g>
+
+  <g transform="translate(900, 260)">
+    <rect x="0" y="0" width="180" height="100" rx="14" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+    <text x="20" y="35" font-size="36" font-weight="800" fill="#3b82f6">92%</text>
+    <text x="20" y="56" font-size="12" fill="rgba(255,255,255,0.6)">test coverage</text>
+    <text x="20" y="78" font-size="10" fill="rgba(255,255,255,0.35)">automated QA</text>
+  </g>
+
+  <g transform="translate(120, 400)">
+    <circle cx="15" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="15" y="19" text-anchor="middle" font-size="8" fill="rgba(255,255,255,0.7)" font-weight="700">CEO</text>
+    <circle cx="75" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="75" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">CTO</text>
+    <circle cx="135" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="135" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">CMO</text>
+    <circle cx="195" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="195" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">CoS</text>
+    <circle cx="255" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="255" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">Fin</text>
+    <circle cx="315" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="315" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">CC</text>
+    <circle cx="375" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="375" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">UX</text>
+    <circle cx="435" cy="15" r="14" fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.2)" stroke-width="1"/>
+    <text x="435" y="19" text-anchor="middle" font-size="7" fill="rgba(255,255,255,0.7)" font-weight="700">CX</text>
+
+    <line x1="29" y1="15" x2="61" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="89" y1="15" x2="121" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="149" y1="15" x2="181" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="209" y1="15" x2="241" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="269" y1="15" x2="301" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="329" y1="15" x2="361" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+    <line x1="389" y1="15" x2="421" y2="15" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="3,3"/>
+  </g>
+
+  <text x="600" y="490" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.35)" letter-spacing="1">8 COORDINATED AI AGENTS  ·  ONE PLATFORM  ·  ZERO HIRING OVERHEAD</text>
+
+  <rect x="0" y="557" width="1200" height="70" fill="rgba(0,0,0,0.2)"/>
+  <text x="600" y="598" text-anchor="middle" font-size="14" fill="rgba(255,255,255,0.5)" font-weight="500">foreman.company</text>
+</svg>

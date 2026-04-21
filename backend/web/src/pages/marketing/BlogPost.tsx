@@ -22,6 +22,11 @@ export function BlogPost() {
       setMeta("twitter:card", "summary_large_image");
       setMeta("twitter:title", post.title);
       setMeta("twitter:description", post.excerpt);
+      if (post.image) {
+        const imageUrl = new URL(post.image, window.location.origin).href;
+        setMeta("og:image", imageUrl);
+        setMeta("twitter:image", imageUrl);
+      }
     }
     return () => {
       // Clean up article:tag metas on unmount
