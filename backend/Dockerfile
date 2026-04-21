@@ -5,11 +5,11 @@ WORKDIR /app
 RUN corepack enable && corepack prepare pnpm@latest --activate
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY web/package.json web/package.json
 RUN pnpm install --frozen-lockfile --prod=false
 
 COPY . .
 RUN pnpm run build
-RUN pnpm --dir web build
 
 # ---- runtime ----
 FROM node:20-alpine AS runner
