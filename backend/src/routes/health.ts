@@ -2,6 +2,7 @@ import type { Hono } from "hono";
 import { getAgentStatusCounts } from "../db/agents.js";
 import { lastReconcileResult } from "../jobs/paperclip-usage-reconcile.js";
 import type { AppDeps } from "../app-deps.js";
+import { getCredentialStatus, getDeferredSecrets, validateRequiredSecrets } from "../config/secrets.js";
 
 interface IntegrationCheckResult {
   ok: boolean;
@@ -96,6 +97,36 @@ const checkAgentCounts = async (deps: AppDeps): Promise<IntegrationCheckResult> 
 };
 
 export function registerHealthRoutes(app: Hono, deps: AppDeps) {
+  app.get("/api/internal/health/credentials", async (c) => {
+    const status = getCredentialStatus();
+    const deferred = getDeferredSecrets();
+    const missing = validateRequiredSecrets();
+
+    // Determine overall credential health
+    let overall: "ok" | "degraded" | "down" = "ok";
+    if (missing.length > 0) {
+      overall = "down";
+    } else if (deferred.length > 0) {
+      overall = "degraded";
+    }
+
+    return c.json({
+      status: overall,
+      providers: status,
+      deferred: deferred.map(s => ({
+        key: s.key,
+        provider: s.meta.provider,
+        reason: s.meta.deferReason
+      })),
+      missing: missing.map(m => ({
+        key: m.key,
+        provider: m.meta.provider,
+        description: m.meta.description
+      })),
+      checked_at: new Date().toISOString()
+    });
+  });
+
   app.get("/api/internal/health/integration", async (c) => {
     const backendSelf: IntegrationCheckResult = { ok: true };
     const [supabase, paperclipApi, openclawGateway, openrouter, activeAgents] = await Promise.all([

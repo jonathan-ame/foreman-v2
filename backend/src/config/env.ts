@@ -3,6 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { z } from "zod";
+import { validateRequiredSecrets, getCredentialStatus, getDeferredSecrets } from "./secrets.js";
 
 loadDotenv();
 
@@ -50,6 +51,35 @@ if (!parsed.success) {
   process.exit(1);
 }
 
+const data = parsed.data;
+const isVitest = process.env.VITEST === "true";
+
+// Validate required secrets from the secrets registry (supplements Zod schema)
+const missingSecrets = validateRequiredSecrets();
+if (!isVitest && missingSecrets.length > 0) {
+  process.stderr.write("Required secrets missing from environment:\n");
+  for (const { key, meta } of missingSecrets) {
+    process.stderr.write(`- ${key}: ${meta.description}\n`);
+  }
+  process.exit(1);
+}
+
+// Log credential status summary at startup (non-sensitive)
+if (!isVitest) {
+  const status = getCredentialStatus();
+  const deferred = getDeferredSecrets();
+  const summary: string[] = [];
+  for (const [provider, s] of Object.entries(status)) {
+    if (s.total > 0) {
+      summary.push(`${provider}: ${s.resolved}/${s.total} resolved` + (s.deferred > 0 ? `, ${s.deferred} deferred` : ""));
+    }
+  }
+  process.stderr.write(`Credential status: ${summary.join(", ")}\n`);
+  if (deferred.length > 0) {
+    process.stderr.write(`Deferred secrets: ${deferred.map(s => s.key).join(", ")}\n`);
+  }
+}
+
 const expandHome = (value: string): string => {
   if (value === "~") {
     return os.homedir();
@@ -62,8 +92,7 @@ const expandHome = (value: string): string => {
   return value;
 };
 
-const data = parsed.data;
-const isVitest = process.env.VITEST === "true";
+// data and isVitest already declared above
 const defaultStripeMode: "live" | "test" = data.NODE_ENV === "production" ? "live" : "test";
 const stripeMode: "live" | "test" = data.STRIPE_MODE ?? defaultStripeMode;
 
