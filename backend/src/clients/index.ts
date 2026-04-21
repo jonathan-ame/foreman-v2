@@ -6,7 +6,7 @@ import { StripeClient } from "./stripe/client.js";
 
 export interface ClientFactoryEnv {
   PAPERCLIP_API_BASE: string;
-  PAPERCLIP_API_KEY: string;
+  PAPERCLIP_API_KEY: string | undefined;
   OPENCLAW_BIN: string;
   OPENCLAW_CONFIG_PATH: string;
   OPENCLAW_INCLUDE_PATH: string;
@@ -28,7 +28,7 @@ export const createClients = (env: ClientFactoryEnv, logger: Logger) => {
   return {
     paperclip: new PaperclipClient({
       apiBase: env.PAPERCLIP_API_BASE,
-      apiKey: env.PAPERCLIP_API_KEY,
+      apiKey: env.PAPERCLIP_API_KEY ?? "",
       logger: logger.child({ name: "paperclip-client" })
     }),
     openclaw: new OpenClawClient({
