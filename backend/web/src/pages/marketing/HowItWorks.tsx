@@ -2,22 +2,22 @@ const steps = [
   {
     num: "01",
     title: "Describe what you need",
-    body: "Tell Foreman what kind of help you want — sales outreach, research, scheduling, writing, ops work. No code, no config.",
+    body: "Tell Foreman what kind of help you want — sales outreach, research, scheduling, writing, ops work. No code, no config. Get from idea to action in minutes.",
   },
   {
     num: "02",
     title: "Foreman builds your agent",
-    body: "Your Chief of Staff spins up a specialized AI agent with the right tools and instructions for the job.",
+    body: "Your Chief of Staff spins up a specialized AI agent with the right tools and instructions for the job. No technical expertise required.",
   },
   {
     num: "03",
     title: "Review and approve",
-    body: "Your agent proposes a plan. You approve, edit, or redirect. You stay in control; the agent does the work.",
+    body: "Your agent proposes a plan. You approve, edit, or redirect. Stay in control while the agent does the work.",
   },
   {
     num: "04",
     title: "Watch it run",
-    body: "Tasks execute autonomously. Check in via your Inbox for decisions that need your sign-off, or let it run on autopilot.",
+    body: "Tasks execute autonomously. Check your Inbox for decisions that need your sign‑off, or let it run on autopilot. Get 10+ hours back each week.",
   },
 ];
 

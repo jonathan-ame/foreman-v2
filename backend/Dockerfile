@@ -9,6 +9,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 
 COPY . .
 RUN pnpm run build
+RUN pnpm --dir web build
 
 # ---- runtime ----
 FROM node:20-alpine AS runner
@@ -23,6 +24,7 @@ COPY --from=builder /app/pnpm-lock.yaml /app/pnpm-workspace.yaml /app/package.js
 RUN pnpm install --frozen-lockfile --prod
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/dist-web ./dist-web
 
 USER foreman
 

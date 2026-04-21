@@ -9,6 +9,7 @@ import { Security } from "./pages/legal/Security";
 import { Terms } from "./pages/legal/Terms";
 import { About } from "./pages/marketing/About";
 import { Blog } from "./pages/marketing/Blog";
+import { BlogPost } from "./pages/marketing/BlogPost";
 import { Contact } from "./pages/marketing/Contact";
 import { Home } from "./pages/marketing/Home";
 import { HowItWorks } from "./pages/marketing/HowItWorks";
@@ -86,6 +87,7 @@ export function App() {
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/blog" element={<Blog />} />
+          <Route path="/blog/:slug" element={<BlogPost />} />
         </Route>
 
         {/* Legal pages (self-contained layout) */}
