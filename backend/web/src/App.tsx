@@ -98,6 +98,11 @@ export function App() {
         <Route path="/acceptable-use" element={<AcceptableUse />} />
         <Route path="/security" element={<Security />} />
 
+        {/* Legacy redirects — old static pages now handled by SPA */}
+        <Route path="/login" element={<Navigate to="/app" replace />} />
+        <Route path="/landing" element={<Navigate to="/" replace />} />
+        <Route path="/signup" element={<Navigate to="/app" replace />} />
+
         {/* Authenticated app shell (CEO onboarding) */}
         <Route path="/app" element={<AppShell />} />
         <Route path="/app/*" element={<AppShell />} />
