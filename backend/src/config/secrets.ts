@@ -157,7 +157,7 @@ for (const varName of STRIPE_PRICE_VARS) {
     name: `Stripe Price ID (${varName})`,
     provider: "stripe",
     classification: "internal",
-    required: varName.includes("_TEST") ? false : true,
+    required: false,
     rotationDays: 0,
     deferred: false,
     description: "Stripe price/plan ID — semi-public, used in checkout sessions",
