@@ -71,7 +71,7 @@ describe("secrets module", () => {
       expect(meta).toBeDefined();
       expect(meta!.provider).toBe("stripe");
       expect(meta!.classification).toBe("restricted");
-      expect(meta!.required).toBe(true);
+      expect(meta!.required).toBe(false);
     });
 
     it("should return undefined for unregistered secret", async () => {
@@ -83,11 +83,11 @@ describe("secrets module", () => {
 
   describe("validateRequiredSecrets", () => {
     it("should return missing required secrets", async () => {
-      delete process.env.STRIPE_SECRET_KEY;
+      delete process.env.SUPABASE_URL;
       const { validateRequiredSecrets } = await import("./secrets.js");
       const missing = validateRequiredSecrets();
-      const stripeKey = missing.find((m: { key: string }) => m.key === "STRIPE_SECRET_KEY");
-      expect(stripeKey).toBeDefined();
+      const supabaseUrl = missing.find((m: { key: string }) => m.key === "SUPABASE_URL");
+      expect(supabaseUrl).toBeDefined();
     });
 
     it("should not report deferred secrets as missing", async () => {

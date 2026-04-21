@@ -177,7 +177,7 @@ def checkout_issue(task_id: str, agent_id: str):
     """Atomic checkout per Paperclip contract. Never retry a 409."""
     payload = {
         "agentId": agent_id,
-        "expectedStatuses": ["todo", "backlog", "blocked"],
+        "expectedStatuses": ["todo", "backlog", "blocked", "in_review"],
     }
     try:
         req("POST", f"/issues/{task_id}/checkout", payload)
@@ -495,7 +495,7 @@ if existing_children:
 if task_status == "in_progress":
     # Already checked out from a prior heartbeat — continue work.
     pass
-elif task_status in ("todo", "backlog", "blocked"):
+elif task_status in ("todo", "backlog", "blocked", "in_review"):
     checkout_issue(TASK_ID, AGENT_ID)
 else:
     print(f"HEARTBEAT_OK:executor (task {TASK_ID} in state '{task_status}', nothing to do)")

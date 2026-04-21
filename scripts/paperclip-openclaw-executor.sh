@@ -379,7 +379,7 @@ def wait_for_wake_issue_ready(initial_task_id: str, max_wait_sec: int = 20) -> s
             time.sleep(1)
             continue
         st = (issue.get("status") or "").strip()
-        if st in ("todo", "backlog", "blocked", "in_progress"):
+        if st in ("todo", "backlog", "blocked", "in_progress", "in_review"):
             return initial_task_id
         time.sleep(1)
     return initial_task_id
@@ -523,7 +523,7 @@ def checkout_issue(task_id: str):
         f"/issues/{task_id}/checkout",
         {
             "agentId": AGENT_ID,
-            "expectedStatuses": ["todo", "backlog", "blocked"],
+            "expectedStatuses": ["todo", "backlog", "blocked", "in_review"],
         },
     )
 
@@ -536,13 +536,13 @@ TASK_ID = wake_task or TASK_ID
 if not TASK_ID:
     assignments = req(
         "GET",
-        f"/companies/{COMPANY_ID}/issues?assigneeAgentId={AGENT_ID}&status=todo,in_progress,blocked&limit=20&offset=0",
+        f"/companies/{COMPANY_ID}/issues?assigneeAgentId={AGENT_ID}&status=todo,in_progress,blocked,in_review&limit=20&offset=0",
     )
     items = assignments.get("items", []) if isinstance(assignments, dict) else assignments
     if isinstance(items, list) and items:
         ranked = sorted(
             items,
-            key=lambda x: {"in_progress": 0, "todo": 1, "blocked": 2}.get((x or {}).get("status"), 3),
+            key=lambda x: {"in_progress": 0, "in_review": 1, "todo": 2, "blocked": 3}.get((x or {}).get("status"), 4),
         )
         TASK_ID = (ranked[0] or {}).get("id", "") or ""
     if not TASK_ID:
@@ -556,7 +556,7 @@ if issue.get("assigneeAgentId") != AGENT_ID:
 
 task_status = (issue.get("status") or "").strip()
 
-if task_status in ("todo", "backlog", "blocked", "in_progress"):
+if task_status in ("todo", "backlog", "blocked", "in_progress", "in_review"):
     try:
         checkout_issue(TASK_ID)
     except Exception as exc:

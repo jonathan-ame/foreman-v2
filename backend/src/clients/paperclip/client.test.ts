@@ -16,6 +16,7 @@ describe("PaperclipClient", () => {
   const baseConfig = {
     apiBase: "http://paperclip.local",
     apiKey: "token",
+    runId: "run-123",
     logger
   };
 
@@ -66,7 +67,8 @@ describe("PaperclipClient", () => {
       expect.objectContaining({
         method: "POST",
         headers: expect.objectContaining({
-          Authorization: "Bearer token"
+          Authorization: "Bearer token",
+          "X-Paperclip-Run-Id": "run-123"
         })
       })
     );
@@ -102,6 +104,22 @@ describe("PaperclipClient", () => {
 
     const ping = await client.ping();
     expect(ping).toEqual({ ok: true, version: "1.2.3" });
+
+    const [getAgentCall, patchAgentCall] = fetchMock.mock.calls;
+    expect(getAgentCall?.[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.not.objectContaining({
+          "X-Paperclip-Run-Id": expect.anything()
+        })
+      })
+    );
+    expect(patchAgentCall?.[1]).toEqual(
+      expect.objectContaining({
+        headers: expect.objectContaining({
+          "X-Paperclip-Run-Id": "run-123"
+        })
+      })
+    );
   });
 
   it("maps 401 to PaperclipAuthError", async () => {
