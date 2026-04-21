@@ -26,6 +26,7 @@ interface ErrorPayload {
 export interface PaperclipClientConfig {
   apiBase: string;
   apiKey: string;
+  runId?: string | undefined;
   timeoutMs?: number;
   logger: Logger;
 }
@@ -33,12 +34,14 @@ export interface PaperclipClientConfig {
 export class PaperclipClient {
   private readonly apiBase: string;
   private readonly apiKey: string;
+  private readonly runId?: string | undefined;
   private readonly timeoutMs: number;
   private readonly logger: Logger;
 
   constructor(config: PaperclipClientConfig) {
     this.apiBase = config.apiBase.replace(/\/+$/, "");
     this.apiKey = config.apiKey;
+    this.runId = config.runId?.trim() || undefined;
     this.timeoutMs = config.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.logger = config.logger;
   }
@@ -94,12 +97,16 @@ export class PaperclipClient {
     for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
       const startedAt = Date.now();
       try {
+        const headers: Record<string, string> = {
+          Authorization: `Bearer ${this.apiKey}`,
+          "Content-Type": "application/json"
+        };
+        if (this.runId && this.isMutatingMethod(method)) {
+          headers["X-Paperclip-Run-Id"] = this.runId;
+        }
         const init: RequestInit = {
           method,
-          headers: {
-            Authorization: `Bearer ${this.apiKey}`,
-            "Content-Type": "application/json"
-          }
+          headers
         };
         if (body !== undefined) {
           init.body = JSON.stringify(body);
@@ -203,6 +210,10 @@ export class PaperclipClient {
 
   private isAbortError(error: unknown): boolean {
     return error instanceof DOMException && error.name === "AbortError";
+  }
+
+  private isMutatingMethod(method: string): boolean {
+    return ["POST", "PATCH", "PUT", "DELETE"].includes(method.toUpperCase());
   }
 
   private async delay(ms: number): Promise<void> {
