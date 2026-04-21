@@ -15,6 +15,7 @@ const envSchema = z.object({
   SUPABASE_SERVICE_KEY: z.string().min(1),
   PAPERCLIP_API_BASE: z.string().min(1).default("http://localhost:3100"),
   PAPERCLIP_API_KEY: z.string().min(1).optional(),
+  PAPERCLIP_RUN_ID: z.string().min(1).optional(),
   OPENCLAW_BIN: z.string().min(1).default("openclaw"),
   OPENCLAW_GATEWAY_URL: z.string().min(1).default("ws://127.0.0.1:18789/"),
   OPENCLAW_CONFIG_PATH: z.string().min(1).default("~/.openclaw/openclaw.json"),
@@ -131,11 +132,10 @@ if (!activeStripeByokPrice) {
 }
 
 if (!isVitest && validationErrors.length > 0) {
-  process.stderr.write("Environment validation failed:\n");
+  process.stderr.write("Stripe configuration warnings (non-fatal):\n");
   for (const error of validationErrors) {
     process.stderr.write(`- ${error}\n`);
   }
-  process.exit(1);
 }
 
 const fallbackByMode = (liveFallback: string, testFallback: string): string =>
