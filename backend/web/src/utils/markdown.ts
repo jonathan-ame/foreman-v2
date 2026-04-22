@@ -1,6 +1,7 @@
 // Lightweight markdown-to-HTML converter (no dependencies).
 // Supports: paragraphs, headings, bold, italic, links, inline code,
-// code blocks, unordered lists, ordered lists, blockquotes, horizontal rules.
+// code blocks, unordered lists, ordered lists, blockquotes, horizontal rules,
+// tables (GFM-style).
 
 export function renderMarkdown(md: string): string {
   const lines = md.split("\n");
@@ -25,7 +26,39 @@ export function renderMarkdown(md: string): string {
       .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2">$1</a>');
   }
 
-  for (let i = 0; i < lines.length; i++) {
+  function parseTableRow(row: string): string[] {
+    const trimmed = row.trim();
+    const content = trimmed.startsWith("|") ? trimmed.slice(1) : trimmed;
+    const cells = content.endsWith("|") ? content.slice(0, -1) : content;
+    return cells.split("|").map((c) => inline(c.trim()));
+  }
+
+  function isSeparatorRow(row: string): boolean {
+    return /^\|?\s*(:?---+:?\s*\|)+\s*:?---+:?\s*\|?\s*$/.test(row.trim());
+  }
+
+  function renderTable(startIdx: number): { html: string; nextIdx: number } {
+    const headerCells = parseTableRow(lines[startIdx]);
+    const thead = "<thead><tr>" + headerCells.map((c) => "<th>" + c + "</th>").join("") + "</tr></thead>";
+
+    let rowIdx = startIdx + 1;
+    if (rowIdx < lines.length && isSeparatorRow(lines[rowIdx])) {
+      rowIdx++;
+    }
+
+    const bodyRows: string[] = [];
+    while (rowIdx < lines.length && lines[rowIdx].trim().startsWith("|")) {
+      const cells = parseTableRow(lines[rowIdx]);
+      bodyRows.push("<tr>" + cells.map((c) => "<td>" + c + "</td>").join("") + "</tr>");
+      rowIdx++;
+    }
+
+    const tbody = bodyRows.length > 0 ? "<tbody>" + bodyRows.join("") + "</tbody>" : "";
+    return { html: "<table>" + thead + tbody + "</table>", nextIdx: rowIdx };
+  }
+
+  let i = 0;
+  while (i < lines.length) {
     const line = lines[i];
 
     // Code blocks
@@ -38,10 +71,21 @@ export function renderMarkdown(md: string): string {
         closeList();
         inCodeBlock = true;
       }
+      i++;
       continue;
     }
     if (inCodeBlock) {
       codeBuffer.push(line);
+      i++;
+      continue;
+    }
+
+    // Tables
+    if (line.trim().startsWith("|") && i + 1 < lines.length && isSeparatorRow(lines[i + 1])) {
+      closeList();
+      const { html, nextIdx } = renderTable(i);
+      out.push(html);
+      i = nextIdx;
       continue;
     }
 
@@ -51,6 +95,7 @@ export function renderMarkdown(md: string): string {
       closeList();
       const level = hMatch[1].length;
       out.push(`<h${level}>${inline(hMatch[2])}</h${level}>`);
+      i++;
       continue;
     }
 
@@ -58,6 +103,7 @@ export function renderMarkdown(md: string): string {
     if (/^---+$/.test(line.trim())) {
       closeList();
       out.push("<hr />");
+      i++;
       continue;
     }
 
@@ -65,6 +111,7 @@ export function renderMarkdown(md: string): string {
     if (line.startsWith("> ")) {
       closeList();
       out.push("<blockquote>" + inline(line.slice(2)) + "</blockquote>");
+      i++;
       continue;
     }
 
@@ -78,6 +125,7 @@ export function renderMarkdown(md: string): string {
         out.push("<ul>");
       }
       out.push("<li>" + inline(ulMatch[1]) + "</li>");
+      i++;
       continue;
     }
 
@@ -91,18 +139,21 @@ export function renderMarkdown(md: string): string {
         out.push("<ol>");
       }
       out.push("<li>" + inline(olMatch[1]) + "</li>");
+      i++;
       continue;
     }
 
     // Empty line
     if (line.trim() === "") {
       closeList();
+      i++;
       continue;
     }
 
     // Paragraph
     closeList();
     out.push("<p>" + inline(line) + "</p>");
+    i++;
   }
 
   closeList();
