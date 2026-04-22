@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { EmailCaptureForm } from "../../components/EmailCaptureForm";
 
 export function Home() {
   return (
@@ -86,6 +87,18 @@ export function Home() {
             Create your first agent
           </a>
           <p className="cta-sub">Try Foreman free for 14 days • Cancel anytime</p>
+        </div>
+      </section>
+
+      <section className="section-email-capture">
+        <div className="content-inner">
+          <EmailCaptureForm
+            source="homepage"
+            headline="Get early access to Foreman"
+            subtext="Join the waitlist and be the first to know when we launch. Early subscribers get priority access."
+            buttonText="Join the waitlist"
+            variant="card"
+          />
         </div>
       </section>
     </>

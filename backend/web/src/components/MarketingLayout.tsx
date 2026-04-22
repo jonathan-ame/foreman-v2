@@ -1,14 +1,16 @@
 import { Link, NavLink, Outlet } from "react-router-dom";
+import { FeedbackWidget } from "./FeedbackWidget";
 
 export function MarketingLayout() {
   return (
     <div className="marketing">
+      <a href="#main-content" className="skip-link">Skip to content</a>
       <header className="marketing-nav">
         <div className="marketing-nav-inner">
           <Link to="/" className="marketing-logo">
             Foreman
           </Link>
-          <nav className="marketing-links">
+          <nav className="marketing-links" aria-label="Main navigation">
             <NavLink to="/how-it-works">How it works</NavLink>
             <NavLink to="/pricing">Pricing</NavLink>
             <NavLink to="/blog">Blog</NavLink>
@@ -25,7 +27,7 @@ export function MarketingLayout() {
         </div>
       </header>
 
-      <main>
+      <main id="main-content">
         <Outlet />
       </main>
 
@@ -59,9 +61,11 @@ export function MarketingLayout() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>© {new Date().getFullYear()} Foreman. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Foreman. All rights reserved.</p>
         </div>
       </footer>
+
+      <FeedbackWidget />
     </div>
   );
 }

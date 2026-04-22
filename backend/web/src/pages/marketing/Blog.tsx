@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { posts } from "../../data/blogPosts";
+import { EmailCaptureForm } from "../../components/EmailCaptureForm";
 
 export function Blog() {
   return (
@@ -48,6 +49,18 @@ export function Blog() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section className="section-email-capture">
+        <div className="content-inner content-narrow">
+          <EmailCaptureForm
+            source="blog"
+            headline="Enjoyed this? Get more in your inbox"
+            subtext="Subscribe for AI agent insights and product updates from the Foreman team."
+            buttonText="Subscribe"
+            variant="card"
+          />
         </div>
       </section>
     </>

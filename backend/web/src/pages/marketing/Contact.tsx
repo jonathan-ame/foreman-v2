@@ -10,6 +10,7 @@ export function Contact() {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -19,27 +20,43 @@ export function Contact() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
-    // TODO: Replace with actual Formspree endpoint
-    // Formspree endpoint format: https://formspree.io/f/{your-form-id}
+    setErrorMsg('');
+
+    const useCaseMap: Record<string, string> = {
+      'solopreneur': 'solopreneur',
+      'small-team': 'small_team',
+      'enterprise': 'enterprise',
+      'technical': 'technical',
+      'other': 'other',
+    };
+
     try {
-      const response = await fetch('https://formspree.io/f/xwkggpwk', {
+      const params = new URLSearchParams(window.location.search);
+      const response = await fetch('/api/marketing/subscribe', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          name: formData.name || undefined,
+          company: formData.company || undefined,
+          useCase: useCaseMap[formData.useCase] || undefined,
+          message: formData.message || undefined,
+          source: 'contact',
+          utmSource: params.get('utm_source') || undefined,
+          utmMedium: params.get('utm_medium') || undefined,
+          utmCampaign: params.get('utm_campaign') || undefined,
+        }),
       });
-      
+
       if (response.ok) {
         setSubmitted(true);
-        // Reset form
         setFormData({ name: '', email: '', company: '', useCase: '', message: '' });
       } else {
-        alert('There was an error submitting the form. Please try again.');
+        const data = await response.json().catch(() => ({}));
+        setErrorMsg(data.error ?? 'Something went wrong. Please try again.');
       }
-    } catch (error) {
-      alert('Network error. Please try again.');
+    } catch {
+      setErrorMsg('Network error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -149,12 +166,13 @@ export function Contact() {
                     </p>
                     <button 
                       type="submit" 
-                      className="btn btn-primary"
+                      className="button-primary"
                       disabled={loading}
                     >
                       {loading ? 'Submitting...' : 'Join Waitlist'}
                     </button>
                   </div>
+                  {errorMsg && <p className="contact-form-error">{errorMsg}</p>}
                 </form>
               )}
               

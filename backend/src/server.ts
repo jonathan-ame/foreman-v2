@@ -16,6 +16,7 @@ import { registerChatRoutes } from "./routes/chat.js";
 import { registerEscalationRoutes } from "./routes/escalation.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
+import { registerMarketingRoutes } from "./routes/marketing.js";
 import { registerNpsRoutes } from "./routes/nps.js";
 import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { registerUsageRoutes } from "./routes/usage.js";
@@ -73,6 +74,7 @@ registerChatRoutes(app, deps);
 registerEscalationRoutes(app, deps);
 registerStripeWebhookRoutes(app, deps);
 registerUsageRoutes(app, deps);
+registerMarketingRoutes(app, deps);
 registerMetricsRoutes(app, deps);
 registerNpsRoutes(app, deps);
 app.get("*", async (c) => {

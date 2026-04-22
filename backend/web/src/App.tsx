@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { MarketingLayout } from "./components/MarketingLayout";
 import { AcceptableUse } from "./pages/legal/AcceptableUse";
 import { Cookies } from "./pages/legal/Cookies";
@@ -23,6 +23,17 @@ import { Projects } from "./pages/dashboard/Projects";
 import { Team } from "./pages/dashboard/Team";
 import { Inbox } from "./pages/dashboard/Inbox";
 import { Settings } from "./pages/dashboard/Settings";
+import { trackPageView } from "./utils/analytics";
+
+function AnalyticsListener() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    trackPageView(pathname);
+  }, [pathname]);
+
+  return null;
+}
 
 interface CustomerSession {
   customer_id: string;
@@ -78,6 +89,7 @@ function AppShell() {
 export function App() {
   return (
     <BrowserRouter>
+      <AnalyticsListener />
       <Routes>
         {/* Marketing site with shared nav/footer */}
         <Route element={<MarketingLayout />}>
