@@ -16,6 +16,21 @@ describe("Stripe webhook route", () => {
   const constructWebhookEventMock = vi.fn();
   const logger = createLogger("stripe-webhook-test");
 
+  const selectMock = vi.fn().mockReturnValue({
+    eq: vi.fn().mockReturnValue({
+      maybeSingle: vi.fn().mockResolvedValue({ data: null })
+    })
+  });
+  const fromMock = vi.fn().mockImplementation((table: string) => {
+    if (table === "stripe_webhook_events") {
+      return {
+        select: selectMock,
+        insert: vi.fn().mockReturnValue({ select: vi.fn().mockReturnValue({ single: vi.fn().mockResolvedValue({ data: {} }) }) })
+      };
+    }
+    return {};
+  });
+
   const deps = {
     clients: {
       stripe: {
@@ -24,16 +39,11 @@ describe("Stripe webhook route", () => {
       paperclip: {},
       openclaw: {}
     },
-    db: {},
+    db: { from: fromMock },
     logger,
     env: {
-      stripeMode: "test",
-      STRIPE_WEBHOOK_SECRET: "whsec_test",
+      NODE_ENV: "test",
       STRIPE_WEBHOOK_SECRET_ACTIVE: "whsec_test",
-      STRIPE_PRICE_TIER_1: "price_tier_1",
-      STRIPE_PRICE_TIER_2: "price_tier_2",
-      STRIPE_PRICE_TIER_3: "price_tier_3",
-      STRIPE_PRICE_BYOK_PLATFORM: "price_byok",
       STRIPE_PRICE_TIER_1_ACTIVE: "price_tier_1",
       STRIPE_PRICE_TIER_2_ACTIVE: "price_tier_2",
       STRIPE_PRICE_TIER_3_ACTIVE: "price_tier_3",
@@ -48,6 +58,11 @@ describe("Stripe webhook route", () => {
     constructWebhookEventMock.mockReset();
     updateCustomerByStripeCustomerIdMock.mockReset();
     updateCustomerByStripeCustomerIdMock.mockResolvedValue({ customer_id: "c1" });
+    selectMock.mockReturnValue({
+      eq: vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: null })
+      })
+    });
   });
 
   it("rejects missing signature", async () => {
