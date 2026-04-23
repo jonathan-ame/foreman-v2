@@ -39,7 +39,12 @@ const envSchema = z.object({
   RESEND_API_KEY: z.string().min(1).optional(),
   EMAIL_FROM: z.string().min(1).optional(),
   CEO_REVIEW_EMAIL: z.string().min(1).optional(),
-  SENTRY_DSN: z.string().url().optional()
+  SENTRY_DSN: z.string().url().optional(),
+  COMPOSIO_API_KEY: z.string().min(1).optional(),
+  COMPOSIO_API_BASE: z.string().min(1).default("https://backend.composio.dev"),
+  COMPOSIO_WEBHOOK_SECRET: z.string().min(1).optional(),
+  COMPOSIO_CONNECTED_ACCOUNT_ID_OUTLOOK: z.string().min(1).optional(),
+  COMPOSIO_USER_ID: z.string().min(1).default("paperclip_company_b8d234ec-515c-4331-9a5a-bb2f0c239ef5")
 });
 
 const parsed = envSchema.safeParse(process.env);

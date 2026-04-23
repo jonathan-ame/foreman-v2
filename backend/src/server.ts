@@ -13,11 +13,14 @@ import { registerAgentRoutes } from "./routes/agents.js";
 import { registerApprovalRoutes } from "./routes/approvals.js";
 import { registerAuthRoutes } from "./routes/auth.js";
 import { registerChatRoutes } from "./routes/chat.js";
+import { registerComposioRoutes } from "./routes/composio.js";
 import { registerEscalationRoutes } from "./routes/escalation.js";
 import { registerHealthRoutes } from "./routes/health.js";
 import { registerMetricsRoutes } from "./routes/metrics.js";
+import { registerMonitoringRoutes } from "./routes/monitoring.js";
 import { registerMarketingRoutes } from "./routes/marketing.js";
 import { registerNpsRoutes } from "./routes/nps.js";
+import { registerOutreachRoutes } from "./routes/outreach.js";
 import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
 import { registerUsageRoutes } from "./routes/usage.js";
 
@@ -71,12 +74,15 @@ registerHealthRoutes(app, deps);
 registerAgentRoutes(app, deps);
 registerApprovalRoutes(app, deps);
 registerChatRoutes(app, deps);
+registerComposioRoutes(app, deps);
 registerEscalationRoutes(app, deps);
 registerStripeWebhookRoutes(app, deps);
 registerUsageRoutes(app, deps);
 registerMarketingRoutes(app, deps);
 registerMetricsRoutes(app, deps);
+registerMonitoringRoutes(app, deps);
 registerNpsRoutes(app, deps);
+registerOutreachRoutes(app, deps);
 app.get("*", async (c) => {
   const requestPath = c.req.path;
   if (requestPath.startsWith("/api/") || requestPath === "/health") {
