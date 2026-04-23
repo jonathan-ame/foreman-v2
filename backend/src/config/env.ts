@@ -44,7 +44,8 @@ const envSchema = z.object({
   COMPOSIO_API_BASE: z.string().min(1).default("https://backend.composio.dev"),
   COMPOSIO_WEBHOOK_SECRET: z.string().min(1).optional(),
   COMPOSIO_CONNECTED_ACCOUNT_ID_OUTLOOK: z.string().min(1).optional(),
-  COMPOSIO_USER_ID: z.string().min(1).default("paperclip_company_b8d234ec-515c-4331-9a5a-bb2f0c239ef5")
+  COMPOSIO_USER_ID: z.string().min(1).default("paperclip_company_b8d234ec-515c-4331-9a5a-bb2f0c239ef5"),
+  FOREMAN_BASE_URL: z.string().min(1).default("https://foreman.company")
 });
 
 const parsed = envSchema.safeParse(process.env);
