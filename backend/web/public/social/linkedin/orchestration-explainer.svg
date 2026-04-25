@@ -1,0 +1,139 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <filter id="shadow" x="-4%" y="-4%" width="108%" height="108%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#1c2733" flood-opacity="0.08"/>
+    </filter>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#1d4ed8"/>
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0d9488"/>
+      <stop offset="100%" stop-color="#0f766e"/>
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </linearGradient>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#f8fafc"/>
+      <stop offset="100%" stop-color="#eff6ff"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1080" height="1080" fill="url(#bgGrad)"/>
+  <rect x="0" y="0" width="1080" height="6" fill="#2563eb"/>
+
+  <text x="540" y="82" text-anchor="middle" font-size="36" font-weight="800" fill="#1c2733" letter-spacing="-0.5">How Foreman Orchestrates</text>
+  <text x="540" y="120" text-anchor="middle" font-size="36" font-weight="800" fill="#2563eb" letter-spacing="-0.5">Your AI Workforce</text>
+  <text x="540" y="156" text-anchor="middle" font-size="18" fill="#64748b">One conversation. Full coordination. You stay in control.</text>
+
+  <g transform="translate(60, 200)">
+    <rect x="0" y="0" width="200" height="240" rx="16" fill="#fff" stroke="#2563eb" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="200" height="44" rx="16" fill="url(#blueGrad)"/>
+    <rect x="0" y="24" width="200" height="20" fill="url(#blueGrad)"/>
+    <circle cx="28" cy="22" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="28" y="27" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">1</text>
+    <text x="120" y="28" text-anchor="middle" font-size="14" fill="#fff" font-weight="600">You Describe</text>
+    <text x="100" y="88" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">"I need a blog</text>
+    <text x="100" y="114" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">post about our</text>
+    <text x="100" y="140" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">new feature"</text>
+    <text x="100" y="210" text-anchor="middle" font-size="12" fill="#64748b">Natural language</text>
+    <rect x="30" y="170" width="140" height="28" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+    <text x="100" y="189" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="600">💬 Your request</text>
+  </g>
+  <text x="282" y="320" text-anchor="middle" font-size="28" fill="#2563eb">→</text>
+
+  <g transform="translate(310, 200)">
+    <rect x="0" y="0" width="200" height="240" rx="16" fill="#fff" stroke="#0d9488" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="200" height="44" rx="16" fill="url(#tealGrad)"/>
+    <rect x="0" y="24" width="200" height="20" fill="url(#tealGrad)"/>
+    <circle cx="28" cy="22" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="28" y="27" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">2</text>
+    <text x="120" y="28" text-anchor="middle" font-size="14" fill="#fff" font-weight="600">Chief of Staff</text>
+    <text x="100" y="88" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">Assigns the</text>
+    <text x="100" y="114" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">right agent &amp;</text>
+    <text x="100" y="140" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">creates a plan</text>
+    <text x="100" y="210" text-anchor="middle" font-size="12" fill="#64748b">Auto-coordinated</text>
+    <rect x="30" y="170" width="140" height="28" rx="6" fill="#ecfdf5" stroke="#0d9488" stroke-width="1"/>
+    <text x="100" y="189" text-anchor="middle" font-size="11" fill="#0d9488" font-weight="600">🤖 Coordinated</text>
+  </g>
+  <text x="547" y="320" text-anchor="middle" font-size="28" fill="#0d9488">→</text>
+
+  <g transform="translate(560, 200)">
+    <rect x="0" y="0" width="200" height="240" rx="16" fill="#fff" stroke="#f59e0b" stroke-width="2.5" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="200" height="44" rx="16" fill="url(#amberGrad)"/>
+    <rect x="0" y="24" width="200" height="20" fill="url(#amberGrad)"/>
+    <circle cx="28" cy="22" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="28" y="27" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">3</text>
+    <text x="120" y="28" text-anchor="middle" font-size="14" fill="#fff" font-weight="600">You Approve</text>
+    <text x="100" y="88" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">Review the</text>
+    <text x="100" y="114" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">plan card &amp;</text>
+    <text x="100" y="140" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">give sign-off</text>
+    <text x="100" y="210" text-anchor="middle" font-size="12" fill="#64748b">Full oversight</text>
+    <rect x="30" y="170" width="140" height="28" rx="6" fill="#fffbeb" stroke="#f59e0b" stroke-width="1"/>
+    <text x="100" y="189" text-anchor="middle" font-size="11" fill="#d97706" font-weight="600">✋ Approval gate</text>
+  </g>
+  <text x="782" y="320" text-anchor="middle" font-size="28" fill="#2563eb">→</text>
+
+  <g transform="translate(810, 200)">
+    <rect x="0" y="0" width="200" height="240" rx="16" fill="#fff" stroke="#2563eb" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="200" height="44" rx="16" fill="url(#blueGrad)"/>
+    <rect x="0" y="24" width="200" height="20" fill="url(#blueGrad)"/>
+    <circle cx="28" cy="22" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="28" y="27" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">4</text>
+    <text x="120" y="28" text-anchor="middle" font-size="14" fill="#fff" font-weight="600">Agent Executes</text>
+    <text x="100" y="88" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">Assigned agent</text>
+    <text x="100" y="114" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">does the work</text>
+    <text x="100" y="140" text-anchor="middle" font-size="17" fill="#1c2733" font-weight="600">autonomously</text>
+    <text x="100" y="210" text-anchor="middle" font-size="12" fill="#64748b">Hands-off delivery</text>
+    <rect x="30" y="170" width="140" height="28" rx="6" fill="#eff6ff" stroke="#2563eb" stroke-width="1"/>
+    <text x="100" y="189" text-anchor="middle" font-size="11" fill="#2563eb" font-weight="600">⚡ Autonomous</text>
+  </g>
+
+  <g transform="translate(310, 660)">
+    <rect x="0" y="0" width="200" height="160" rx="16" fill="#fff" stroke="#0d9488" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="200" height="44" rx="16" fill="url(#tealGrad)"/>
+    <rect x="0" y="24" width="200" height="20" fill="url(#tealGrad)"/>
+    <circle cx="28" cy="22" r="14" fill="rgba(255,255,255,0.25)"/>
+    <text x="28" y="27" text-anchor="middle" font-size="16" fill="#fff" font-weight="700">5</text>
+    <text x="120" y="28" text-anchor="middle" font-size="14" fill="#fff" font-weight="600">In Your Inbox</text>
+    <text x="100" y="80" text-anchor="middle" font-size="16" fill="#1c2733" font-weight="600">Results, decisions</text>
+    <text x="100" y="106" text-anchor="middle" font-size="16" fill="#1c2733" font-weight="600">&amp; sign-offs</text>
+    <text x="100" y="132" text-anchor="middle" font-size="16" fill="#1c2733" font-weight="600">in one place</text>
+    <rect x="30" y="95" width="0" height="0" rx="0" fill="none"/>
+  </g>
+
+  <line x1="540" y1="440" x2="540" y2="480" stroke="#0d9488" stroke-width="2" marker-end="url(#arrowTeal)"/>
+
+  <defs>
+    <marker id="arrowTeal" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#0d9488"/>
+    </marker>
+  </defs>
+
+  <text x="540" y="490" text-anchor="middle" font-size="28" fill="#0d9488">↓</text>
+  <line x1="540" y1="500" x2="540" y2="540" stroke="#0d9488" stroke-width="3"/>
+  <line x1="540" y1="540" x2="420" y2="620" stroke="#0d9488" stroke-width="2" stroke-dasharray="6 3"/>
+
+  <g transform="translate(60, 870)">
+    <rect x="0" y="0" width="960" height="64" rx="12" fill="#eff6ff" stroke="#2563eb" stroke-width="1" stroke-dasharray="4 2" opacity="0.8"/>
+    <text x="480" y="30" text-anchor="middle" font-size="16" fill="#2563eb" font-weight="700">You talk to one point of contact. Foreman handles the rest.</text>
+    <text x="480" y="52" text-anchor="middle" font-size="13" fill="#64748b">No juggling agents. No checking five dashboards. Your Chief of Staff coordinates everything.</text>
+  </g>
+
+  <g transform="translate(60, 958)">
+    <circle cx="12" cy="12" r="7" fill="#2563eb"/>
+    <text x="28" y="17" font-size="13" fill="#64748b">You</text>
+    <circle cx="118" cy="12" r="7" fill="#0d9488"/>
+    <text x="134" y="17" font-size="13" fill="#64748b">Chief of Staff</text>
+    <circle cx="298" cy="12" r="7" fill="#f59e0b"/>
+    <text x="314" y="17" font-size="13" fill="#64748b">Approval Gate</text>
+    <circle cx="468" cy="12" r="7" fill="#2563eb"/>
+    <text x="484" y="17" font-size="13" fill="#64748b">Agent Work</text>
+    <circle cx="618" cy="12" r="7" fill="#0d9488"/>
+    <text x="634" y="17" font-size="13" fill="#64748b">Inbox Results</text>
+  </g>
+
+  <text x="540" y="1050" text-anchor="middle" font-size="14" fill="#94a3b8">foreman.ai — Delegate to AI the Way You Delegate to People</text>
+</svg>
