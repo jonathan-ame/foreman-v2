@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useFocusTrap } from "../../utils/useFocusTrap";
 
 interface CustomerSession {
   customer_id: string;
@@ -71,6 +72,24 @@ function SettingsIcon() {
   );
 }
 
+function TasksIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <rect x="1.5" y="2" width="13" height="12" rx="2" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M5 6h6M5 8.5h4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function IntegrationsIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+      <path d="M5.5 3.5h5v2h2v5h-2v2h-5v-2h-2v-5h2v-2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
+      <circle cx="8" cy="8" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
 function EconomicsIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
@@ -80,12 +99,42 @@ function EconomicsIcon() {
   );
 }
 
+function HamburgerIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+      <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 interface SidebarNavProps {
   pendingApprovals: number;
   customer: CustomerSession;
+  onClose?: () => void;
+  className?: string;
+  sidebarRef?: React.RefObject<HTMLDivElement | null>;
+  isModal?: boolean;
+  navId?: string;
 }
 
-function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
+const FOCUSABLE_SELECTOR =
+  'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  return Array.from(container.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+    (el) => el.offsetParent !== null
+  );
+}
+
+function SidebarNav({ pendingApprovals, customer, onClose, className, sidebarRef, isModal, navId }: SidebarNavProps) {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -93,8 +142,59 @@ function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
     navigate("/app");
   };
 
+  const handleNavClick = () => {
+    onClose?.();
+  };
+
+  const handleNavKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      if (!isModal) return;
+
+      const container = e.currentTarget;
+      const focusable = getFocusableElements(container);
+      if (focusable.length === 0) return;
+
+      const activeIndex = focusable.indexOf(document.activeElement as HTMLElement);
+      if (activeIndex === -1) return;
+
+      let nextIndex = -1;
+
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          nextIndex = activeIndex + 1 < focusable.length ? activeIndex + 1 : 0;
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          nextIndex = activeIndex - 1 >= 0 ? activeIndex - 1 : focusable.length - 1;
+          break;
+        case "Home":
+          e.preventDefault();
+          nextIndex = 0;
+          break;
+        case "End":
+          e.preventDefault();
+          nextIndex = focusable.length - 1;
+          break;
+        default:
+          return;
+      }
+
+      focusable[nextIndex]?.focus();
+    },
+    [isModal]
+  );
+
   return (
-    <nav className="dash-sidebar" aria-label="Main navigation">
+    <nav
+      id={navId}
+      ref={sidebarRef}
+      className={`dash-sidebar${className ? ` ${className}` : ""}`}
+      role={isModal ? "dialog" : undefined}
+      aria-modal={isModal ? "true" : undefined}
+      aria-label="Main navigation"
+      onKeyDown={handleNavKeyDown}
+    >
       <div className="dash-sidebar-top">
         <div className="dash-logo">
           <span className="dash-logo-text">Foreman</span>
@@ -102,25 +202,25 @@ function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
 
         <ul className="dash-nav-list" role="list">
           <li>
-            <NavLink to="/dashboard" end className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+            <NavLink to="/dashboard" end className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
               <HomeIcon />
               <span>Chief of Staff</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/dashboard/projects" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+            <NavLink to="/dashboard/projects" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
               <ProjectsIcon />
               <span>Projects</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/dashboard/team" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+            <NavLink to="/dashboard/team" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
               <TeamIcon />
               <span>Team</span>
             </NavLink>
           </li>
           <li>
-            <NavLink to="/dashboard/inbox" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+            <NavLink to="/dashboard/inbox" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
               <InboxIcon />
               <span>Inbox</span>
               {pendingApprovals > 0 && (
@@ -131,16 +231,28 @@ function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
             </NavLink>
           </li>
           <li>
-            <NavLink to="/dashboard/economics" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+            <NavLink to="/dashboard/tasks" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
+              <TasksIcon />
+              <span>Tasks</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/dashboard/economics" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
               <EconomicsIcon />
               <span>Economics</span>
+            </NavLink>
+          </li>
+          <li>
+            <NavLink to="/dashboard/integrations" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
+              <IntegrationsIcon />
+              <span>Integrations</span>
             </NavLink>
           </li>
         </ul>
       </div>
 
       <div className="dash-sidebar-bottom">
-        <NavLink to="/dashboard/settings" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`}>
+        <NavLink to="/dashboard/settings" className={({ isActive }) => `dash-nav-item${isActive ? " dash-nav-item--active" : ""}`} onClick={handleNavClick}>
           <SettingsIcon />
           <span>Settings</span>
         </NavLink>
@@ -154,6 +266,12 @@ function SidebarNav({ pendingApprovals, customer }: SidebarNavProps) {
           </div>
         </button>
       </div>
+
+      {onClose && (
+        <button type="button" className="dash-sidebar-close" onClick={onClose} aria-label="Close navigation">
+          <CloseIcon />
+        </button>
+      )}
     </nav>
   );
 }
@@ -162,7 +280,39 @@ export function DashboardLayout() {
   const [customer, setCustomer] = useState<CustomerSession | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingApprovals, setPendingApprovals] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const navigate = useNavigate();
+  const hamburgerRef = useRef<HTMLButtonElement>(null);
+  const sidebarRef = useFocusTrap(sidebarOpen);
+
+  const sidebarId = "dash-sidebar-nav";
+
+  const closeSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
+  useEffect(() => {
+    if (!sidebarOpen) return;
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeSidebar();
+      }
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [sidebarOpen, closeSidebar]);
+
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [sidebarOpen]);
 
   useEffect(() => {
     const check = async () => {
@@ -211,7 +361,19 @@ export function DashboardLayout() {
 
   return (
     <div className="dash-shell">
-      <SidebarNav pendingApprovals={pendingApprovals} customer={customer} />
+      <header className="dash-mobile-header">
+        <button type="button" ref={hamburgerRef} className="dash-mobile-hamburger" onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu" aria-expanded={sidebarOpen} aria-controls={sidebarId}>
+          <HamburgerIcon />
+        </button>
+        <span className="dash-mobile-title">Foreman</span>
+      </header>
+
+      {sidebarOpen && (
+        <div className="dash-overlay dash-overlay--visible" onClick={closeSidebar} role="presentation" />
+      )}
+
+      <SidebarNav pendingApprovals={pendingApprovals} customer={customer} onClose={closeSidebar} className={sidebarOpen ? "dash-sidebar--open" : undefined} sidebarRef={sidebarRef} isModal={sidebarOpen} navId={sidebarId} />
+
       <main className="dash-main">
         <Outlet context={{ customer } satisfies DashboardContext} />
       </main>
