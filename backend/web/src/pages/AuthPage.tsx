@@ -8,6 +8,8 @@ interface CustomerSession {
   display_name: string;
   current_tier: string | null;
   current_billing_mode: string;
+  onboarding_progress: Record<string, string>;
+  onboarding_complete: boolean;
 }
 
 interface AuthPageProps {
@@ -56,6 +58,7 @@ function OAuthButtons() {
 
   return (
     <div className="oauth-stack">
+      <p className="oauth-heading">Join 1,000+ businesses using Foreman</p>
       <button type="button" className="oauth-button" onClick={handleGoogle}>
         <GoogleIcon />
         Continue with Google
@@ -263,6 +266,7 @@ function SignupForm({ onAuthenticated, onSwitchMode }: SignupFormProps) {
             placeholder="Min. 8 characters"
             autoComplete="new-password"
             required
+            aria-describedby="signup-password-hint"
           />
           <button
             type="button"
@@ -272,6 +276,11 @@ function SignupForm({ onAuthenticated, onSwitchMode }: SignupFormProps) {
           >
             {showPassword ? "Hide" : "Show"}
           </button>
+        </div>
+        <div id="signup-password-hint" className="password-strength">
+          {password.length === 0 && <small className="muted">Min. 8 characters</small>}
+          {password.length > 0 && password.length < 8 && <small className="error-text">{8 - password.length} more characters needed</small>}
+          {password.length >= 8 && <small className="success-text">Password meets requirements</small>}
         </div>
       </label>
 
@@ -354,6 +363,9 @@ export function AuthPage({ onAuthenticated }: AuthPageProps) {
           <SignupForm onAuthenticated={onAuthenticated} onSwitchMode={() => setMode("login")} />
         )}
       </section>
+      <p className="auth-trust-signals">
+        Free 14-day trial · No credit card required · SOC 2 compliant
+      </p>
     </main>
   );
 }

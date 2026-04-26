@@ -9,9 +9,13 @@ import { env } from "./config/env.js";
 import { createLogger } from "./config/logger.js";
 import { captureException, initSentry } from "./config/sentry.js";
 import { startJobs } from "./jobs/runner.js";
+import { cors } from "./middleware/cors.js";
+import { slidingWindowRateLimit } from "./middleware/rate-limit.js";
 import { registerAgentRoutes } from "./routes/agents.js";
 import { registerApprovalRoutes } from "./routes/approvals.js";
 import { registerAuthRoutes } from "./routes/auth.js";
+import { registerBillingRoutes } from "./routes/billing.js";
+import { registerByokRoutes } from "./routes/byok.js";
 import { registerChatRoutes } from "./routes/chat.js";
 import { registerComposioRoutes } from "./routes/composio.js";
 import { registerEscalationRoutes } from "./routes/escalation.js";
@@ -20,8 +24,13 @@ import { registerMetricsRoutes } from "./routes/metrics.js";
 import { registerMonitoringRoutes } from "./routes/monitoring.js";
 import { registerMarketingRoutes } from "./routes/marketing.js";
 import { registerNpsRoutes } from "./routes/nps.js";
+import { registerOnboardingRoutes } from "./routes/onboarding.js";
 import { registerOutreachRoutes } from "./routes/outreach.js";
+import { registerSettingsRoutes } from "./routes/settings.js";
 import { registerStripeWebhookRoutes } from "./routes/stripe-webhook.js";
+import { registerTavilyRoutes } from "./routes/tavily.js";
+import { registerPaperclipProxyRoutes } from "./routes/paperclip-proxy.js";
+import { registerTeamRoutes } from "./routes/team.js";
 import { registerUsageRoutes } from "./routes/usage.js";
 
 initSentry(env.SENTRY_DSN);
@@ -36,6 +45,36 @@ app.onError((err, c) => {
   logger.error({ err, path: c.req.path, method: c.req.method }, "unhandled request error");
   return c.json({ error: "internal_server_error" }, 500);
 });
+
+const { rateLimit: rlConfig } = env;
+
+app.use("/api/internal/auth/*", slidingWindowRateLimit({
+  windowMs: rlConfig.auth.windowMs,
+  maxRequests: rlConfig.auth.maxRequests,
+  excludedPaths: rlConfig.excludedPaths,
+  enabled: rlConfig.enabled
+}));
+
+app.use("/api/stripe/webhook", slidingWindowRateLimit({
+  windowMs: rlConfig.lenient.windowMs,
+  maxRequests: rlConfig.lenient.maxRequests,
+  excludedPaths: rlConfig.excludedPaths,
+  enabled: rlConfig.enabled
+}));
+
+app.use("/api/*", slidingWindowRateLimit({
+  windowMs: rlConfig.standard.windowMs,
+  maxRequests: rlConfig.standard.maxRequests,
+  excludedPaths: rlConfig.excludedPaths,
+  enabled: rlConfig.enabled
+}));
+
+const { cors: corsConfig } = env;
+app.use("/api/*", cors({
+  allowedOrigins: corsConfig.allowedOrigins,
+  maxAge: corsConfig.maxAge
+}));
+
 const webDistDir = path.resolve(process.cwd(), "dist-web");
 const webIndexPath = path.join(webDistDir, "index.html");
 const mimeTypes: Record<string, string> = {
@@ -70,6 +109,8 @@ app.get("/health", (c) => {
   });
 });
 registerAuthRoutes(app, deps);
+registerBillingRoutes(app, deps);
+registerByokRoutes(app, deps);
 registerHealthRoutes(app, deps);
 registerAgentRoutes(app, deps);
 registerApprovalRoutes(app, deps);
@@ -82,7 +123,12 @@ registerMarketingRoutes(app, deps);
 registerMetricsRoutes(app, deps);
 registerMonitoringRoutes(app, deps);
 registerNpsRoutes(app, deps);
+registerOnboardingRoutes(app, deps);
 registerOutreachRoutes(app, deps);
+registerSettingsRoutes(app, deps);
+registerTavilyRoutes(app, deps);
+registerTeamRoutes(app, deps);
+registerPaperclipProxyRoutes(app, deps);
 app.get("*", async (c) => {
   const requestPath = c.req.path;
   if (requestPath.startsWith("/api/") || requestPath === "/health") {

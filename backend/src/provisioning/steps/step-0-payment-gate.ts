@@ -76,6 +76,8 @@ export async function step0PaymentGate(ctx: StepContext): Promise<StepResult> {
     paymentModePasses = hasBalance;
   } else if (billingMode === "byok") {
     paymentModePasses = activeSubscription;
+  } else if (billingMode === "trial") {
+    paymentModePasses = true;
   }
 
   if (overTierAllowance) {

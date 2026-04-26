@@ -1,0 +1,55 @@
+# Foreman Platform — Supabase Configuration
+# FORA-178
+#
+# This config.toml is used for local Supabase development and testing.
+# The production database is hosted on Neon (project: icy-breeze-57807060).
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "health"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[db]
+port = 54322
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+
+[auth]
+enabled = true
+port = 54320
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_signup = true
+email_enable_signup = true
+email_double_confirm_changes = true
+
+[auth.email]
+enable_confirmations = false
+
+[auth.external.descope]
+enabled = false
+
+[storage]
+enabled = true
+port = 54325
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
+port = 54326
+
+[edge_runtime]
+enabled = true
+port = 54327
+
+[analytics]
+enabled = false

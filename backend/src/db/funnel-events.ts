@@ -95,6 +95,51 @@ export async function getD7RetainedCount(db: SupabaseClient): Promise<number> {
   // Workspaces with first_agent_running more than 7 days ago
   const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
+  try {
+    // Use a single query with proper joins to accurately calculate retention
+    const { data, error } = await db
+      .from('funnel_events')
+      .select(`
+        workspace_slug,
+        customers!inner(
+          customer_id
+        ),
+        agents:customers!inner(
+          paperclip_agent_id
+        ),
+        agent_usage_events:agents!inner(
+          paperclip_agent_id
+        )
+      `)
+      .eq('event_type', 'first_agent_running')
+      .lt('funnel_events.occurred_at', cutoff7d)
+      .gte('agent_usage_events.occurred_at', cutoff7d);
+
+    if (error) {
+      // Fall back to legacy calculation if join fails
+      console.warn('D7 retention join failed, falling back to legacy calculation:', error.message);
+      return await getLegacyD7RetainedCount(db);
+    }
+
+    // Count distinct workspaces that had recent usage
+    const workspaceSet = new Set<string>();
+    (data ?? []).forEach((row: any) => {
+      if (row.workspace_slug) {
+        workspaceSet.add(row.workspace_slug);
+      }
+    });
+    
+    return workspaceSet.size;
+  } catch (error) {
+    console.error('D7 retention calculation failed:', error);
+    return await getLegacyD7RetainedCount(db);
+  }
+}
+
+// Keep legacy implementation as fallback
+async function getLegacyD7RetainedCount(db: SupabaseClient): Promise<number> {
+  const cutoff7d = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
   const { data: agentEvents, error: agentError } = await db
     .from("funnel_events")
     .select("workspace_slug")
@@ -123,8 +168,6 @@ export async function getD7RetainedCount(db: SupabaseClient): Promise<number> {
     throw new Error(`Failed to fetch recent usage events: ${usageError.message}`);
   }
 
-  // Usage events don't have workspace_slug directly; we need agents table for the join.
-  // Return the count of workspaces eligible (≥7d old) as a proxy when join isn't available.
-  // Full join via agents table would require an additional query; keep it simple for now.
+  // Legacy proxy calculation - returns eligible count if any usage exists
   return (usageData ?? []).length > 0 ? workspaceSlugs.length : 0;
 }

@@ -237,6 +237,68 @@ registerSecret("SUPABASE_SERVICE_ROLE", {
   description: "Supabase service role key alias",
 });
 
+registerSecret("NEON_DATABASE_URL", {
+  name: "Neon Database Connection URL",
+  provider: "supabase",
+  classification: "restricted",
+  required: false,
+  rotationDays: 90,
+  deferred: false,
+  description: "Neon PostgreSQL connection string — used for migration runner and direct SQL access",
+});
+
+// ─── Composio ──────────────────────────────────────────────────────────────
+
+registerSecret("COMPOSIO_API_KEY", {
+  name: "Composio API Key",
+  provider: "other",
+  classification: "restricted",
+  required: false,
+  rotationDays: 90,
+  deferred: false,
+  description: "Composio API key for external toolkit integration (GitHub, Slack, Gmail, etc.)",
+});
+
+registerSecret("COMPOSIO_WEBHOOK_SECRET", {
+  name: "Composio Webhook Secret",
+  provider: "other",
+  classification: "restricted",
+  required: false,
+  rotationDays: 180,
+  deferred: false,
+  description: "Webhook signing secret for verifying Composio trigger event payloads",
+});
+
+registerSecret("COMPOSIO_API_BASE", {
+  name: "Composio API Base URL",
+  provider: "other",
+  classification: "internal",
+  required: false,
+  rotationDays: 0,
+  deferred: false,
+  description: "Composio API base URL (defaults to https://backend.composio.dev)",
+});
+
+registerSecret("COMPOSIO_CONNECTED_ACCOUNT_ID_OUTLOOK", {
+  name: "Composio Outlook Connected Account ID",
+  provider: "other",
+  classification: "internal",
+  required: false,
+  rotationDays: 0,
+  deferred: false,
+  description: "Connected account ID for Outlook email integration via Composio",
+});
+
+registerSecret("COMPOSIO_USER_ID", {
+  name: "Composio User ID",
+  provider: "other",
+  classification: "internal",
+  required: false,
+  rotationDays: 0,
+  deferred: false,
+  description: "Default Composio user identifier for session creation",
+});
+
 // ─── Cloudflare ──────────────────────────────────────────────────────────────
 
 registerSecret("CLOUDFLARE_API_TOKEN", {

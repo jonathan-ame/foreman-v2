@@ -421,16 +421,24 @@ def build_worker_adapter_cfg(chief_agent: dict) -> tuple[str, dict]:
     adapter_type = (chief_agent.get("adapterType") or "").strip()
     adapter_cfg = chief_agent.get("adapterConfig") if isinstance(chief_agent.get("adapterConfig"), dict) else {}
     if not adapter_type or not isinstance(adapter_cfg, dict):
-        raise RuntimeError("ChiefOfStaff adapter configuration is invalid; cannot hire OpenClawWorker.")
+        raise RuntimeError("ChiefOfStaff adapter configuration is invalid; cannot hire worker.")
 
     chief_env = adapter_cfg.get("env") if isinstance(adapter_cfg.get("env"), dict) else {}
     worker_env = {}
-    # Keep runtime role explicit; copy only explicitly safe optional OpenClaw vars.
     worker_env["PAPERCLIP_ROLE"] = {"type": "plain", "value": "executor"}
     for key in ("OPENCLAW_BASE_URL", "OPENCLAW_BEARER_TOKEN", "OPENCLAW_GATEWAY_TOKEN"):
         value = chief_env.get(key)
         if isinstance(value, dict) and value.get("type") == "plain":
             worker_env[key] = value
+
+    if adapter_type == "opencode_local":
+        worker_cfg = {
+            "env": worker_env,
+            "timeoutSec": int(adapter_cfg.get("timeoutSec") or 300),
+        }
+        if isinstance(adapter_cfg.get("graceSec"), int):
+            worker_cfg["graceSec"] = int(adapter_cfg["graceSec"])
+        return "opencode_local", worker_cfg
 
     repo_root = infer_repo_root()
     worker_command = str(Path(repo_root) / "scripts" / "paperclip-openclaw-executor.sh")

@@ -9,12 +9,9 @@ describe("step5PaperclipHire", () => {
       id: "pa1",
       name: "CEO",
       role: "ceo",
-      adapterType: "openclaw_gateway",
+      adapterType: "opencode_local",
       adapterConfig: {
-        url: "ws://",
-        gatewayUrl: "ws://",
-        timeoutSec: 1500,
-        headers: { "x-openclaw-token": "pending-sync" }
+        timeoutSec: 1500
       },
       runtimeConfig: {
         heartbeat: { enabled: true, mode: "proactive", intervalSec: 1800 }
@@ -26,8 +23,8 @@ describe("step5PaperclipHire", () => {
         id: "pa1",
         name: "CEO",
         role: "ceo",
-        adapterType: "openclaw_gateway",
-        adapterConfig: { url: "ws://", gatewayUrl: "ws://", headers: { "x-openclaw-token": "pending-sync" } },
+        adapterType: "opencode_local",
+        adapterConfig: { timeoutSec: 1500 },
         companyId: "pc1"
       }
     });
@@ -44,8 +41,21 @@ describe("step5PaperclipHire", () => {
           hireAgent,
           patchAgent
         },
-        openclaw: {} as never,
-        stripe: {} as never
+        openclaw: {
+          setMcpServer: vi.fn().mockResolvedValue(undefined)
+        } as never,
+        stripe: {} as never,
+        composio: {
+          isConfigured: false,
+          createSession: vi.fn().mockResolvedValue({
+            id: "cs1",
+            userId: "foreman_c1",
+            mcp: { url: "https://mcp.composio.dev/cs1", headers: {} },
+            toolkits: [],
+            createdAt: "2026-04-22T00:00:00Z"
+          }),
+          ping: vi.fn().mockResolvedValue({ ok: true })
+        }
       },
       db: {} as never,
       logger: createLogger("step5-test"),
@@ -64,7 +74,7 @@ describe("step5PaperclipHire", () => {
 
     const result = await step5PaperclipHire(ctx);
     expect(result.ok).toBe(true);
-    expect(hireAgent).toHaveBeenCalledWith("pc1", expect.objectContaining({ name: "CEO" }));
+    expect(hireAgent).toHaveBeenCalledWith("pc1", expect.objectContaining({ name: "CEO", adapterType: "opencode_local" }));
     expect(patchAgent).toHaveBeenCalledWith(
       "pa1",
       expect.objectContaining({
@@ -90,7 +100,12 @@ describe("step5PaperclipHire", () => {
           patchAgent: vi.fn()
         },
         openclaw: {} as never,
-        stripe: {} as never
+        stripe: {} as never,
+        composio: {
+          isConfigured: false,
+          createSession: vi.fn(),
+          ping: vi.fn()
+        }
       },
       db: {} as never,
       logger: createLogger("step5-test"),

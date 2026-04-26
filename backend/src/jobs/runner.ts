@@ -2,12 +2,16 @@ import cron, { type ScheduledTask } from "node-cron";
 import type { AppDeps } from "../app-deps.js";
 import { runAgentHealthCheckJob } from "./agent-health-check.js";
 import { runByokKeyHealthCheckJob } from "./byok-key-health-check.js";
+import { runDailyOpsReportJob } from "./daily-ops-report.js";
 import { runIdempotencyCleanupJob } from "./idempotency-cleanup.js";
-import { runNpsSurveyDispatcherJob } from "./nps-survey-dispatcher.js";
+import { runMonitoringAlertsJob } from "./monitoring-alerts.js";
+import { runLaunchEmailSequenceJob } from "./launch-email-sequence.js";
 import { runNotificationEmailerJob } from "./notification-emailer.js";
+import { runNpsSurveyDispatcherJob } from "./nps-survey-dispatcher.js";
 import { runOpenClawAbsorptionRepairJob } from "./openclaw-absorption-repair.js";
 import { runOrphanWorkspaceCleanupJob } from "./orphan-workspace-cleanup.js";
 import { runPaperclipUsageReconcileJob } from "./paperclip-usage-reconcile.js";
+import { runWebhookRetryJob } from "./webhook-retry.js";
 import { runWeeklyCeoReviewJob } from "./weekly-ceo-review.js";
 import type { JobDefinition, JobResult } from "./types.js";
 
@@ -56,6 +60,26 @@ const JOBS: JobDefinition[] = [
     name: "weekly_ceo_review",
     schedule: "0 9 * * 1",
     run: runWeeklyCeoReviewJob
+  },
+  {
+    name: "daily_ops_report",
+    schedule: "0 8 * * *",
+    run: runDailyOpsReportJob
+  },
+  {
+    name: "monitoring_alerts",
+    schedule: "*/2 * * * *",
+    run: runMonitoringAlertsJob
+  },
+  {
+    name: "launch_email_sequence",
+    schedule: "0 9 * * *",
+    run: runLaunchEmailSequenceJob
+  },
+  {
+    name: "webhook_retry",
+    schedule: "*/5 * * * *",
+    run: runWebhookRetryJob
   }
 ];
 

@@ -68,6 +68,30 @@ const checkOpenRouter = async (deps: AppDeps): Promise<IntegrationCheckResult> =
   }
 };
 
+const checkComposio = async (deps: AppDeps): Promise<IntegrationCheckResult> => {
+  try {
+    if (!deps.clients.composio.isConfigured) {
+      return { ok: true, note: "composio_not_configured" };
+    }
+    const result = await deps.clients.composio.ping();
+    return { ok: result.ok };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
+const checkTavily = async (deps: AppDeps): Promise<IntegrationCheckResult> => {
+  try {
+    if (!deps.clients.tavily.isConfigured) {
+      return { ok: true, note: "tavily_not_configured" };
+    }
+    const result = await deps.clients.tavily.ping();
+    return { ok: result.ok };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+};
+
 const checkTokenSync = (): IntegrationCheckResult => {
   if (!lastReconcileResult) {
     return { ok: true, note: "reconcile_job_not_run_yet" };
@@ -129,11 +153,13 @@ export function registerHealthRoutes(app: Hono, deps: AppDeps) {
 
   app.get("/api/internal/health/integration", async (c) => {
     const backendSelf: IntegrationCheckResult = { ok: true };
-    const [supabase, paperclipApi, openclawGateway, openrouter, activeAgents] = await Promise.all([
+    const [supabase, paperclipApi, openclawGateway, openrouter, composio, tavily, activeAgents] = await Promise.all([
       checkSupabase(deps),
       checkPaperclip(deps),
       checkOpenClawGateway(deps),
       checkOpenRouter(deps),
+      checkComposio(deps),
+      checkTavily(deps),
       checkAgentCounts(deps)
     ]);
     const tokenSync = checkTokenSync();
@@ -141,7 +167,7 @@ export function registerHealthRoutes(app: Hono, deps: AppDeps) {
     const status =
       !backendSelf.ok || !supabase.ok || !paperclipApi.ok || !openclawGateway.ok
         ? "down"
-        : !openrouter.ok || !activeAgents.ok
+        : !openrouter.ok || !composio.ok || !activeAgents.ok
           ? "degraded"
           : "ok";
 
@@ -153,6 +179,7 @@ export function registerHealthRoutes(app: Hono, deps: AppDeps) {
         paperclip_api: paperclipApi,
         openclaw_gateway: openclawGateway,
         openrouter,
+        composio,
         active_agents: activeAgents,
         token_sync: tokenSync
       },

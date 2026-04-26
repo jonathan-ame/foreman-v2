@@ -14,6 +14,9 @@ export interface Customer {
   prepaid_balance_cents: number | null;
   payment_status: string;
   paperclip_company_id: string | null;
+  auth_user_id: string | null;
+  agent_approval_mode: string;
+  onboarding_progress: Record<string, string> | null;
   stripe_subscription_id?: string | null;
   stripe_product_id?: string | null;
   tokens_consumed_current_period_cents?: number | null;
@@ -58,12 +61,26 @@ export async function getCustomerByEmail(db: SupabaseClient, email: string): Pro
 }
 
 export async function listActiveByokCustomers(db: SupabaseClient): Promise<Customer[]> {
+  const { data: keyRows, error: keyError } = await db
+    .from("byok_keys")
+    .select("customer_id")
+    .eq("is_valid", true);
+
+  if (keyError) {
+    throw new Error(`Failed to list BYOK customer IDs: ${keyError.message}`);
+  }
+
+  const customerIds = [...new Set((keyRows ?? []).map((r: { customer_id: string }) => r.customer_id))];
+  if (customerIds.length === 0) {
+    return [];
+  }
+
   const { data, error } = await db
     .from("customers")
     .select("*")
     .eq("current_billing_mode", "byok")
     .eq("payment_status", "active")
-    .not("byok_key_encrypted", "is", null);
+    .in("customer_id", customerIds);
 
   if (error) {
     throw new Error(`Failed to list BYOK customers: ${error.message}`);
@@ -180,4 +197,63 @@ export async function updateCustomerByStripeCustomerId(
     throw new Error(`Failed to update customer by stripe_customer_id ${stripeCustomerId}: ${error.message}`);
   }
   return data as Customer | null;
+}
+
+export async function getCustomerByAuthUserId(db: SupabaseClient, authUserId: string): Promise<Customer | null> {
+  const { data, error } = await db
+    .from("customers")
+    .select("*")
+    .eq("auth_user_id", authUserId)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(`Failed to load customer by auth_user_id ${authUserId}: ${error.message}`);
+  }
+  return data as Customer | null;
+}
+
+export async function upsertCustomerFromAuth(
+  db: SupabaseClient,
+  input: {
+    authUserId: string;
+    email: string;
+    displayName: string;
+  }
+): Promise<Customer> {
+  const existing = await getCustomerByAuthUserId(db, input.authUserId);
+  if (existing) {
+    return existing;
+  }
+
+  const existingByEmail = await getCustomerByEmail(db, input.email.toLowerCase());
+  if (existingByEmail) {
+    const { data, error } = await db
+      .from("customers")
+      .update({ auth_user_id: input.authUserId })
+      .eq("customer_id", existingByEmail.customer_id)
+      .select("*")
+      .single();
+    if (error) {
+      throw new Error(`Failed to link auth_user_id to existing customer ${existingByEmail.customer_id}: ${error.message}`);
+    }
+    return data as Customer;
+  }
+
+  const workspaceSlug = input.email.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "") + "-" + input.authUserId.slice(0, 8);
+  const row = {
+    customer_id: crypto.randomUUID(),
+    workspace_slug: workspaceSlug,
+    email: input.email.toLowerCase(),
+    display_name: input.displayName,
+    current_billing_mode: "trial",
+    current_tier: null,
+    payment_status: "trial",
+    auth_user_id: input.authUserId
+  };
+
+  const { data, error } = await db.from("customers").insert(row).select("*").single();
+  if (error) {
+    throw new Error(`Failed to create customer from auth signup: ${error.message}`);
+  }
+  return data as Customer;
 }

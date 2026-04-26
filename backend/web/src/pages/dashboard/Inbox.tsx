@@ -117,7 +117,20 @@ export function Inbox() {
       {!loading && items.length > 0 && (
         <ul className="inbox-list" role="list">
           {items.map((item) => (
-            <li key={item.id} className={`inbox-item${item.read ? "" : " inbox-item--unread"}`} onClick={() => !item.read && markRead(item.id)}>
+             <li
+               key={item.id}
+               className={`inbox-item${item.read ? "" : " inbox-item--unread"}`}
+               role="button"
+               tabIndex={0}
+               onClick={() => !item.read && markRead(item.id)}
+               onKeyDown={(e) => {
+                 if (!item.read && (e.key === 'Enter' || e.key === ' ')) {
+                   e.preventDefault();
+                   markRead(item.id);
+                 }
+               }}
+               aria-label={item.read ? `Read: ${item.title}` : `Mark as read: ${item.title}`}
+             >
               {item.kind === "plan_approval" && item.plan ? (
                 <PlanCard plan={item.plan} onApprove={handleApprove} onRequestChanges={handleRequestChanges} />
               ) : (

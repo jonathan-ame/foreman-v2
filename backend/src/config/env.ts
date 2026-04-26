@@ -45,7 +45,23 @@ const envSchema = z.object({
   COMPOSIO_WEBHOOK_SECRET: z.string().min(1).optional(),
   COMPOSIO_CONNECTED_ACCOUNT_ID_OUTLOOK: z.string().min(1).optional(),
   COMPOSIO_USER_ID: z.string().min(1).default("paperclip_company_b8d234ec-515c-4331-9a5a-bb2f0c239ef5"),
-  FOREMAN_BASE_URL: z.string().min(1).default("https://foreman.company")
+  FOREMAN_BASE_URL: z.string().min(1).default("https://foreman.company"),
+  NEON_DATABASE_URL: z.string().min(1).optional(),
+  NEON_AUTH_URL: z.string().min(1).default("https://ep-calm-voice-amfgpq8c.neonauth.c-5.us-east-1.aws.neon.tech/neondb/auth"),
+  NEON_AUTH_JWKS_URL: z.string().min(1).default("https://ep-calm-voice-amfgpq8c.neonauth.c-5.us-east-1.aws.neon.tech/neondb/auth/.well-known/jwks.json"),
+  BYOK_ENCRYPTION_KEY: z.string().min(1).optional(),
+  TAVILY_API_KEY: z.string().min(1).optional(),
+  RATE_LIMIT_ENABLED: z
+    .enum(["true", "false"])
+    .default("true")
+    .transform((v) => v === "true"),
+  RATE_LIMIT_STANDARD_MAX: z.coerce.number().default(100),
+  RATE_LIMIT_STRICT_MAX: z.coerce.number().default(20),
+  RATE_LIMIT_AUTH_MAX: z.coerce.number().default(10),
+  RATE_LIMIT_WINDOW_MS: z.coerce.number().default(60_000),
+  RATE_LIMIT_AUTH_WINDOW_MS: z.coerce.number().default(15 * 60_000),
+  CORS_ALLOWED_ORIGINS: z.string().default(""),
+  CORS_MAX_AGE: z.coerce.number().default(86400)
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -164,7 +180,21 @@ export const env = {
     activeStripeByokPrice ?? fallbackByMode("price_live_byok_test", "price_test_byok_test"),
   OPENCLAW_CONFIG_PATH: expandHome(data.OPENCLAW_CONFIG_PATH),
   OPENCLAW_INCLUDE_PATH: expandHome(data.OPENCLAW_INCLUDE_PATH),
-  FOREMAN_LOG_DIR: expandHome(data.FOREMAN_LOG_DIR)
+  FOREMAN_LOG_DIR: expandHome(data.FOREMAN_LOG_DIR),
+  rateLimit: {
+    enabled: data.RATE_LIMIT_ENABLED,
+    standard: { windowMs: data.RATE_LIMIT_WINDOW_MS, maxRequests: data.RATE_LIMIT_STANDARD_MAX },
+    strict: { windowMs: data.RATE_LIMIT_WINDOW_MS, maxRequests: data.RATE_LIMIT_STRICT_MAX },
+    auth: { windowMs: data.RATE_LIMIT_AUTH_WINDOW_MS, maxRequests: data.RATE_LIMIT_AUTH_MAX },
+    lenient: { windowMs: data.RATE_LIMIT_WINDOW_MS, maxRequests: 300 },
+    excludedPaths: ["/health", "/api/internal/health", "/api/stripe/webhook"]
+  },
+  cors: {
+    allowedOrigins: data.CORS_ALLOWED_ORIGINS
+      ? data.CORS_ALLOWED_ORIGINS.split(",").map((s) => s.trim()).filter(Boolean)
+      : [],
+    maxAge: data.CORS_MAX_AGE
+  }
 };
 
 export type Env = typeof env;

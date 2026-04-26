@@ -7,6 +7,7 @@ export interface RoleConfig {
   budgetMonthlyCents: number;
   capabilities: string;
   systemPromptTemplate: string;
+  composioToolkits: string[];
 }
 
 export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
@@ -26,7 +27,8 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     paperclipRole: "ceo",
     budgetMonthlyCents: 50_000,
     capabilities: "Strategic planning, delegation, hiring, board reporting",
-    systemPromptTemplate: "CEO_TEMPLATE_V1"
+    systemPromptTemplate: "CEO_TEMPLATE_V1",
+    composioToolkits: []
   },
   marketing_analyst: {
     toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
@@ -34,7 +36,8 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     paperclipRole: "cmo",
     budgetMonthlyCents: 20_000,
     capabilities: "Market research, campaign analysis, funnel diagnostics, and growth recommendations",
-    systemPromptTemplate: "MARKETING_ANALYST_TEMPLATE_V1"
+    systemPromptTemplate: "MARKETING_ANALYST_TEMPLATE_V1",
+    composioToolkits: ["google_analytics", "slack", "hubspot", "mailchimp"]
   },
   engineer: {
     toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
@@ -43,7 +46,8 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     budgetMonthlyCents: 30_000,
     capabilities:
       "Code implementation, bug fixes, architecture design, technical documentation, code review, shell commands",
-    systemPromptTemplate: "ENGINEER_TEMPLATE_V1"
+    systemPromptTemplate: "ENGINEER_TEMPLATE_V1",
+    composioToolkits: ["github", "linear", "slack", "jira"]
   },
   qa: {
     toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
@@ -52,7 +56,8 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     budgetMonthlyCents: 20_000,
     capabilities:
       "Test planning, test execution, bug reporting, regression testing, quality standards enforcement",
-    systemPromptTemplate: "QA_TEMPLATE_V1"
+    systemPromptTemplate: "QA_TEMPLATE_V1",
+    composioToolkits: ["github", "jira", "linear", "slack"]
   },
   designer: {
     toolsAllow: ["read", "write", "edit", "exec", "process", "sessions_spawn", "sessions_list", "sessions_history"],
@@ -61,7 +66,8 @@ export const ROLE_CONFIGS: Record<AgentRole, RoleConfig> = {
     budgetMonthlyCents: 20_000,
     capabilities:
       "UI/UX analysis, design system review, wireframe descriptions, accessibility audits, visual design feedback",
-    systemPromptTemplate: "DESIGNER_TEMPLATE_V1"
+    systemPromptTemplate: "DESIGNER_TEMPLATE_V1",
+    composioToolkits: ["figma", "slack", "notion"]
   }
 };
 

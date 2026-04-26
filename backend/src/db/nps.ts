@@ -103,9 +103,12 @@ export interface NpsStats {
   detractors: number;
   nps_score: number | null;
   responses_30d: number;
+  responses_90d: number;
+  response_rate_30d: number | null;
+  response_rate_90d: number | null;
 }
 
-export async function getNpsStats(db: SupabaseClient): Promise<NpsStats> {
+export async function getEnhancedNpsStats(db: SupabaseClient): Promise<NpsStats> {
   const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const { data, error } = await db

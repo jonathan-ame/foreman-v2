@@ -41,12 +41,9 @@ const buildDeps = () => {
     id: "paper-1",
     name: "CEO",
     role: "ceo",
-    adapterType: "openclaw_gateway",
+    adapterType: "opencode_local",
     adapterConfig: {
-      gatewayUrl: "ws://127.0.0.1:18789",
-      headers: {
-        "x-openclaw-token": "tok"
-      }
+      timeoutSec: 1500
     },
     companyId: "pc-1"
   };
@@ -65,7 +62,10 @@ const buildDeps = () => {
         createPaymentIntent: vi
           .fn()
           .mockResolvedValue({ id: "pi_1", status: "requires_payment_method", clientSecret: "secret_1" }),
-        constructWebhookEvent: vi.fn()
+        constructWebhookEvent: vi.fn(),
+        createCustomer: vi.fn().mockResolvedValue({ id: "cus_test", email: "test@example.com", name: "Test" }),
+        createCheckoutSession: vi.fn().mockResolvedValue({ url: "https://checkout.stripe.com/test" }),
+        createPortalSession: vi.fn().mockResolvedValue({ url: "https://billing.stripe.com/test" })
       },
       openclaw: {
         addAgent: vi.fn().mockResolvedValue({ id: "ws-ceo", workspace: "/tmp/ws", defaultAgent: false }),
@@ -75,7 +75,10 @@ const buildDeps = () => {
         listAgents: vi.fn().mockResolvedValue([{ id: "ws-ceo", workspace: "/tmp/ws", defaultAgent: false }]),
         getAgent: vi.fn().mockResolvedValue({ id: "ws-ceo", workspace: "/tmp/ws", defaultAgent: false }),
         restartGateway: vi.fn().mockResolvedValue(undefined),
-        gatewayStatus: vi.fn().mockResolvedValue({ running: true, pid: 123, listening: "127.0.0.1:18789" })
+        gatewayStatus: vi.fn().mockResolvedValue({ running: true, pid: 123, listening: "127.0.0.1:18789" }),
+        setMcpServer: vi.fn().mockResolvedValue(undefined),
+        unsetMcpServer: vi.fn().mockResolvedValue(undefined),
+        listMcpServers: vi.fn().mockResolvedValue({})
       },
       paperclip: {
         hireAgent: vi.fn().mockResolvedValue({ agent: paperclipAgent }),
@@ -87,6 +90,30 @@ const buildDeps = () => {
         patchAgent: vi.fn().mockResolvedValue(paperclipAgent),
         getAgent: vi.fn().mockResolvedValue(paperclipAgent),
         deleteAgent: vi.fn().mockResolvedValue(undefined),
+        ping: vi.fn().mockResolvedValue({ ok: true }),
+        listAgents: vi.fn().mockResolvedValue([paperclipAgent]),
+        triggerHeartbeat: vi.fn().mockResolvedValue({ ok: true }),
+        getAgentInbox: vi.fn().mockResolvedValue([]),
+        createIssue: vi.fn().mockResolvedValue({}),
+        listIssues: vi.fn().mockResolvedValue([]),
+        getIssue: vi.fn().mockResolvedValue({}),
+        updateIssue: vi.fn().mockResolvedValue({}),
+        listIssueComments: vi.fn().mockResolvedValue([]),
+        addIssueComment: vi.fn().mockResolvedValue({}),
+        listIssueDocuments: vi.fn().mockResolvedValue([]),
+        getIssueDocument: vi.fn().mockResolvedValue({}),
+        listProjects: vi.fn().mockResolvedValue([]),
+        createProject: vi.fn().mockResolvedValue({})
+      },
+      composio: {
+        isConfigured: false,
+        createSession: vi.fn().mockResolvedValue({
+          id: "composio-sess-1",
+          userId: "foreman_c1",
+          mcp: { url: "https://mcp.composio.dev/sess1", headers: {} },
+          toolkits: [],
+          createdAt: "2026-04-22T00:00:00Z"
+        }),
         ping: vi.fn().mockResolvedValue({ ok: true })
       }
     }

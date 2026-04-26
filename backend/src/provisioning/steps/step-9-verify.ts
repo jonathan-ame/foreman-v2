@@ -29,6 +29,17 @@ export async function step9Verify(ctx: StepContext): Promise<StepResult> {
     }
   }
 
+  if (freshPaperclipAgent.adapterType === "opencode_local") {
+    const adapterConfig = freshPaperclipAgent.adapterConfig as { timeoutSec?: number };
+    if (!adapterConfig.timeoutSec) {
+      return {
+        ok: false,
+        errorCode: "VERIFY_ADAPTER_CONFIG_MISSING",
+        errorMessage: "Paperclip opencode_local agent is missing timeoutSec in adapter config"
+      };
+    }
+  }
+
   if (!openclawMatch) {
     return {
       ok: false,

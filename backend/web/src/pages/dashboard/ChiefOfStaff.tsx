@@ -18,7 +18,13 @@ function SendIcon() {
   );
 }
 
-function EmptyChat({ customerName }: { customerName: string }) {
+function EmptyChat({ customerName, onSuggestionClick }: { customerName: string; onSuggestionClick: (text: string) => void }) {
+  const suggestions = [
+    "What should I focus on this week?",
+    "Review our team's priorities",
+    "Help me create a project plan"
+  ];
+
   return (
     <div className="cos-empty">
       <div className="cos-empty-icon" aria-hidden="true">✦</div>
@@ -26,6 +32,18 @@ function EmptyChat({ customerName }: { customerName: string }) {
       <p className="cos-empty-sub">
         Your Chief of Staff is ready. Ask anything — kick off a project, check on the team, or review a plan.
       </p>
+      <div className="cos-suggestions">
+        {suggestions.map((s) => (
+          <button
+            key={s}
+            type="button"
+            className="cos-suggestion-chip"
+            onClick={() => onSuggestionClick(s)}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
@@ -177,7 +195,7 @@ export function ChiefOfStaff() {
         {/* Chat thread */}
         <div className="cos-thread" aria-live="polite" aria-label="Conversation">
           {!loadingHistory && messages.length === 0 && pendingPlans.length === 0 && (
-            <EmptyChat customerName={customer.display_name} />
+            <EmptyChat customerName={customer.display_name} onSuggestionClick={(text) => { setInput(text); }} />
           )}
           {messages.map((msg) => (
             <ChatBubble key={msg.id} message={msg} />

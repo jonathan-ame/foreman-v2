@@ -26,7 +26,19 @@ export interface ProcessAdapterConfig {
   [key: string]: unknown;
 }
 
-export type AdapterConfig = OpenClawGatewayAdapterConfig | ProcessAdapterConfig;
+export interface OpenCodeLocalAdapterConfig {
+  timeoutSec?: number;
+  graceSec?: number;
+  cwd?: string;
+  env?: Record<string, unknown>;
+  instructionsBundleMode?: "managed" | "external";
+  instructionsEntryFile?: string;
+  instructionsFilePath?: string;
+  instructionsRootPath?: string;
+  [key: string]: unknown;
+}
+
+export type AdapterConfig = OpenClawGatewayAdapterConfig | ProcessAdapterConfig | OpenCodeLocalAdapterConfig;
 
 export interface HeartbeatRuntimeConfig {
   enabled: boolean;

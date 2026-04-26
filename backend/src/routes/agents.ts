@@ -1,6 +1,7 @@
 import type { Hono } from "hono";
 import { z } from "zod";
 import { resolveSessionCustomerId } from "../auth/session.js";
+import { KeyEncryption } from "../crypto/key-encryption.js";
 import type { AppDeps } from "../app-deps.js";
 import { getAgentByOpenclawAgentId } from "../db/agents.js";
 import { insertNotification } from "../db/notifications.js";
@@ -14,7 +15,9 @@ const ProvisionInputSchema = z.object({
   model_tier: z.enum(["open", "frontier", "hybrid"]).optional(),
   idempotency_key: z.string().uuid(),
   workspace_path: z.string().optional(),
-  parent_openclaw_agent_id: z.string().min(1).optional()
+  parent_openclaw_agent_id: z.string().min(1).optional(),
+  api_key_mode: z.enum(["foreman_managed", "byok"]).optional(),
+  byok_key: z.string().min(1).optional()
 });
 
 const toInput = (
@@ -99,6 +102,19 @@ export function registerAgentRoutes(app: Hono, deps: AppDeps) {
     const modelTier = parsed.data.model_tier ?? inheritedModelTier;
     if (!modelTier) {
       return c.json({ error: "model_tier_required" }, 400);
+    }
+
+    if (parsed.data.api_key_mode === "byok" && parsed.data.byok_key && deps.env.BYOK_ENCRYPTION_KEY) {
+      const encryption = new KeyEncryption(deps.env.BYOK_ENCRYPTION_KEY);
+      const encrypted = encryption.encrypt(parsed.data.byok_key);
+      const { error: byokError } = await deps.db
+        .from("customers")
+        .update({ byok_key_encrypted: encrypted, current_billing_mode: "byok" })
+        .eq("customer_id", customerId);
+
+      if (byokError) {
+        deps.logger.error({ err: byokError, customerId }, "failed to store byok key during provisioning");
+      }
     }
 
     const result = await provisionForemanAgent(

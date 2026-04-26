@@ -20,10 +20,14 @@
     "typecheck": "tsc --noEmit",
     "cli": "tsx src/cli/index.ts",
     "import-subscribers": "tsx src/scripts/import-subscribers.ts",
-    "run-migration": "tsx src/scripts/run-migration.ts"
+    "run-migration": "tsx src/scripts/run-migration.ts",
+    "migrate:up": "tsx src/scripts/run-migration-neon.ts up",
+    "migrate:status": "tsx src/scripts/run-migration-neon.ts status",
+    "migrate:apply": "tsx src/scripts/run-migration-neon.ts apply"
   },
   "dependencies": {
     "@hono/node-server": "^1.19.14",
+    "@neondatabase/serverless": "^1.1.0",
     "@sentry/node": "^10.49.0",
     "@supabase/supabase-js": "^2.103.2",
     "commander": "^14.0.3",

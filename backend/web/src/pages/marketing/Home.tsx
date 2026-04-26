@@ -1,17 +1,22 @@
 import { Link } from "react-router-dom";
 import { EmailCaptureForm } from "../../components/EmailCaptureForm";
+import { trackSignupStarted } from "../../utils/analytics";
 
 export function Home() {
   return (
     <>
-      <section className="hero">
+       <section className="hero">
         <div className="hero-inner">
-          <h1 className="hero-headline">Your AI Team, Ready in Minutes</h1>
+          <h1 className="hero-headline">Delegate to AI the Way You Delegate to People</h1>
           <p className="hero-sub">
-            Scale your business with AI, not headcount. No coding required, 15‑minute setup.
+            Describe what you need. Foreman assigns the right agent, creates a plan, and executes — with your sign‑off at every step.
           </p>
           <div className="hero-cta">
-            <a href="/app" className="button-primary button-lg">
+            <a
+              href="/app"
+              className="button-primary button-lg"
+              onClick={() => trackSignupStarted("hero")}
+            >
               Start 14-Day Free Trial
             </a>
             <Link to="/how-it-works" className="button-ghost button-lg">
@@ -20,9 +25,46 @@ export function Home() {
           </div>
           <p className="hero-trust">
             <span className="trust-badge">No credit card required</span>
-            <span className="trust-badge">SOC 2 compliant</span>
-            <span className="trust-badge">GDPR ready</span>
+            <span className="trust-badge">Enterprise security</span>
+            <span className="trust-badge">GDPR-ready docs</span>
           </p>
+        </div>
+      </section>
+
+      <section className="section-orchestration">
+        <div className="content-inner text-center">
+          <h2 className="section-heading">Delegate to AI the Way You Delegate to People</h2>
+          <p className="section-sub">Describe what you need. Foreman assigns the right agent, creates a plan, and executes — with your sign-off at every step.</p>
+          <div className="orchestration-diagram">
+            <img
+              src="/orchestration-flow.svg"
+              alt="How Foreman orchestrates your AI workforce: You describe a need, Chief of Staff assigns an agent and creates a plan, you approve the plan card, the agent executes, and results arrive in your inbox"
+              className="orchestration-diagram-img"
+            />
+          </div>
+          <div className="orchestration-value-props">
+            <div className="orchestration-value">
+              <span className="orchestration-value-icon">🎯</span>
+              <div>
+                <strong>One Point of Contact</strong>
+                <p>Your Chief of Staff agent coordinates everything — no juggling multiple tools</p>
+              </div>
+            </div>
+            <div className="orchestration-value">
+              <span className="orchestration-value-icon">✅</span>
+              <div>
+                <strong>Approval Before Action</strong>
+                <p>Review every plan before it runs. AI without oversight is a liability</p>
+              </div>
+            </div>
+            <div className="orchestration-value">
+              <span className="orchestration-value-icon">📥</span>
+              <div>
+                <strong>Unified Inbox</strong>
+                <p>All agent decisions, completed tasks, and sign-offs in one place</p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -83,7 +125,11 @@ export function Home() {
         <div className="content-inner text-center">
           <h2>Start your AI workforce today</h2>
           <p>No credit card required for the 14‑day free trial.</p>
-          <a href="/app" className="button-primary button-lg">
+          <a
+            href="/app"
+            className="button-primary button-lg"
+            onClick={() => trackSignupStarted("bottom-cta")}
+          >
             Create your first agent
           </a>
           <p className="cta-sub">Try Foreman free for 14 days • Cancel anytime</p>
@@ -98,6 +144,7 @@ export function Home() {
             subtext="Join the waitlist and be the first to know when we launch. Early subscribers get priority access."
             buttonText="Join the waitlist"
             variant="card"
+            showSequencePreview
           />
         </div>
       </section>

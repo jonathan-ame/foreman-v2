@@ -151,6 +151,28 @@ export class OpenClawClient {
     return normalized;
   }
 
+  async setMcpServer(name: string, config: Record<string, unknown>): Promise<void> {
+    const configJson = JSON.stringify(config);
+    await this.runCommand(["mcp", "set", name, configJson], false);
+  }
+
+  async unsetMcpServer(name: string): Promise<void> {
+    try {
+      await this.runCommand(["mcp", "unset", name], false);
+    } catch {
+      this.logger.warn({ name }, "failed to unset mcp server — continuing");
+    }
+  }
+
+  async listMcpServers(): Promise<Record<string, unknown>> {
+    try {
+      const output = await this.runCommand(["mcp", "list", "--json"], true);
+      return this.parseJson<Record<string, unknown>>(output.stdout, ["mcp", "list", "--json"]);
+    } catch {
+      return {};
+    }
+  }
+
   private async runCommand(args: string[], expectJson: boolean): Promise<CommandResult> {
     const startedAt = Date.now();
     const command = `${this.binPath} ${args.join(" ")}`;

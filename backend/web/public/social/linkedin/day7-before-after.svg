@@ -1,0 +1,63 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="60%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1080" height="1080" fill="url(#bgGrad)"/>
+  <rect width="1080" height="1080" fill="url(#grid)"/>
+
+  <g opacity="0.08">
+    <circle cx="140" cy="140" r="80" fill="#3b82f6"/>
+    <circle cx="940" cy="940" r="100" fill="#06b6d4"/>
+  </g>
+
+  <rect x="60" y="60" width="100" height="36" rx="18" fill="#3b82f6"/>
+  <text x="110" y="84" text-anchor="middle" font-size="14" fill="#fff" font-weight="700">DAY 7</text>
+
+  <text x="540" y="180" text-anchor="middle" font-size="38" font-weight="800" fill="#fff" letter-spacing="-1">Email outreach:</text>
+  <text x="540" y="228" text-anchor="middle" font-size="38" font-weight="800" fill="#06b6d4" letter-spacing="-1">before &amp; after</text>
+
+  <g transform="translate(540, 460)">
+    <rect x="-400" y="-180" width="340" height="360" rx="20" fill="rgba(239,68,68,0.06)" stroke="rgba(239,68,68,0.2)" stroke-width="2"/>
+    <text x="-230" y="-140" text-anchor="middle" font-size="14" fill="rgba(239,68,68,0.7)" font-weight="600" letter-spacing="1">BEFORE</text>
+    <text x="-230" y="-60" text-anchor="middle" font-size="72" font-weight="800" fill="#ef4444" letter-spacing="-3">5hrs</text>
+    <text x="-230" y="-25" text-anchor="middle" font-size="16" fill="rgba(255,255,255,0.4)">per week</text>
+    <line x1="-380" y1="10" x2="-80" y2="10" stroke="rgba(239,68,68,0.15)" stroke-width="1"/>
+    <text x="-230" y="50" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.35)">Manual research</text>
+    <text x="-230" y="75" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.35)">Manual personalization</text>
+    <text x="-230" y="100" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.35)">Manual sending</text>
+    <text x="-230" y="125" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.35)">Manual tracking</text>
+    <text x="-230" y="155" text-anchor="middle" font-size="12" fill="rgba(255,255,255,0.25)">Low response rates</text>
+  </g>
+
+  <g transform="translate(540, 460)">
+    <rect x="60" y="-180" width="340" height="360" rx="20" fill="rgba(16,185,129,0.06)" stroke="rgba(16,185,129,0.2)" stroke-width="2"/>
+    <text x="230" y="-140" text-anchor="middle" font-size="14" fill="rgba(52,211,153,0.7)" font-weight="600" letter-spacing="1">AFTER</text>
+    <text x="230" y="-60" text-anchor="middle" font-size="72" font-weight="800" fill="#10b981" letter-spacing="-3">30m</text>
+    <text x="230" y="-25" text-anchor="middle" font-size="16" fill="rgba(255,255,255,0.4)">per week (review only)</text>
+    <line x1="80" y1="10" x2="380" y2="10" stroke="rgba(16,185,129,0.15)" stroke-width="1"/>
+    <text x="230" y="50" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.45)">AI handles research</text>
+    <text x="230" y="75" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.45)">AI personalizes emails</text>
+    <text x="230" y="100" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.45)">AI sends &amp; tracks</text>
+    <text x="230" y="125" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.45)">You review &amp; close</text>
+    <text x="230" y="155" text-anchor="middle" font-size="12" fill="#10b981" font-weight="600">2x response rates</text>
+  </g>
+
+  <defs>
+    <linearGradient id="savingsGrad" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#10b981"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+  <rect x="300" y="720" width="480" height="56" rx="28" fill="url(#savingsGrad)"/>
+  <text x="540" y="754" text-anchor="middle" font-size="18" fill="#fff" font-weight="700">That's the power of delegation</text>
+
+  <text x="540" y="850" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.4)" letter-spacing="1">FOREMAN.COMPANY</text>
+</svg>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useFocusTrap } from "../../utils/useFocusTrap";
+import { useFocusTrap, FOCUSABLE_SELECTOR, getFocusableElements } from "../../utils/useFocusTrap";
 
 interface CustomerSession {
   customer_id: string;

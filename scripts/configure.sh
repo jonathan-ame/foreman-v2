@@ -12,6 +12,8 @@ TOKEN_METER_SOURCE_DIR="${ROOT_DIR}/plugins/foreman-token-meter"
 TOKEN_METER_TARGET_DIR="${HOME}/.openclaw/plugins/foreman-token-meter"
 CEO_WORKSPACE_SOURCE_DIR="${ROOT_DIR}/config/ceo-workspace"
 CEO_WORKSPACE_TARGET_DIR="${HOME}/.openclaw/workspace-ceo"
+INFRA_WORKSPACE_SOURCE_DIR="${ROOT_DIR}/config/infra-workspace"
+INFRA_WORKSPACE_TARGET_DIR="${HOME}/.openclaw/workspace-infra"
 
 [[ -f "${ENV_FILE}" ]] || { echo "ERROR: Missing ${ENV_FILE}. Copy .env.example to .env first." >&2; exit 1; }
 [[ -f "${TEMPLATE_FILE}" ]] || { echo "ERROR: Missing template ${TEMPLATE_FILE}." >&2; exit 1; }
@@ -22,6 +24,11 @@ CEO_WORKSPACE_TARGET_DIR="${HOME}/.openclaw/workspace-ceo"
 [[ -d "${CEO_WORKSPACE_SOURCE_DIR}" ]] || {
   echo "ERROR: Missing CEO workspace template directory ${CEO_WORKSPACE_SOURCE_DIR}." >&2
   exit 1
+}
+
+[[ -d "${INFRA_WORKSPACE_SOURCE_DIR}" ]] || {
+  echo "WARN: Missing Infra workspace template directory ${INFRA_WORKSPACE_SOURCE_DIR}, creating..." >&2
+  mkdir -p "${INFRA_WORKSPACE_SOURCE_DIR}"
 }
 
 set -a
@@ -189,7 +196,26 @@ cp -f "${CEO_WORKSPACE_SOURCE_DIR}/AGENTS.md" "${CEO_WORKSPACE_TARGET_DIR}/AGENT
 cp -f "${CEO_WORKSPACE_SOURCE_DIR}/TOOLS.md" "${CEO_WORKSPACE_TARGET_DIR}/TOOLS.md"
 chmod go-rwx "${CEO_WORKSPACE_TARGET_DIR}"/*.md
 
+mkdir -p "${INFRA_WORKSPACE_TARGET_DIR}"
+if [[ -f "${INFRA_WORKSPACE_SOURCE_DIR}/SOUL.md" ]]; then
+  cp -f "${INFRA_WORKSPACE_SOURCE_DIR}/SOUL.md" "${INFRA_WORKSPACE_TARGET_DIR}/SOUL.md"
+fi
+if [[ -f "${INFRA_WORKSPACE_SOURCE_DIR}/HEARTBEAT.md" ]]; then
+  cp -f "${INFRA_WORKSPACE_SOURCE_DIR}/HEARTBEAT.md" "${INFRA_WORKSPACE_TARGET_DIR}/HEARTBEAT.md"
+fi
+if [[ -f "${INFRA_WORKSPACE_SOURCE_DIR}/USER.md" ]]; then
+  cp -f "${INFRA_WORKSPACE_SOURCE_DIR}/USER.md" "${INFRA_WORKSPACE_TARGET_DIR}/USER.md"
+fi
+if [[ -f "${INFRA_WORKSPACE_SOURCE_DIR}/IDENTITY.md" ]]; then
+  cp -f "${INFRA_WORKSPACE_SOURCE_DIR}/IDENTITY.md" "${INFRA_WORKSPACE_TARGET_DIR}/IDENTITY.md"
+fi
+if [[ -f "${INFRA_WORKSPACE_SOURCE_DIR}/TOOLS.md" ]]; then
+  cp -f "${INFRA_WORKSPACE_SOURCE_DIR}/TOOLS.md" "${INFRA_WORKSPACE_TARGET_DIR}/TOOLS.md"
+fi
+chmod go-rwx "${INFRA_WORKSPACE_TARGET_DIR}"/*.md 2>/dev/null || true
+
 echo "Wrote ${TARGET_INCLUDE} (mode 600)"
 echo "Installed plugin to ${PLUGIN_TARGET_DIR}"
 echo "Synced CEO workspace templates to ${CEO_WORKSPACE_TARGET_DIR}"
+echo "Synced Infra workspace templates to ${INFRA_WORKSPACE_TARGET_DIR}"
 echo "OpenClaw will pick up the new include on next gateway start or 'openclaw secrets reload'."

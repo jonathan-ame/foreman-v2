@@ -26,7 +26,7 @@ import { step8ConfigReload } from "./steps/step-8-config-reload.js";
 import { rollbackStep8ConfigReload } from "./steps/step-8-config-reload.js";
 import { step9Verify } from "./steps/step-9-verify.js";
 import { rollbackStep9Verify } from "./steps/step-9-verify.js";
-import type { OpenClawClientLike, PaperclipClientLike, StepContext, StepResult, StripeClientLike } from "./steps/types.js";
+import type { ComposioClientLike, OpenClawClientLike, PaperclipClientLike, StepContext, StepResult, StripeClientLike } from "./steps/types.js";
 import type { ProvisionFailure, ProvisionInput, ProvisioningOutcome, ProvisioningResult, ProvisionSuccess } from "./types.js";
 
 export interface ProvisionDependencies {
@@ -34,6 +34,7 @@ export interface ProvisionDependencies {
     paperclip: PaperclipClientLike;
     openclaw: OpenClawClientLike;
     stripe: StripeClientLike;
+    composio: ComposioClientLike;
   };
   db: SupabaseClient;
   logger: Logger;

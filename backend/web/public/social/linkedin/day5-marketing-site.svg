@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1080" font-family="Inter, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#1F2937"/>
+      <stop offset="60%" stop-color="#1d4ed8"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <pattern id="grid" width="36" height="36" patternUnits="userSpaceOnUse">
+      <path d="M 36 0 L 0 0 0 36" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+    </pattern>
+  </defs>
+
+  <rect width="1080" height="1080" fill="url(#bgGrad)"/>
+  <rect width="1080" height="1080" fill="url(#grid)"/>
+
+  <g opacity="0.08">
+    <circle cx="200" cy="800" r="100" fill="#06b6d4"/>
+    <circle cx="880" cy="200" r="80" fill="#3b82f6"/>
+  </g>
+
+  <rect x="60" y="60" width="100" height="36" rx="18" fill="#10b981"/>
+  <text x="110" y="84" text-anchor="middle" font-size="14" fill="#fff" font-weight="700">DAY 5</text>
+
+  <g transform="translate(540, 200)">
+    <text x="0" y="0" text-anchor="middle" font-size="14" fill="#10b981" font-weight="600" letter-spacing="3">LAUNCH</text>
+    <text x="0" y="52" text-anchor="middle" font-size="42" font-weight="800" fill="#fff" letter-spacing="-1">Our new site is live!</text>
+  </g>
+
+  <g transform="translate(540, 420)">
+    <rect x="-380" y="-160" width="760" height="320" rx="24" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.12)" stroke-width="2"/>
+    <rect x="-380" y="-160" width="760" height="40" rx="24" fill="rgba(255,255,255,0.08)"/>
+    <rect x="-380" y="-136" width="760" height="16" fill="rgba(255,255,255,0.08)"/>
+    <circle cx="-350" cy="-140" r="6" fill="#ef4444"/>
+    <circle cx="-330" cy="-140" r="6" fill="#fbbf24"/>
+    <circle cx="-310" cy="-140" r="6" fill="#10b981"/>
+    <rect x="-380" y="-160" width="760" height="40" rx="24" fill="none" stroke="rgba(255,255,255,0.08)"/>
+
+    <text x="0" y="-70" text-anchor="middle" font-size="48" font-weight="800" fill="#fff" letter-spacing="-1">foreman.company</text>
+    <text x="0" y="-30" text-anchor="middle" font-size="16" fill="#3b82f6">Your AI Team, Ready in Minutes</text>
+
+    <line x1="-340" y1="-10" x2="340" y2="-10" stroke="rgba(255,255,255,0.06)" stroke-width="1"/>
+
+    <g transform="translate(-180, 40)">
+      <rect x="-120" y="-25" width="240" height="50" rx="10" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.2)" stroke-width="1"/>
+      <text x="0" y="5" text-anchor="middle" font-size="13" fill="#3b82f6" font-weight="600">See how Foreman works</text>
+    </g>
+
+    <g transform="translate(180, 40)">
+      <rect x="-120" y="-25" width="240" height="50" rx="10" fill="rgba(59,130,246,0.1)" stroke="rgba(59,130,246,0.2)" stroke-width="1"/>
+      <text x="0" y="5" text-anchor="middle" font-size="13" fill="#3b82f6" font-weight="600">Compare pricing</text>
+    </g>
+
+    <g transform="translate(0, 100)">
+      <rect x="-160" y="-25" width="320" height="50" rx="10" fill="#3b82f6"/>
+      <text x="0" y="5" text-anchor="middle" font-size="14" fill="#fff" font-weight="700">Join the Waitlist</text>
+    </g>
+  </g>
+
+  <text x="540" y="830" text-anchor="middle" font-size="13" fill="rgba(255,255,255,0.4)" letter-spacing="1">FOREMAN.COMPANY</text>
+  <text x="540" y="858" text-anchor="middle" font-size="11" fill="rgba(255,255,255,0.25)">AI agents for the rest of us</text>
+</svg>

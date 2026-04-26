@@ -77,6 +77,87 @@ export class PaperclipClient {
     await this.requestJson("POST", `/api/approvals/${approvalId}/${action}`, body);
   }
 
+  async listAgents(companyId: string): Promise<PaperclipAgent[]> {
+    const result = await this.requestJson<{ agents: PaperclipAgent[] } | PaperclipAgent[]>(
+      "GET",
+      `/api/companies/${companyId}/agents`
+    );
+    return Array.isArray(result) ? result : result.agents ?? [];
+  }
+
+  async triggerHeartbeat(agentId: string): Promise<{ ok: boolean; runId?: string }> {
+    return this.requestJson<{ ok: boolean; runId?: string }>(
+      "POST",
+      `/api/agents/${agentId}/heartbeat`
+    );
+  }
+
+  async getAgentInbox(agentId: string): Promise<unknown[]> {
+    const result = await this.requestJson<{ issues?: unknown[]; items?: unknown[] }>(
+      "GET",
+      `/api/agents/${agentId}/inbox-lite`
+    );
+    return (result as { issues?: unknown[]; items?: unknown[] }).issues ?? (result as { items?: unknown[] }).items ?? [];
+  }
+
+  async createIssue(companyId: string, input: Record<string, unknown>): Promise<unknown> {
+    return this.requestJson("POST", `/api/companies/${companyId}/issues`, input);
+  }
+
+  async listIssues(companyId: string, filters?: { status?: string; assigneeAgentId?: string }): Promise<unknown[]> {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.assigneeAgentId) params.set("assigneeAgentId", filters.assigneeAgentId);
+    const qs = params.toString();
+    const path = qs ? `/api/companies/${companyId}/issues?${qs}` : `/api/companies/${companyId}/issues`;
+    const result = await this.requestJson<{ issues?: unknown[] } | unknown[]>("GET", path);
+    return Array.isArray(result) ? result : (result as { issues?: unknown[] }).issues ?? [];
+  }
+
+  async getIssue(issueId: string): Promise<unknown> {
+    return this.requestJson("GET", `/api/issues/${issueId}`);
+  }
+
+  async updateIssue(issueId: string, patch: Record<string, unknown>): Promise<unknown> {
+    return this.requestJson("PATCH", `/api/issues/${issueId}`, patch);
+  }
+
+  async listIssueComments(issueId: string): Promise<unknown[]> {
+    const result = await this.requestJson<{ comments?: unknown[] } | unknown[]>(
+      "GET",
+      `/api/issues/${issueId}/comments`
+    );
+    return Array.isArray(result) ? result : (result as { comments?: unknown[] }).comments ?? [];
+  }
+
+  async addIssueComment(issueId: string, body: string): Promise<unknown> {
+    return this.requestJson("POST", `/api/issues/${issueId}/comments`, { body });
+  }
+
+  async listIssueDocuments(issueId: string): Promise<unknown[]> {
+    const result = await this.requestJson<{ documents?: unknown[] } | unknown[]>(
+      "GET",
+      `/api/issues/${issueId}/documents`
+    );
+    return Array.isArray(result) ? result : (result as { documents?: unknown[] }).documents ?? [];
+  }
+
+  async getIssueDocument(issueId: string, key: string): Promise<unknown> {
+    return this.requestJson("GET", `/api/issues/${issueId}/documents/${key}`);
+  }
+
+  async listProjects(companyId: string): Promise<unknown[]> {
+    const result = await this.requestJson<{ projects?: unknown[] } | unknown[]>(
+      "GET",
+      `/api/companies/${companyId}/projects`
+    );
+    return Array.isArray(result) ? result : (result as { projects?: unknown[] }).projects ?? [];
+  }
+
+  async createProject(companyId: string, input: Record<string, unknown>): Promise<unknown> {
+    return this.requestJson("POST", `/api/companies/${companyId}/projects`, input);
+  }
+
   async ping(): Promise<{ ok: boolean; version?: string }> {
     try {
       const response = await this.requestJson<{ version?: string }>("GET", "/api/health");

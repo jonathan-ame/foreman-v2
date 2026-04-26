@@ -7,7 +7,9 @@ export interface NotificationInsert {
     | "agent_paused_health"
     | "agent_recovered_health"
     | "byok_fallback_started"
-    | "byok_fallback_stopped";
+    | "byok_fallback_stopped"
+    | "byok_key_invalid"
+    | "integration_event";
   title: string;
   body: string;
   reference_id?: string | null;

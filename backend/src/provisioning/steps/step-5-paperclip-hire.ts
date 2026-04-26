@@ -1,10 +1,10 @@
-import { env } from "../../config/env.js";
 import type { Customer } from "../../db/customers.js";
+import type { OpenCodeLocalAdapterConfig } from "../../clients/paperclip/types.js";
 import type { StepContext, StepResult } from "./types.js";
 
 export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> {
   const customer = ctx.state.customer as Customer | undefined;
-  const roleConfig = ctx.state.roleConfig as { paperclipRole: string; budgetMonthlyCents: number; capabilities: string } | undefined;
+  const roleConfig = ctx.state.roleConfig as { paperclipRole: string; budgetMonthlyCents: number; capabilities: string; composioToolkits?: string[] } | undefined;
 
   if (!customer || !roleConfig) {
     return {
@@ -22,35 +22,37 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     };
   }
 
-  const isWorkerRole = ctx.input.role !== "ceo";
-  const openclawAgentId = ctx.state.openclawAgentId as string | undefined;
-  if (isWorkerRole && !openclawAgentId) {
-    return {
-      ok: false,
-      errorCode: "OPENCLAW_AGENT_ID_MISSING",
-      errorMessage: "openclaw agent id missing for worker process adapter"
-    };
+  let composioMcpUrl: string | undefined;
+  let composioMcpHeaders: Record<string, string> | undefined;
+  if (ctx.clients.composio.isConfigured) {
+    try {
+      const composioUserId = `foreman_${customer.customer_id}`;
+      const composioSession = await ctx.clients.composio.createSession(composioUserId, {
+        toolkits: roleConfig.composioToolkits ?? []
+      });
+      composioMcpUrl = composioSession.mcp.url;
+      composioMcpHeaders = composioSession.mcp.headers;
+      ctx.logger.info(
+        { composioUserId, sessionId: composioSession.id, mcpUrl: composioMcpUrl },
+        "composio session created for agent provisioning"
+      );
+    } catch (err) {
+      ctx.logger.warn({ err, customerId: customer.customer_id }, "composio session creation failed — proceeding without external tool access");
+    }
   }
-  const adapterTimeoutSec = isWorkerRole ? 300 : 1500;
+
+  const adapterTimeoutSec = ctx.input.role === "ceo" ? 1500 : 300;
+  const isWorkerRole = ctx.input.role !== "ceo";
   const heartbeatConfig = isWorkerRole
     ? { enabled: true, mode: "reactive" as const }
     : { enabled: true, mode: "proactive" as const, intervalSec: 1800 };
-  const workerProcessConfig = isWorkerRole
-    ? {
-        command: "/Users/jonathanborgia/foreman-git/foreman-v2/scripts/paperclip-openclaw-executor.sh",
-        cwd: "/Users/jonathanborgia/foreman-git/foreman-v2",
-        timeoutSec: adapterTimeoutSec,
-        env: {
-          FOREMAN_OPENCLAW_AGENT_ID: openclawAgentId!
-        }
-      }
-    : null;
-  const openclawGatewayConfig = {
-    url: env.OPENCLAW_GATEWAY_URL,
-    gatewayUrl: env.OPENCLAW_GATEWAY_URL,
+
+  const opencodeLocalConfig: OpenCodeLocalAdapterConfig = {
     timeoutSec: adapterTimeoutSec,
-    headers: {
-      "x-openclaw-token": "pending-sync"
+    ...(isWorkerRole ? { graceSec: 30 } : {}),
+    env: {
+      ...(composioMcpUrl ? { COMPOSIO_MCP_URL: composioMcpUrl } : {}),
+      ...(composioMcpHeaders ? { COMPOSIO_MCP_HEADERS: JSON.stringify(composioMcpHeaders) } : {}),
     }
   };
 
@@ -59,18 +61,17 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     role: roleConfig.paperclipRole,
     capabilities: roleConfig.capabilities,
     budgetMonthlyCents: roleConfig.budgetMonthlyCents,
-    adapterType: isWorkerRole ? "process" : "openclaw_gateway",
-    adapterConfig: isWorkerRole ? workerProcessConfig! : openclawGatewayConfig,
+    adapterType: "opencode_local",
+    adapterConfig: opencodeLocalConfig,
     runtimeConfig: {
       heartbeat: heartbeatConfig
     }
   });
 
   const patchedAgent = await ctx.clients.paperclip.patchAgent(hireResponse.agent.id, {
-    ...(isWorkerRole ? { adapterType: "process" } : {}),
     adapterConfig: {
       ...hireResponse.agent.adapterConfig,
-      ...(isWorkerRole ? workerProcessConfig! : openclawGatewayConfig),
+      ...opencodeLocalConfig,
       timeoutSec: adapterTimeoutSec
     },
     runtimeConfig: {
@@ -82,7 +83,8 @@ export async function step5PaperclipHire(ctx: StepContext): Promise<StepResult> 
     ok: true,
     data: {
       paperclipAgent: patchedAgent,
-      pendingApproval: hireResponse.approval ?? null
+      pendingApproval: hireResponse.approval ?? null,
+      composioMcpUrl: composioMcpUrl ?? null
     }
   };
 }

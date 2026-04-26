@@ -36,10 +36,9 @@ describe("PaperclipClient", () => {
       id: "a1",
       name: "CEO",
       role: "ceo",
-      adapterType: "openclaw_gateway",
+      adapterType: "opencode_local",
       adapterConfig: {
-        gatewayUrl: "ws://localhost:18789",
-        headers: { "x-openclaw-token": "abc" }
+        timeoutSec: 1500
       },
       companyId: "c1"
     };
@@ -54,10 +53,9 @@ describe("PaperclipClient", () => {
       reportsTo: "board",
       capabilities: "execute",
       budgetMonthlyCents: 100000,
-      adapterType: "openclaw_gateway",
+      adapterType: "opencode_local",
       adapterConfig: {
-        gatewayUrl: "ws://localhost:18789",
-        headers: { "x-openclaw-token": "abc" }
+        timeoutSec: 1500
       }
     });
 

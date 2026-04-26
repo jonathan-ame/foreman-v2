@@ -36,8 +36,8 @@ describe("runAgentHealthCheckJob", () => {
             id: agentId,
             name: "Agent",
             role: "cmo",
-            adapterType: statusByPaperclipId[agentId]?.adapterType ?? "openclaw_gateway",
-            adapterConfig: { gatewayUrl: "ws://127.0.0.1:18789/", headers: { "x-openclaw-token": "tok" } },
+            adapterType: statusByPaperclipId[agentId]?.adapterType ?? "opencode_local",
+            adapterConfig: { timeoutSec: 1500 },
             companyId: "company-1",
             status: statusByPaperclipId[agentId]?.status
           }))

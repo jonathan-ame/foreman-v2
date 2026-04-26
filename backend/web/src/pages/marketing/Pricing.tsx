@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { trackSignupStarted } from "../../utils/analytics";
 
 const tiers = [
   {
@@ -11,6 +12,7 @@ const tiers = [
       "1 AI agent",
       "Standard task throughput",
       "OpenRouter-powered (DeepSeek v3 + Qwen 2.5)",
+      "BYOK — bring your own API keys",
       "Projects, Inbox, Settings",
       "Email support",
     ],
@@ -27,6 +29,7 @@ const tiers = [
       "Up to 5 AI agents",
       "Increased task throughput",
       "Chief of Staff with plan approval",
+      "BYOK — bring your own API keys",
       "Team org chart view",
       "Priority support",
     ],
@@ -44,7 +47,7 @@ const tiers = [
       "Maximum throughput",
       "Custom agent instructions",
       "Usage-based billing available",
-      "BYOK (bring your own keys)",
+      "BYOK — bring your own API keys",
       "Dedicated support",
     ],
     cta: "Start free trial",
@@ -59,10 +62,10 @@ export function Pricing() {
         <div className="content-inner text-center">
           <h1>Simple pricing that scales with your business</h1>
           <p>Start for less than your phone bill, scale as you grow. No long‑term contracts, cancel anytime.</p>
-          <div className="page-hero-trust">
+           <div className="page-hero-trust">
             <span className="trust-badge">14-day free trial</span>
             <span className="trust-badge">No credit card required</span>
-            <span className="trust-badge">SOC 2 compliant</span>
+            <span className="trust-badge">Enterprise-grade security</span>
           </div>
         </div>
       </section>
@@ -91,7 +94,11 @@ export function Pricing() {
                     <li key={f}>{f}</li>
                   ))}
                 </ul>
-                <a href="/app" className={tier.highlight ? "button-primary" : "button-ghost"}>
+                <a
+                  href="/app"
+                  className={tier.highlight ? "button-primary" : "button-ghost"}
+                  onClick={() => trackSignupStarted(`pricing-${tier.name.toLowerCase()}`)}
+                >
                   {tier.cta}
                 </a>
               </div>

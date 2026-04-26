@@ -1,23 +1,34 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface AgentNode {
   id: string;
   name: string;
   role: string;
-  status: "active" | "idle" | "offline";
+  status: "active" | "idle" | "offline" | "running" | "paused";
   current_task: string | null;
   reports_to_id: string | null;
+  adapterType?: string;
+  capabilities?: string;
 }
 
-const STATUS_DOT: Record<AgentNode["status"], string> = {
+const STATUS_DOT: Record<string, string> = {
   active: "team-dot team-dot--active",
+  running: "team-dot team-dot--active",
   idle: "team-dot team-dot--idle",
+  paused: "team-dot team-dot--idle",
   offline: "team-dot team-dot--offline"
 };
 
 function AgentCard({ agent }: { agent: AgentNode }) {
+  const navigate = useNavigate();
   return (
-    <div className="team-card">
+    <button
+      type="button"
+      className="team-card team-card--clickable"
+      onClick={() => navigate(`/dashboard/team/${agent.id}`)}
+      aria-label={`View agent ${agent.name}`}
+    >
       <div className="team-card-header">
         <div className="team-card-avatar" aria-hidden="true">
           {agent.role.charAt(0).toUpperCase()}
@@ -26,12 +37,12 @@ function AgentCard({ agent }: { agent: AgentNode }) {
           <span className="team-card-name">{agent.name}</span>
           <span className="team-card-role muted">{agent.role}</span>
         </div>
-        <span className={STATUS_DOT[agent.status]} aria-label={agent.status} />
+        <span className={STATUS_DOT[agent.status] ?? "team-dot team-dot--offline"} aria-label={agent.status} />
       </div>
       {agent.current_task && (
         <p className="team-card-task muted">{agent.current_task}</p>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -101,7 +112,10 @@ export function Team() {
 
       {!loading && agents.length === 0 && (
         <div className="dash-empty">
-          <p className="dash-empty-text">Your CEO hasn't hired any agents yet. They will appear here as your team grows.</p>
+          <p className="dash-empty-text">Grow your team — ask your Chief of Staff to hire agents for specific roles like marketing, engineering, or design.</p>
+          <a href="/dashboard" className="button-primary" style={{ display: "inline-block", marginTop: 12, textDecoration: "none", fontSize: 14, padding: "8px 20px" }}>
+            Suggest a hire
+          </a>
         </div>
       )}
 

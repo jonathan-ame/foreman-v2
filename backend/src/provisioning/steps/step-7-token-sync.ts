@@ -12,6 +12,20 @@ export async function step7TokenSync(ctx: StepContext): Promise<StepResult> {
     };
   }
 
+  if (paperclipAgent.adapterType === "opencode_local") {
+    ctx.logger.info(
+      { paperclipAgentId: paperclipAgent.id, adapterType: paperclipAgent.adapterType },
+      "skipping gateway token sync for opencode_local adapter"
+    );
+    return {
+      ok: true,
+      data: {
+        paperclipAgent,
+        gatewayTokenSynced: false
+      }
+    };
+  }
+
   const token = await ctx.clients.openclaw.readGatewayToken();
   await safePatchAgent(ctx.clients.paperclip, paperclipAgent.companyId, paperclipAgent.id, {
     adapterConfig: {

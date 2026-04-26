@@ -8,6 +8,8 @@ interface CustomerSession {
   display_name: string;
   current_tier: string | null;
   current_billing_mode: string;
+  onboarding_progress: Record<string, string>;
+  onboarding_complete: boolean;
 }
 
 interface ProvisionFailureResponse {
@@ -49,6 +51,14 @@ const ROLE_OPTIONS: { key: AgentRole; label: string; description: string }[] = [
   { key: "general_assistant", label: "General assistant", description: "Flexible help across any area" }
 ];
 
+const ROLE_TO_BACKEND_ROLE: Record<AgentRole, string> = {
+  company_leadership: "ceo",
+  project_management: "engineer",
+  writing_content: "marketing_analyst",
+  engineering_support: "engineer",
+  general_assistant: "ceo"
+};
+
 const LAUNCH_STAGES = [
   "Setting up your workspace…",
   "Configuring model access…",
@@ -57,6 +67,34 @@ const LAUNCH_STAGES = [
 ];
 
 const STEP_LABELS = ["Name", "Role", "Model", "Key", "Review"];
+
+const ROLE_SUGGESTIONS: Record<AgentRole, string[]> = {
+  company_leadership: [
+    "Review our current strategy and suggest priorities for this quarter",
+    "Help me organize my team's goals and deliverables",
+    "Create a hiring plan for the next 90 days"
+  ],
+  project_management: [
+    "Create a project plan for our next product launch",
+    "Track and prioritize our current tasks and deadlines",
+    "Summarize what the team accomplished this week"
+  ],
+  writing_content: [
+    "Draft a blog post about our product for our target audience",
+    "Write email copy for our next campaign",
+    "Create a content calendar for the next month"
+  ],
+  engineering_support: [
+    "Review our codebase and identify the top 3 areas for improvement",
+    "Write a technical specification for our next feature",
+    "Summarize recent code changes and flag potential issues"
+  ],
+  general_assistant: [
+    "Help me organize my tasks for this week",
+    "Research competitors in our industry and summarize findings",
+    "Draft a summary of our latest meeting notes"
+  ]
+};
 
 const STEP_TO_INDEX: Partial<Record<WizardStep, number>> = {
   name: 0,
@@ -82,10 +120,13 @@ const stageLabelFromFailureStep = (failedStep: string): string => {
 
 interface OnboardingWizardProps {
   customer: CustomerSession;
+  onComplete?: () => void;
 }
 
-export function OnboardingWizard({ customer }: OnboardingWizardProps) {
-  const [step, setStep] = useState<WizardStep>("welcome");
+export function OnboardingWizard({ customer, onComplete }: OnboardingWizardProps) {
+  const storageKey = `foreman:wizard:${customer.customer_id}`;
+  const savedStep = (() => { try { const s = localStorage.getItem(storageKey); if (s === "welcome" || s === "name" || s === "role" || s === "model" || s === "api-key" || s === "byok-key" || s === "review") return s; } catch { /* */ } return null; })();
+  const [step, setStep] = useState<WizardStep>(savedStep ?? "welcome");
   const [agentName, setAgentName] = useState("CEO");
   const [nameError, setNameError] = useState<string | null>(null);
   const [roleKey, setRoleKey] = useState<AgentRole>("company_leadership");
@@ -162,7 +203,30 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
     return () => window.clearInterval(id);
   }, [step]);
 
-  const goTo = (target: WizardStep) => setStep(target);
+  const STEP_MAP: Record<string, string> = {
+    name: "profile",
+    model: "plan",
+    "api-key": "model",
+    review: "agent"
+  };
+
+  const markOnboardingStep = (wizardStep: string) => {
+    const serverStep = STEP_MAP[wizardStep];
+    if (serverStep) {
+      fetch("/api/internal/onboarding/complete-step", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ step: serverStep }),
+        credentials: "include"
+      }).catch(() => { /* non-blocking */ });
+    }
+  };
+
+  const goTo = (target: WizardStep) => {
+    setStep(target);
+    try { localStorage.setItem(storageKey, target); } catch { /* ignore */ }
+    markOnboardingStep(target);
+  };
 
   const handleNameContinue = () => {
     if (agentName.trim().length === 0) {
@@ -186,7 +250,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
         body: JSON.stringify({
           customer_id: customer.customer_id,
           agent_name: agentName.trim(),
-          role: "ceo",
+          role: ROLE_TO_BACKEND_ROLE[roleKey],
           model_tier: modelTier,
           idempotency_key: crypto.randomUUID(),
           api_key_mode: apiKeyMode,
@@ -231,6 +295,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
 
   const handleSendFirstTask = async () => {
     if (!firstTask.trim()) {
+      onComplete?.();
       window.location.assign("/dashboard");
       return;
     }
@@ -245,12 +310,13 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
     } catch {
       // best-effort — navigate regardless
     }
+    onComplete?.();
     window.location.assign("/dashboard");
   };
 
   const roleLabel = ROLE_OPTIONS.find((r) => r.key === roleKey)?.label ?? roleKey;
-  const modelLabel: Record<ModelTier, string> = { open: "Efficient", hybrid: "Smart", frontier: "Frontier" };
-  const apiKeyLabel = apiKeyMode === "foreman_managed" ? "Foreman managed" : "Your OpenRouter key";
+  const modelLabel: Record<ModelTier, string> = { open: "Essentials", hybrid: "Recommended", frontier: "Premium" };
+  const apiKeyLabel = apiKeyMode === "foreman_managed" ? "Hassle-free setup" : "Your OpenRouter key";
 
   // ── Envelope screens (no step indicator) ────────────────────────────────────
 
@@ -273,7 +339,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
             <button
               type="button"
               className="link-button"
-              onClick={() => window.location.assign("/dashboard")}
+              onClick={() => { onComplete?.(); window.location.assign("/dashboard"); }}
             >
               I already have an agent — skip
             </button>
@@ -298,6 +364,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
   }
 
   if (step === "success") {
+    const suggestions = ROLE_SUGGESTIONS[roleKey] ?? ROLE_SUGGESTIONS.general_assistant;
     return (
       <main className="app-shell">
         <section className="panel wizard-panel wizard-success">
@@ -315,6 +382,18 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
               rows={3}
             />
           </label>
+          <div className="wizard-suggestion-chips">
+            {suggestions.map((s) => (
+              <button
+                key={s}
+                type="button"
+                className={`wizard-chip${firstTask === s ? " wizard-chip--active" : ""}`}
+                onClick={() => setFirstTask(s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           <div className="wizard-nav">
             <button
               type="button"
@@ -473,9 +552,9 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
         {step === "model" && (
           <>
             <h1 ref={h1Ref} tabIndex={-1} className="wizard-question">
-              How capable should your agent be?
+              Choose your agent's capability level
             </h1>
-            <p className="muted">You can change this at any time from settings.</p>
+            <p className="muted">Don't worry — you can change this anytime from settings.</p>
             <div className="wizard-option-stack" role="radiogroup" aria-label="Model tier">
               {(["open", "hybrid", "frontier"] as ModelTier[]).map((tier) => (
                 <button
@@ -487,18 +566,18 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
                   onClick={() => setModelTier(tier)}
                 >
                   <span className="wizard-option-title">
-                    {tier === "open" && "Efficient"}
+                    {tier === "open" && "Essentials"}
                     {tier === "hybrid" && (
                       <>
-                        Smart <span className="wizard-badge">Recommended</span>
+                        Recommended <span className="wizard-badge">Best for most</span>
                       </>
                     )}
-                    {tier === "frontier" && "Frontier"}
+                    {tier === "frontier" && "Premium"}
                   </span>
                   <span className="wizard-option-desc">
-                    {tier === "open" && "Open-source models — fast and low cost"}
-                    {tier === "hybrid" && "Balanced cost and capability"}
-                    {tier === "frontier" && "Top-tier reasoning, higher cost"}
+                    {tier === "open" && "Good for simple tasks, lowest cost"}
+                    {tier === "hybrid" && "Best balance of speed and smarts, small usage surcharge"}
+                    {tier === "frontier" && "Best reasoning for complex work, higher cost"}
                   </span>
                 </button>
               ))}
@@ -517,7 +596,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
         {step === "api-key" && (
           <>
             <h1 ref={h1Ref} tabIndex={-1} className="wizard-question">
-              How should your agent access AI models?
+              How would you like to connect?
             </h1>
             <div className="wizard-option-stack" role="radiogroup" aria-label="API key mode">
               <button
@@ -527,8 +606,8 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
                 className={`wizard-option${apiKeyMode === "foreman_managed" ? " wizard-option--selected" : ""}`}
                 onClick={() => setApiKeyMode("foreman_managed")}
               >
-                <span className="wizard-option-title">Use Foreman's key</span>
-                <span className="wizard-option-desc">Easier setup — includes a small usage surcharge</span>
+                <span className="wizard-option-title">Hassle-free setup <span className="wizard-badge">Recommended</span></span>
+                <span className="wizard-option-desc">Foreman handles everything. Just start chatting with your agent.</span>
               </button>
               <button
                 type="button"
@@ -537,10 +616,25 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
                 className={`wizard-option${apiKeyMode === "byok" ? " wizard-option--selected" : ""}`}
                 onClick={() => setApiKeyMode("byok")}
               >
-                <span className="wizard-option-title">Bring my own OpenRouter key</span>
-                <span className="wizard-option-desc">More control, lower cost</span>
+                <span className="wizard-option-title">I have an OpenRouter key</span>
+                <span className="wizard-option-desc">Lower cost per task. Paste your key from openrouter.ai/keys</span>
               </button>
             </div>
+            {apiKeyMode === "byok" && (
+              <div className="wizard-byok-info">
+                <p className="muted wizard-hint">
+                  This option is for users who already have an OpenRouter API key. If you're not sure, choose Hassle-free setup — you can always switch later in Settings.
+                </p>
+                <details className="wizard-details">
+                  <summary className="wizard-details-summary">What's an API key?</summary>
+                  <p className="wizard-details-body">
+                    An API key is like a password that lets Foreman talk to AI models on your behalf. 
+                    If you don't have one, choose Hassle-free setup — it's included in your plan. 
+                    You can get a key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">openrouter.ai/keys</a>.
+                  </p>
+                </details>
+              </div>
+            )}
             <div className="wizard-nav">
               <button type="button" className="wizard-btn-ghost" onClick={() => goTo("model")}>
                 Back
@@ -561,7 +655,7 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
             <h1 ref={h1Ref} tabIndex={-1} className="wizard-question">
               Enter your OpenRouter API key
             </h1>
-            <p className="muted">Find it at openrouter.ai/keys. We store it encrypted.</p>
+            <p className="muted">Find your key at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener noreferrer">openrouter.ai/keys</a>. Your key is stored encrypted and never shared.</p>
             <div className="wizard-input-wrap">
               <input
                 type="password"
@@ -613,6 +707,14 @@ export function OnboardingWizard({ customer }: OnboardingWizardProps) {
             <h1 ref={h1Ref} tabIndex={-1} className="wizard-question">
               Ready to launch?
             </h1>
+            <div className="wizard-whats-next">
+              <p className="wizard-whats-next-title">What happens next:</p>
+              <ol className="wizard-whats-next-list">
+                <li>Your agent is created and starts running immediately</li>
+                <li>You can chat with it from your dashboard</li>
+                <li>Give it any task — it works on it and asks for your approval on important decisions</li>
+              </ol>
+            </div>
             <div className="wizard-summary">
               {(
                 [

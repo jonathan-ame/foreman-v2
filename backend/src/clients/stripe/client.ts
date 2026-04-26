@@ -12,13 +12,16 @@ export interface StripeClientConfig {
 }
 
 export class StripeClient {
-  private readonly stripe: Stripe;
+  private readonly stripe: Stripe | null;
   private readonly logger: Logger;
 
   constructor(config: StripeClientConfig) {
     const apiKey = config.mode === "live" ? config.liveApiKey : config.testApiKey;
     if (!apiKey) {
-      throw new StripeApiError(`Missing Stripe API key for mode=${config.mode}`);
+      this.stripe = null;
+      this.logger = config.logger.child({ warn: "no-api-key" });
+      this.logger.warn(`Stripe API key missing for mode=${config.mode}; Stripe operations will return stub data`);
+      return;
     }
     this.stripe = new Stripe(
       apiKey,
@@ -27,7 +30,15 @@ export class StripeClient {
     this.logger = config.logger;
   }
 
+  private requireStripe(): Stripe {
+    if (!this.stripe) {
+      throw new StripeApiError("Stripe is not configured; set STRIPE_SECRET_KEY_TEST in .env");
+    }
+    return this.stripe;
+  }
+
   async getSubscriptionStatus(stripeCustomerId: string): Promise<PaymentStatus> {
+    if (!this.stripe) return "pending";
     try {
       const subscriptions = await this.stripe.subscriptions.list({
         customer: stripeCustomerId,
@@ -45,6 +56,7 @@ export class StripeClient {
   }
 
   async hasFailedPaymentSince(stripeCustomerId: string, since: Date): Promise<boolean> {
+    if (!this.stripe) return false;
     try {
       const events = await this.stripe.events.list({
         type: "invoice.payment_failed",
@@ -62,6 +74,7 @@ export class StripeClient {
   }
 
   async getPrepaidBalanceCents(stripeCustomerId: string): Promise<number> {
+    if (!this.stripe) return 0;
     try {
       const customer = await this.stripe.customers.retrieve(stripeCustomerId);
       if (customer.deleted) {
@@ -75,6 +88,7 @@ export class StripeClient {
   }
 
   async createSubscription(stripeCustomerId: string, productId: string): Promise<string> {
+    if (!this.stripe) throw new StripeApiError("Stripe not configured");
     try {
       const prices = await this.stripe.prices.list({
         product: productId,
@@ -102,6 +116,7 @@ export class StripeClient {
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {
+    if (!this.stripe) throw new StripeApiError("Stripe not configured");
     try {
       await this.stripe.subscriptions.cancel(subscriptionId);
     } catch (error) {
@@ -110,6 +125,7 @@ export class StripeClient {
   }
 
   async createPaymentIntent(stripeCustomerId: string, amountCents: number): Promise<PaymentIntentResult> {
+    if (!this.stripe) throw new StripeApiError("Stripe not configured");
     try {
       const paymentIntent = await this.stripe.paymentIntents.create({
         customer: stripeCustomerId,
@@ -127,9 +143,54 @@ export class StripeClient {
     }
   }
 
+  async createCustomer(email: string, name: string, internalId: string): Promise<Stripe.Customer> {
+    const stripe = this.requireStripe();
+    try {
+      return await stripe.customers.create({
+        email,
+        name,
+        metadata: { internal_id: internalId }
+      });
+    } catch (error) {
+      throw this.toStripeApiError("Failed to create Stripe customer", error);
+    }
+  }
+
+  async createCheckoutSession(
+    stripeCustomerId: string,
+    priceId: string,
+    successUrl: string,
+    cancelUrl: string
+  ): Promise<Stripe.Checkout.Session> {
+    const stripe = this.requireStripe();
+    try {
+      return await stripe.checkout.sessions.create({
+        customer: stripeCustomerId,
+        mode: "subscription",
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: successUrl,
+        cancel_url: cancelUrl
+      });
+    } catch (error) {
+      throw this.toStripeApiError("Failed to create checkout session", error);
+    }
+  }
+
+  async createPortalSession(stripeCustomerId: string, returnUrl: string): Promise<Stripe.BillingPortal.Session> {
+    const stripe = this.requireStripe();
+    try {
+      return await stripe.billingPortal.sessions.create({
+        customer: stripeCustomerId,
+        return_url: returnUrl
+      });
+    } catch (error) {
+      throw this.toStripeApiError("Failed to create portal session", error);
+    }
+  }
+
   constructWebhookEvent(payload: string, signature: string, webhookSecret: string): Stripe.Event {
     try {
-      return this.stripe.webhooks.constructEvent(payload, signature, webhookSecret);
+      return this.requireStripe().webhooks.constructEvent(payload, signature, webhookSecret);
     } catch (error) {
       throw this.toStripeApiError("Failed to verify Stripe webhook signature", error);
     }

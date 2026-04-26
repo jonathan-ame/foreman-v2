@@ -15,6 +15,7 @@ interface CustomerRow {
   current_billing_mode: string;
   payment_status: string;
   created_at: string;
+  updated_at: string;
 }
 
 interface AgentRow {
@@ -24,58 +25,76 @@ interface AgentRow {
 
 export function registerMetricsRoutes(app: Hono, deps: AppDeps) {
   app.get("/api/internal/metrics/economics", async (c) => {
+    // Use Promise.allSettled for error resilience
     const [
       customersResult,
       agentsResult,
       funnelSummary,
       d7Retained,
       npsStats
-    ] = await Promise.all([
+    ] = await Promise.allSettled([
       deps.db.from("customers").select(
-        "current_tier, current_billing_mode, payment_status, created_at"
+        "current_tier, current_billing_mode, payment_status, created_at, updated_at"
       ),
       deps.db.from("agents").select("workspace_slug, surcharge_accrued_current_period_cents"),
-      getFunnelSummary(deps.db),
-      getD7RetainedCount(deps.db),
-      getNpsStats(deps.db)
+      getFunnelSummary(deps.db).catch(() => null),
+      getD7RetainedCount(deps.db).catch(() => null),
+      getNpsStats(deps.db).catch(() => null)
     ]);
 
-    if (customersResult.error) {
-      deps.logger.error({ err: customersResult.error }, "metrics: failed to fetch customers");
+    // Handle customer query errors
+    if (customersResult.status === 'rejected' || (customersResult.status === 'fulfilled' && customersResult.value.error)) {
+      deps.logger.error({ err: customersResult.status === 'rejected' ? customersResult.reason : customersResult.value.error }, 
+                       "metrics: failed to fetch customers");
       return c.json({ error: "database_error" }, 500);
     }
-    if (agentsResult.error) {
-      deps.logger.error({ err: agentsResult.error }, "metrics: failed to fetch agents");
-      return c.json({ error: "database_error" }, 500);
+    
+    // Handle agent query errors (non-critical, continue with empty)
+    let agents: AgentRow[] = [];
+    if (agentsResult.status === 'fulfilled' && !agentsResult.value.error) {
+      agents = (agentsResult.value.data ?? []) as AgentRow[];
     }
 
-    const customers = (customersResult.data ?? []) as CustomerRow[];
-    const agents = (agentsResult.data ?? []) as AgentRow[];
+    const customers = (customersResult.status === 'fulfilled' ? customersResult.value.data : []) as CustomerRow[];
     const since30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const activeStatuses = new Set(["active", "trialing"]);
+    // Active customers (excluding trialing for MRR calculation)
+    const activeStatuses = new Set(["active"]);
+    const trialingStatuses = new Set(["trialing"]);
+    
     const active = customers.filter((c) => activeStatuses.has(c.payment_status));
+    const trialing = customers.filter((c) => trialingStatuses.has(c.payment_status));
     const canceledLast30d = customers.filter(
-      (c) => c.payment_status === "canceled" && c.created_at >= since30d
-    );
-    const activeOrCanceledBefore30d = customers.filter(
-      (c) => activeStatuses.has(c.payment_status) || c.created_at < since30d
+      (c) => c.payment_status === "canceled" && c.updated_at >= since30d
     );
 
-    // MRR
+    // MRR (exclude trialing customers as they don't contribute to revenue)
     let mrrCents = 0;
     for (const customer of active) {
       const tier = customer.current_billing_mode === "byok" ? "byok_platform" : (customer.current_tier ?? "");
       mrrCents += TIER_MRR_CENTS[tier] ?? 0;
     }
 
-    const activeCount = active.length;
-    const arpuCents = activeCount > 0 ? Math.round(mrrCents / activeCount) : 0;
+    // Total active + trialing for customer count metrics
+    const totalActiveCustomers = active.length + trialing.length;
+    const arpuCents = totalActiveCustomers > 0 ? Math.round(mrrCents / totalActiveCustomers) : 0;
 
-    // Churn rate (30d)
-    const baselineCount = activeOrCanceledBefore30d.length;
-    const churnRate30d = baselineCount > 0
-      ? Math.round((canceledLast30d.length / baselineCount) * 10000) / 100
+    // Calculate 30-day churn rate properly
+    // Baseline: Customers who were active 30+ days ago
+    const baselineDate = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString(); // 60 days ago
+    const baselineActive = customers.filter(
+      (c) => (activeStatuses.has(c.payment_status) || trialingStatuses.has(c.payment_status)) 
+             && c.created_at < baselineDate
+    );
+    
+    const churnedInLast30d = customers.filter(
+      (c) => c.payment_status === "canceled" 
+             && c.updated_at >= since30d
+             && c.created_at < baselineDate
+    );
+    
+    const churnRate30d = baselineActive.length > 0
+      ? Math.round((churnedInLast30d.length / baselineActive.length) * 10000) / 100
       : 0;
 
     // Surcharge attach rate: workspaces where any agent accrued surcharge this period
@@ -93,27 +112,39 @@ export function registerMetricsRoutes(app: Hono, deps: AppDeps) {
       ? Math.round((workspacesWithSurcharge / totalWorkspacesWithAgents) * 10000) / 100
       : 0;
 
+    // Handle optional metrics with null safety
+    const funnelData = funnelSummary.status === 'fulfilled' ? funnelSummary.value : null;
+    const d7Data = d7Retained.status === 'fulfilled' ? d7Retained.value : null;
+    const npsData = npsStats.status === 'fulfilled' ? npsStats.value : null;
+
     return c.json({
       mrr_cents: mrrCents,
       mrr_usd: (mrrCents / 100).toFixed(2),
-      active_customers: activeCount,
+      active_customers: totalActiveCustomers,
+      active_paying_customers: active.length,
+      trialing_customers: trialing.length,
       arpu_cents: arpuCents,
       arpu_usd: (arpuCents / 100).toFixed(2),
       churn_rate_30d_pct: churnRate30d,
-      canceled_last_30d: canceledLast30d.length,
+      canceled_last_30d: churnedInLast30d.length,
       surcharge_attach_rate_pct: surchargeAttachRate,
       workspaces_with_surcharge: workspacesWithSurcharge,
-      funnel: {
-        signups_30d: funnelSummary.signups_30d,
-        first_agents_30d: funnelSummary.first_agents_30d,
-        first_tasks_30d: funnelSummary.first_tasks_30d,
-        total_signups: funnelSummary.total_signups,
-        total_first_agents: funnelSummary.total_first_agents,
-        total_first_tasks: funnelSummary.total_first_tasks,
-        d7_retained: d7Retained
-      },
-      nps: npsStats,
-      computed_at: new Date().toISOString()
+      funnel: funnelData ? {
+        signups_30d: funnelData.signups_30d,
+        first_agents_30d: funnelData.first_agents_30d,
+        first_tasks_30d: funnelData.first_tasks_30d,
+        total_signups: funnelData.total_signups,
+        total_first_agents: funnelData.total_first_agents,
+        total_first_tasks: funnelData.total_first_tasks,
+        d7_retained: d7Data
+      } : null,
+      nps: npsData,
+      computed_at: new Date().toISOString(),
+      metric_errors: {
+        funnel: funnelSummary.status === 'rejected',
+        d7_retention: d7Retained.status === 'rejected',
+        nps: npsStats.status === 'rejected'
+      }
     });
   });
 }

@@ -31,8 +31,14 @@ const parsePreviousHealth = (raw: string | null | undefined): ParsedHealthResult
 const determineGatewayHealth = async (deps: AppDeps, agent: Agent): Promise<GatewayHealthResult> => {
   try {
     const paperclipAgent = await deps.clients.paperclip.getAgent(agent.paperclip_agent_id);
-    if (paperclipAgent.adapterType !== "openclaw_gateway") {
+    if (paperclipAgent.adapterType !== "openclaw_gateway" && paperclipAgent.adapterType !== "opencode_local") {
       return { ok: false, detail: `unexpected_adapter_type:${paperclipAgent.adapterType}` };
+    }
+    if (paperclipAgent.adapterType === "opencode_local") {
+      if (paperclipAgent.status && paperclipAgent.status.toLowerCase() === "error") {
+        return { ok: false, detail: "paperclip_status:error" };
+      }
+      return { ok: true, detail: `paperclip_status:${paperclipAgent.status ?? "ok"}` };
     }
     if (paperclipAgent.status && paperclipAgent.status.toLowerCase() === "error") {
       return { ok: false, detail: "paperclip_status:error" };

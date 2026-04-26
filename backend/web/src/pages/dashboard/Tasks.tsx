@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Outlet, useNavigate, useParams } from "react-router-dom";
 import { useFocusTrap } from "../../utils/useFocusTrap";
 
@@ -115,7 +115,7 @@ export function Tasks() {
   const filtered = filter === "all" ? tasks : tasks.filter((t) => t.status === filter);
 
   return (
-    <div className="dash-content-shell">
+    <div className="dash-content-shell" aria-hidden={showCreate || undefined}>
       <header className="dash-content-header">
         <h1 className="dash-content-title">Tasks</h1>
         <div className="task-header-actions">
@@ -211,18 +211,6 @@ function CreateTaskModal({
   const [assigneeId, setAssigneeId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const trapRef = useFocusTrap(true);
-  const previousFocusRef = useRef<HTMLElement | null>(null);
-
-  useEffect(() => {
-    previousFocusRef.current = document.activeElement as HTMLElement;
-    const firstInput = trapRef.current?.querySelector<HTMLElement>(
-      'input:not([type="hidden"]),textarea,select'
-    );
-    if (firstInput) firstInput.focus();
-    return () => {
-      previousFocusRef.current?.focus();
-    };
-  }, [trapRef]);
 
   useEffect(() => {
     const load = async () => {

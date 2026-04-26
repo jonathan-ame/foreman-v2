@@ -80,8 +80,8 @@
           <li>✅ No-code setup</li>
           <li>✅ Managed service</li>
           <li>✅ Business-focused</li>
-          <li>✅ 15-minute deployment</li>
-          <li>✅ Multi-agent coordination</li>
+          <li>✅ Under 5 min setup</li>
+          <li>✅ Chief of Staff coordination</li>
         </ul>
       </div>
       
@@ -91,19 +91,30 @@
           <li>❌ Coding required</li>
           <li>❌ Self-managed</li>
           <li>❌ Developer-focused</li>
-          <li>❌ Weeks to deploy</li>
-          <li>❌ Single-agent focus</li>
+          <li>❌ Days-weeks, requires code</li>
+          <li>❌ Code-based multi-agent only</li>
         </ul>
       </div>
       
       <div className="comparison-card">
-        <h3>Single AI Tools</h3>
+        <h3>Zapier / n8n</h3>
         <ul className="feature-list">
-          <li>❌ One function only</li>
           <li>❌ No coordination</li>
+          <li>❌ Trigger-based only</li>
           <li>❌ Fragmented workflows</li>
           <li>✅ Easy setup</li>
-          <li>❌ Limited scope</li>
+          <li>❌ No agent orchestration</li>
+        </ul>
+      </div>
+
+      <div className="comparison-card">
+        <h3>Jasper / Copy.ai</h3>
+        <ul className="feature-list">
+          <li>❌ Single purpose only</li>
+          <li>❌ No coordination</li>
+          <li>❌ Content-only scope</li>
+          <li>✅ Easy setup</li>
+          <li>❌ No business workflows</li>
         </ul>
       </div>
     </div>

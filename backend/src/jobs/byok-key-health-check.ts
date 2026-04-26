@@ -1,6 +1,11 @@
+import { KeyEncryption } from "../crypto/key-encryption.js";
+import { listAllValidByokKeys, updateByokKeyValidity, getByokKeyById, listByokKeys } from "../db/byok-keys.js";
+import type { ByokKey, ByokProvider } from "../db/byok-keys.js";
+import { validateProviderKey } from "../clients/byok/providers.js";
 import {
   deleteByokFallbackEvent,
   getByokFallbackEvent,
+  getCustomerById,
   listActiveByokCustomers,
   markByokFallbackEmailSent,
   setCustomerByokFallback,
@@ -10,43 +15,21 @@ import { insertNotification } from "../db/notifications.js";
 import type { AppDeps } from "../app-deps.js";
 import type { JobResult } from "./types.js";
 
-const OPENROUTER_VALIDATE_URL = "https://openrouter.ai/api/v1/models";
-const KEY_VALIDATE_TIMEOUT_MS = 10_000;
 const EMAIL_DEDUP_WINDOW_MS = 24 * 60 * 60 * 1000;
 
-interface ByokCustomer {
-  workspace_slug: string;
-  byok_key_encrypted: string;
-  byok_fallback_enabled: boolean;
-  byok_using_fallback: boolean;
-  customer_id: string;
-  email: string;
-  display_name: string;
-}
-
-const validateOpenRouterKey = async (key: string): Promise<boolean> => {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), KEY_VALIDATE_TIMEOUT_MS);
-  try {
-    const response = await fetch(OPENROUTER_VALIDATE_URL, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${key}` },
-      signal: controller.signal
-    });
-    return response.ok;
-  } catch {
-    return false;
-  } finally {
-    clearTimeout(timeout);
-  }
+const allCustomerProvidersInvalid = async (
+  db: AppDeps["db"],
+  customerId: string
+): Promise<boolean> => {
+  const keys = await listByokKeys(db, customerId);
+  return keys.length > 0 && keys.every((k) => !k.is_valid);
 };
 
-const handleFallbackActivation = async (
-  deps: AppDeps,
-  customer: ByokCustomer,
-  now: string
-): Promise<void> => {
-  const logger = deps.logger.child({ workspace: customer.workspace_slug });
+const handleFallbackActivation = async (deps: AppDeps, customerId: string, now: string): Promise<void> => {
+  const customer = await getCustomerById(deps.db, customerId);
+  if (!customer) return;
+
+  const logger = deps.logger.child({ workspace: customer.workspace_slug, customerId });
 
   await setCustomerByokFallback(deps.db, customer.workspace_slug, true);
 
@@ -62,7 +45,7 @@ const handleFallbackActivation = async (
       type: "byok_fallback_started",
       title: "Your API key failed — Foreman used your backup",
       body:
-        `Your OpenRouter API key failed validation. Foreman automatically switched to ` +
+        `Your BYOK API key(s) failed validation. Foreman automatically switched to ` +
         `its managed key for your agents. You are being billed at standard managed rates ` +
         `(cost + 20%) during the fallback window. Fix your key in Settings > Billing to restore BYOK billing.`
     });
@@ -74,18 +57,18 @@ const handleFallbackActivation = async (
       type: "byok_fallback_started",
       title: "Your API key is still failing — Foreman backup active",
       body:
-        `Your OpenRouter API key is still failing. Foreman continues using its managed key ` +
+        `Your BYOK API key(s) are still failing. Foreman continues using its managed key ` +
         `for your agents. Fix your key in Settings > Billing.`
     });
     logger.info("byok fallback still active — banner-only notification");
   }
 };
 
-const handleFallbackRecovery = async (
-  deps: AppDeps,
-  customer: ByokCustomer
-): Promise<void> => {
-  const logger = deps.logger.child({ workspace: customer.workspace_slug });
+const handleFallbackRecovery = async (deps: AppDeps, customerId: string): Promise<void> => {
+  const customer = await getCustomerById(deps.db, customerId);
+  if (!customer) return;
+
+  const logger = deps.logger.child({ workspace: customer.workspace_slug, customerId });
 
   await setCustomerByokFallback(deps.db, customer.workspace_slug, false);
   await deleteByokFallbackEvent(deps.db, customer.workspace_slug);
@@ -95,7 +78,7 @@ const handleFallbackRecovery = async (
     type: "byok_fallback_stopped",
     title: "Your API key is working again",
     body:
-      `Your OpenRouter API key is valid again. Foreman has switched your agents back to ` +
+      `Your BYOK API key(s) are valid again. Foreman has switched your agents back to ` +
       `BYOK billing. No further managed-key charges will be applied unless your key fails again.`
   });
 
@@ -105,74 +88,121 @@ const handleFallbackRecovery = async (
 export async function runByokKeyHealthCheckJob(deps: AppDeps): Promise<JobResult> {
   const logger = deps.logger.child({ jobName: "byok_key_health_check" });
 
-  let byokCustomers: ByokCustomer[];
+  let allKeys: ByokKey[];
   try {
-    byokCustomers = (await listActiveByokCustomers(deps.db)) as ByokCustomer[];
+    allKeys = await listAllValidByokKeys(deps.db);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    logger.error({ err: msg }, "failed to list BYOK customers");
+    logger.error({ err: msg }, "failed to list BYOK keys");
     return {
       jobName: "byok_key_health_check",
       status: "error",
-      message: `failed to list BYOK customers: ${msg}`
+      message: `failed to list BYOK keys: ${msg}`
     };
   }
-  if (byokCustomers.length === 0) {
+
+  if (allKeys.length === 0) {
     return {
       jobName: "byok_key_health_check",
       status: "noop",
-      message: "no active BYOK customers"
+      message: "no active BYOK keys to validate"
     };
   }
 
   const now = new Date().toISOString();
-  let activated = 0;
-  let recovered = 0;
+  let validated = 0;
+  let failed = 0;
   let errors = 0;
+  const failedCustomers = new Set<string>();
+  const recoveredCustomerIds = new Set<string>();
 
-  for (const customer of byokCustomers) {
+  for (const key of allKeys) {
     try {
-      const keyValid = await validateOpenRouterKey(customer.byok_key_encrypted);
+      if (!deps.env.BYOK_ENCRYPTION_KEY) {
+        logger.warn({ keyId: key.id }, "BYOK_ENCRYPTION_KEY not set — skipping key validation");
+        continue;
+      }
 
-      if (!keyValid && !customer.byok_using_fallback) {
-        if (customer.byok_fallback_enabled) {
-          await handleFallbackActivation(deps, customer, now);
-          activated++;
-        } else {
-          // Fallback disabled: pause agents + notify
-          logger.warn(
-            { workspace: customer.workspace_slug },
-            "BYOK key failed but fallback disabled — agents may stall"
-          );
+      const encryption = new KeyEncryption(deps.env.BYOK_ENCRYPTION_KEY);
+      let decryptedKey: string;
+      try {
+        decryptedKey = encryption.decrypt(key.key_encrypted);
+      } catch {
+        logger.error({ keyId: key.id, customerId: key.customer_id }, "failed to decrypt BYOK key");
+        await updateByokKeyValidity(deps.db, key.id, false);
+        failed++;
+        failedCustomers.add(key.customer_id);
+        continue;
+      }
+
+      const validation = await validateProviderKey(key.provider, decryptedKey);
+      const isValid = validation.valid;
+      await updateByokKeyValidity(deps.db, key.id, isValid);
+
+      if (isValid) {
+        validated++;
+        recoveredCustomerIds.add(key.customer_id);
+      } else {
+        failed++;
+        failedCustomers.add(key.customer_id);
+
+        const customer = await getCustomerById(deps.db, key.customer_id);
+        if (customer) {
           await insertNotification(deps.db, {
             workspace_slug: customer.workspace_slug,
-            type: "byok_fallback_started",
-            title: "Your API key failed — agents paused",
-            body:
-              `Your OpenRouter API key failed validation and BYOK fallback is disabled. ` +
-              `Your agents have been paused. Fix your key or enable fallback in Settings > Billing.`
+            type: "byok_key_invalid",
+            title: `Your ${key.provider} API key failed validation`,
+            body: `Your ${key.provider} BYOK key is no longer valid: ${validation.error ?? "unknown error"}. Please update or remove it in Settings > Billing.`
           });
         }
-      } else if (keyValid && customer.byok_using_fallback) {
-        await handleFallbackRecovery(deps, customer);
-        recovered++;
       }
     } catch (err) {
       logger.error(
-        { workspace: customer.workspace_slug, err: err instanceof Error ? err.message : String(err) },
-        "error processing BYOK health check for workspace"
+        { keyId: key.id, err: err instanceof Error ? err.message : String(err) },
+        "error checking BYOK key"
       );
       errors++;
     }
   }
 
-  const details = { checked: byokCustomers.length, activated, recovered, errors };
+  for (const customerId of failedCustomers) {
+    try {
+      const allInvalid = await allCustomerProvidersInvalid(deps.db, customerId);
+      if (allInvalid) {
+        const customer = await getCustomerById(deps.db, customerId);
+        if (customer && customer.byok_fallback_enabled && !customer.byok_using_fallback) {
+          await handleFallbackActivation(deps, customerId, now);
+        }
+      }
+    } catch (err) {
+      logger.error({ customerId, err: err instanceof Error ? err.message : String(err) }, "error handling fallback activation");
+      errors++;
+    }
+  }
+
+  for (const customerId of recoveredCustomerIds) {
+    if (failedCustomers.has(customerId)) continue;
+    try {
+      const customer = await getCustomerById(deps.db, customerId);
+      if (customer && customer.byok_using_fallback) {
+        const allInvalid = await allCustomerProvidersInvalid(deps.db, customerId);
+        if (!allInvalid) {
+          await handleFallbackRecovery(deps, customerId);
+        }
+      }
+    } catch (err) {
+      logger.error({ customerId, err: err instanceof Error ? err.message : String(err) }, "error handling fallback recovery");
+      errors++;
+    }
+  }
+
+  const details = { totalKeys: allKeys.length, validated, failed, errors };
   logger.info(details, "byok_key_health_check complete");
 
   return {
     jobName: "byok_key_health_check",
     status: errors > 0 ? "error" : "ok",
-    message: `checked ${byokCustomers.length} BYOK customers: ${activated} fallback(s) activated, ${recovered} recovered`,
+    message: `validated ${validated}/${allKeys.length} BYOK keys, ${failed} failed, ${errors} errors`,
     details
   };
 }

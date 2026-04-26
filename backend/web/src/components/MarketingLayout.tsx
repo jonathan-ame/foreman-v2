@@ -58,6 +58,11 @@ export function MarketingLayout() {
               <Link to="/acceptable-use">Acceptable Use</Link>
               <Link to="/security">Security</Link>
             </div>
+            <div className="footer-col">
+              <h4>Email</h4>
+              <Link to="/preferences">Manage preferences</Link>
+              <Link to="/unsubscribe">Unsubscribe</Link>
+            </div>
           </div>
         </div>
         <div className="footer-bottom">
