@@ -1,26 +1,22 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { trackEvent, trackPageView, trackSignupStarted, trackEmailSubscribed, trackFeedbackSubmitted } from '../analytics';
 
-declare global {
-  interface Window {
-    gtag: (...args: unknown[]) => void;
-    dataLayer: Record<string, unknown>[];
-    GA4_MEASUREMENT_ID: string;
-  }
-}
-
 describe('analytics', () => {
   let gtagSpy: ReturnType<typeof vi.fn>;
 
   beforeEach(() => {
     gtagSpy = vi.fn();
-    window.gtag = gtagSpy;
-    window.dataLayer = [];
-    window.GA4_MEASUREMENT_ID = 'G-TEST';
+    vi.stubGlobal('window', {
+      gtag: gtagSpy,
+      dataLayer: [],
+      GA4_MEASUREMENT_ID: 'G-TEST',
+      location: { href: 'http://localhost:3000/test' }
+    });
+    vi.stubGlobal('document', { title: 'Test Page' });
   });
 
   afterEach(() => {
-    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   describe('trackEvent', () => {
@@ -33,7 +29,7 @@ describe('analytics', () => {
     });
 
     it('does not call gtag when not available', () => {
-      window.gtag = undefined as never;
+      vi.stubGlobal('window', {});
       trackEvent('page_view');
       expect(gtagSpy).not.toHaveBeenCalled();
     });

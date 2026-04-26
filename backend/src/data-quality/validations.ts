@@ -176,5 +176,58 @@ export const DATA_QUALITY_DIMENSIONS: DimensionValidation[] = [
                  ARRAY_AGG(agent_id) as sample_agents
           FROM agents a
           WHERE (
-            -- Check if total_tokens_input is suspiciously lower than current period tokens
-            total_tokens_input 
+            total_tokens_input < tokens_input_current_period
+            OR total_tokens_output < tokens_output_current_period
+          )
+        `,
+        severity: 'warning',
+        fixAction: 'Review token accumulation logic in billing pipeline'
+      },
+      {
+        name: 'BYOK customers without encrypted key',
+        description: 'Customers in BYOK mode should have an encrypted API key stored',
+        query: `
+          SELECT COUNT(*) as inconsistent_count,
+                 ARRAY_AGG(customer_id) as sample_customers
+          FROM customers
+          WHERE current_billing_mode = 'byok'
+            AND byok_key_encrypted IS NULL
+        `,
+        severity: 'critical',
+        fixAction: 'Review BYOK key storage and ensure keys are encrypted before enabling BYOK mode'
+      }
+    ]
+  },
+  {
+    dimension: 'Data Freshness',
+    description: 'Ensures data is up to date and timely',
+    checks: [
+      {
+        name: 'Stale agent health checks',
+        description: 'Agent health checks should be recent',
+        query: `
+          SELECT COUNT(*) as stale_count,
+                 ARRAY_AGG(agent_id) as sample_agents
+          FROM agents
+          WHERE current_status = 'active'
+            AND last_health_check_at IS NOT NULL
+            AND last_health_check_at < NOW() - INTERVAL '1 hour'
+        `,
+        severity: 'warning',
+        fixAction: 'Check health check job scheduler and agent connectivity'
+      },
+      {
+        name: 'Outdated billing period',
+        description: 'Billing periods should be current',
+        query: `
+          SELECT COUNT(*) as outdated_count,
+                 ARRAY_AGG(agent_id) as sample_agents
+          FROM agents
+          WHERE billing_period_end < NOW() - INTERVAL '2 days'
+        `,
+        severity: 'warning',
+        fixAction: 'Review billing period rollover process'
+      }
+    ]
+  }
+];
