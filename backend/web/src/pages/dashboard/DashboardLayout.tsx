@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useFocusTrap, FOCUSABLE_SELECTOR, getFocusableElements } from "../../utils/useFocusTrap";
+import { useFocusTrap, getFocusableElements } from "../../utils/useFocusTrap";
 
 interface CustomerSession {
   customer_id: string;
@@ -123,9 +123,10 @@ interface SidebarNavProps {
   sidebarRef?: React.RefObject<HTMLDivElement | null>;
   isModal?: boolean;
   navId?: string;
+  "aria-hidden"?: "true" | undefined;
 }
 
-function SidebarNav({ pendingApprovals, customer, onClose, className, sidebarRef, isModal, navId }: SidebarNavProps) {
+function SidebarNav({ pendingApprovals, customer, onClose, className, sidebarRef, isModal, navId, "aria-hidden": ariaHidden }: SidebarNavProps) {
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -184,6 +185,7 @@ function SidebarNav({ pendingApprovals, customer, onClose, className, sidebarRef
       role={isModal ? "dialog" : undefined}
       aria-modal={isModal ? "true" : undefined}
       aria-label="Main navigation"
+      aria-hidden={ariaHidden}
       onKeyDown={handleNavKeyDown}
     >
       <div className="dash-sidebar-top">
@@ -280,6 +282,9 @@ export function DashboardLayout() {
 
   const closeSidebar = useCallback(() => {
     setSidebarOpen(false);
+    requestAnimationFrame(() => {
+      hamburgerRef.current?.focus();
+    });
   }, []);
 
   useEffect(() => {
@@ -360,12 +365,12 @@ export function DashboardLayout() {
       </header>
 
       {sidebarOpen && (
-        <div className="dash-overlay dash-overlay--visible" onClick={closeSidebar} role="presentation" />
+        <div className="dash-overlay dash-overlay--visible" onClick={closeSidebar} role="presentation" aria-hidden="true" />
       )}
 
-      <SidebarNav pendingApprovals={pendingApprovals} customer={customer} onClose={closeSidebar} className={sidebarOpen ? "dash-sidebar--open" : undefined} sidebarRef={sidebarRef} isModal={sidebarOpen} navId={sidebarId} />
+      <SidebarNav pendingApprovals={pendingApprovals} customer={customer} onClose={closeSidebar} className={sidebarOpen ? "dash-sidebar--open" : undefined} sidebarRef={sidebarRef} isModal={sidebarOpen} navId={sidebarId} aria-hidden={!sidebarOpen ? "true" : undefined} />
 
-      <main className="dash-main">
+      <main className="dash-main" inert={sidebarOpen ? "" : undefined} aria-hidden={sidebarOpen ? "true" : undefined}>
         <Outlet context={{ customer } satisfies DashboardContext} />
       </main>
     </div>

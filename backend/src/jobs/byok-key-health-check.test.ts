@@ -114,7 +114,7 @@ describe("byok_key_health_check job", () => {
   it("validates keys and marks invalid ones", async () => {
     const key = makeFakeKey();
     listAllValidByokKeysMock.mockResolvedValue([key]);
-    getCustomerByIdMock.mockResolvedValue(makeCustomer());
+    getCustomerByIdMock.mockResolvedValue(makeCustomer({ byok_fallback_enabled: false }));
     validateProviderKeyMock.mockResolvedValue({ valid: false, error: "Invalid API key" });
     updateByokKeyValidityMock.mockResolvedValue({ ...key, is_valid: false });
     listByokKeysMock.mockResolvedValue([{ ...key, is_valid: false }]);

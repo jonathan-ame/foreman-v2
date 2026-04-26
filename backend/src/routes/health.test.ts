@@ -43,7 +43,9 @@ describe("integration health route", () => {
       clients: {
         paperclip: { ping: vi.fn(async () => ({ ok: true, version: "2026.403.0" })) },
         openclaw: { gatewayStatus: vi.fn(async () => ({ running: true, pid: 12345, listening: "127.0.0.1:18789" })) },
-        stripe: {} as never
+        stripe: {} as never,
+        composio: { isConfigured: false } as never,
+        tavily: { isConfigured: false } as never
       },
       logger: createLogger("health-route-test"),
       env: { OPENROUTER_API_KEY: "or-key" } as never
@@ -76,7 +78,9 @@ describe("integration health route", () => {
       clients: {
         paperclip: { ping: vi.fn(async () => ({ ok: true, version: "2026.403.0" })) },
         openclaw: { gatewayStatus: vi.fn(async () => ({ running: true, pid: 12345, listening: "127.0.0.1:18789" })) },
-        stripe: {} as never
+        stripe: {} as never,
+        composio: { isConfigured: false } as never,
+        tavily: { isConfigured: false } as never
       },
       logger: createLogger("health-route-test"),
       env: { OPENROUTER_API_KEY: "or-key" } as never

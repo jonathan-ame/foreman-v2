@@ -36,10 +36,10 @@ const makeByokKey = (overrides: Partial<ByokKey> = {}): ByokKey => ({
 
 describe("ByokRouter", () => {
   let router: ByokRouter;
+  const logger = createLogger("byok-router-test");
 
   beforeEach(() => {
     vi.clearAllMocks();
-    const logger = createLogger("byok-router-test");
     router = new ByokRouter({
       encryptionKey: ENCRYPTION_KEY,
       db: {} as never,
